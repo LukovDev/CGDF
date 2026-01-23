@@ -1,5 +1,5 @@
 {
-    "program-name":  "C Program Framework",
+    "program-name":  "CGDF Program",
     "program-icon":  "data/icons/icon.ico",
     "source-dirs":   ["src/"],
     "build-dir":     "build/",
@@ -15,7 +15,7 @@
     "includes":      [],
     "libraries":     [],
     "libnames":      [],
-    "optimization":  "-O2",
+    "optimization":  "-O3",
     "std-c":         "c17",
     "std-cpp":       "c++17",
     "compiler-s":    "gcc",

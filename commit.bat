@@ -1,5 +1,6 @@
 @echo off
-python git.py add
-python git.py commit
-python git.py push
+git add . --renormalize
+python pygit.py add
+python pygit.py commit
+python pygit.py push
 pause

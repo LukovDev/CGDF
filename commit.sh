@@ -1,5 +1,6 @@
 #!/bin/sh
 
-python3 git.py add
-python3 git.py commit
-python3 git.py push
+git add . --renormalize
+python3 pygit.py add
+python3 pygit.py commit
+python3 pygit.py push
