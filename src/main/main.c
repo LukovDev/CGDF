@@ -11,9 +11,6 @@
 int main(int argc, char *argv[]) {
     CGDF_Init();
 
-    char* hello = "Hello";
-    printf("%s World!\n", hello);  // Hello World!
-
     const char* cgdf_version = CGDF_GetVersion();
     log_msg("CGDF version: %s\n", cgdf_version);
 

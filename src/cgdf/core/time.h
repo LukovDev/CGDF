@@ -157,23 +157,23 @@ static inline TimeCurrent Time_get_current(bool local_time) {
     result.year += cycles400 * 400;
     days -= (uint32_t)cycles400 * 146097;
     while (1) {
-        int dy = _Time_is_leap_(result.year) ? 366 : 365;
+        uint32_t dy = _Time_is_leap_(result.year) ? 366 : 365;
         if (days < dy) break;
         days -= dy;
         result.year++;
     }
 
     // Определяем месяц и день:
-    static const int mdays_norm[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    static const int mdays_leap[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    const int *md = _Time_is_leap_(result.year) ? mdays_leap : mdays_norm;
+    static const uint32_t mdays_norm[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    static const uint32_t mdays_leap[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    const uint32_t *md = _Time_is_leap_(result.year) ? mdays_leap : mdays_norm;
     result.month = 1;
     for (int i = 0; i < 12; i++) {
         if (days < md[i]) break;
         days -= md[i];
         result.month++;
     }
-    result.day = (uint32_t)days + 1;
+    result.day = days + 1;
 
     // Возвращаем время:
     return result;

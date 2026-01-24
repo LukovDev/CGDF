@@ -26,7 +26,7 @@
         "src/libs/"
     ],
     "libnames":      [
-        "SDL3", "opengl32"
+        "SDL3"
     ],
     "optimization":  "-O3",
     "std-c":         "c17",
