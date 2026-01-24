@@ -1,0 +1,21 @@
+//
+// graphics.h - Модуль графики. Объединяет весь функционал модуля графики.
+//
+// Реализация графики выбирается исходя из модуля, который вы компилируете. Обычно это "opengl".
+//
+
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+// Подключаем:
+#include "input.h"
+#include "window.h"
+
+
+#ifdef __cplusplus
+}
+#endif

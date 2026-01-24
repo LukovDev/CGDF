@@ -4,7 +4,8 @@
     "source-dirs":   [
         "src/main/",
         "src/cgdf/core/",
-        "src/cgdf/graphics-gl/"
+        "src/cgdf/graphics/",
+        "src/cgdf/graphics/opengl/"
     ],
     "build-dir":     "build/",
     "bin-dir-name":  "bin",
