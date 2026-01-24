@@ -31,6 +31,12 @@ void start(Window *self) {
 
 // Вызывается каждый кадр (цикл окна):
 void update(Window *self, Input *input, float dtime) {
+    if (Window_get_is_focused(self)) {
+        Window_set_fps(self, 60.0f);
+    }
+    if (Window_get_is_defocused(self)) {
+        Window_set_fps(self, 10.0f);
+    }
 }
 
 

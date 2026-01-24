@@ -8,7 +8,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/pixmap.h>
-// #include "renderer.h"
+#include "renderer.h"
 #include "input.h"
 
 
@@ -23,7 +23,7 @@ struct Window {
     WinConfig *config;    // Конфигурация окна.
     WinVars   *vars;      // Указатель на переменные окна.
     Input     *input;     // Ввод.
-    // Renderer  *renderer;  // Рендерер.
+    Renderer  *renderer;  // Рендерер.
 };
 
 

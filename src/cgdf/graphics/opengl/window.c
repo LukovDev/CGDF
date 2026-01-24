@@ -10,7 +10,7 @@
 #include <cgdf/core/pixmap.h>
 #include <cgdf/core/logger.h>
 #include "../input.h"
-// #include "../renderer.h"
+#include "../renderer.h"
 #include "../window.h"
 #include "gl.h"
 
@@ -111,7 +111,7 @@ Window* Window_create(WinConfig *config) {
 
     // Сохраняем указатели:
     window->config = config;
-    // window->renderer = NULL;  // Создаём рендерер при создании окна.
+    window->renderer = NULL;  // Создаём рендерер при создании окна.
     window->input = input;
     window->vars = vars;
 
@@ -131,7 +131,7 @@ void Window_destroy(Window **window) {
     }
 
     // Удаляем рендерер:
-    // if ((*window)->renderer) Renderer_destroy(&(*window)->renderer);
+    if ((*window)->renderer) Renderer_destroy(&(*window)->renderer);
 
     // Освобождаем память системы ввода:
     if ((*window)->input) Input_destroy(&(*window)->input);
@@ -290,7 +290,7 @@ static void MainLoop(Window *self, WinConfig *config) {
         if (cfg->render) cfg->render(self, self->input, Window_get_dtime(self));
 
         // Очищаем все буфера (массивное удаление всех буферов за раз):
-        // self->renderer->buffers_flush(self->renderer);
+        Renderer_buffers_flush(self->renderer);
 
         // Проверяем что окно хотят закрыть:
         if (vars->closing) {
@@ -395,12 +395,11 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
     SDL_GL_SetSwapInterval(0);  // По умолчанию, отключаем VSync.
 
     // Создаём рендерер:
-    // Renderer *rnd = Renderer_create();
-    // self->renderer = rnd;  // Указываем рендерер в окне.
+    Renderer *rnd = Renderer_create();
+    self->renderer = rnd;  // Указываем рендерер в окне.
 
-    // // Инициализируем рендерер:
-    // rnd->init(rnd);
-    gl_init();
+    // Инициализируем рендерер:
+    Renderer_init(rnd);
 
     // Устанавливаем значения в глобальные переменные:
     vars->window = window;

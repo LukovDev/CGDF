@@ -13,6 +13,7 @@ extern "C" {
 
 // Подключаем:
 #include "input.h"
+#include "renderer.h"
 #include "window.h"
 
 

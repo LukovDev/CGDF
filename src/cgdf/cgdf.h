@@ -4,14 +4,16 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 // Определения:
 #define CGDF_VERSION "v1.0.0-alpha"
 
-
 // Подключаем:
 #include "core/core.h"
-
 
 // Инициализировать библиотеку:
 static inline bool CGDF_Init(void) {
@@ -20,8 +22,12 @@ static inline bool CGDF_Init(void) {
     return true;
 }
 
-
 // Получить версию библиотеки:
 static inline const char* CGDF_GetVersion(void) {
     return CGDF_VERSION;
 }
+
+
+#ifdef __cplusplus
+}
+#endif
