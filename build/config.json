@@ -1,7 +1,11 @@
 {
     "program-name":  "CGDF Program",
     "program-icon":  "data/icons/icon.ico",
-    "source-dirs":   ["src/"],
+    "source-dirs":   [
+        "src/main/",
+        "src/cgdf/core/",
+        "src/cgdf/graphics-gl/"
+    ],
     "build-dir":     "build/",
     "bin-dir-name":  "bin",
     "obj-dir-name":  "obj",
@@ -9,12 +13,21 @@
     "build-logging": true,
     "multi-threads": true,
     "strip":         false,
-    "progress-percent": true,
+    "progress-percent": false,
     "console-disabled": false,
     "defines":       [],
-    "includes":      [],
-    "libraries":     [],
-    "libnames":      [],
+    "includes":      [
+        "/opt/homebrew/include/",
+        "src/include/",
+        "src/"
+    ],
+    "libraries":     [
+        "/opt/homebrew/lib/",
+        "src/libs/"
+    ],
+    "libnames":      [
+        "SDL3", "opengl32"
+    ],
     "optimization":  "-O3",
     "std-c":         "c17",
     "std-cpp":       "c++17",
@@ -25,8 +38,12 @@
     "ld-file":       "",
     "warnings":      ["-Wall"],
     "compile-flags-s": [],
-    "compile-flags-c": [],
-    "compile-flags-cpp": [],
+    "compile-flags-c": [
+        "-g"
+    ],
+    "compile-flags-cpp": [
+        "-g"
+    ],
     "linker-flags":  [],
     "commands-after-build": []
 }
