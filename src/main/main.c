@@ -8,6 +8,9 @@
 #include <cgdf/graphics/graphics.h>
 
 
+Camera2D *camera;
+
+
 void print_before_free() {
     printf("(Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
             mm_get_used_size_kb(), mm_get_used_size(), mm_get_total_allocated_blocks(), mm_get_absolute_used_size(),
@@ -26,6 +29,10 @@ void print_after_free() {
 // Вызывается после создания окна:
 void start(Window *self) {
     printf("Start called.\n");
+
+    int width = Window_get_width(self);
+    int height = Window_get_height(self);
+    camera = Camera2D_create(self, width, height, (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
 }
 
 
@@ -37,6 +44,8 @@ void update(Window *self, Input *input, float dtime) {
     if (Window_get_is_defocused(self)) {
         Window_set_fps(self, 10.0f);
     }
+
+    Camera2D_update(camera);
 }
 
 
@@ -51,6 +60,7 @@ void render(Window *self, Input *input, float dtime) {
 // Вызывается при изменении размера окна:
 void resize(Window *self, int width, int height) {
     printf("Resize called.\n");
+    Camera2D_resize(camera, width, height);
 }
 
 
@@ -69,6 +79,7 @@ void hide(Window *self) {
 // Вызывается при закрытии окна:
 void destroy(Window *self) {
     printf("Destroy called.\n");
+    Camera2D_destroy(&camera);
 }
 
 
@@ -80,8 +91,6 @@ int main(int argc, char *argv[]) {
     log_msg("CGDF version: %s\n", cgdf_version);
 
     WinConfig *config = Window_create_config(start, update, render, resize, show, hide, destroy);
-    // config->width = 256;
-    // config->height = 256;
     Window *window = Window_create(config);
     if (!Window_open(window, 3, 3)) {
         log_msg("Window creation failed.\n");

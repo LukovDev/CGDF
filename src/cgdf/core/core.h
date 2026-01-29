@@ -29,7 +29,7 @@ extern "C" {
 
 
 // Инициализация ядра:
-static inline bool core_init() {
+static inline bool core_init(void) {
     Time_init();
     logger_init();
     return true;

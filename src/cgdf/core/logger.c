@@ -19,7 +19,7 @@
 
 
 // Преобразование кода сигнала в строку:
-static const char* code_to_string(int code) {
+static inline const char* code_to_string(int code) {
     switch(code) {
         case SIGSEGV: return "Error: Segmentation fault";
         case SIGABRT: return "Error: Abort signal";
@@ -34,7 +34,7 @@ static const char* code_to_string(int code) {
 
 
 // Обработчик вылета:
-static void crash_handler(int sig) {
+static inline void crash_handler(int sig) {
     FILE *f = fopen(LOG_FILE_PATH, "a");
     if (!f) f = stderr;
 

@@ -17,8 +17,8 @@
 
 // Объявление функций:
 static void MainLoop(Window *self, WinConfig *cfg);  // Главный цикл окна.
-static void Closing_stage(Window *self);  // Этап закрытия окна.
-static Input_Scancode Convert_scancode(SDL_Scancode scancode);   // Для Input.
+static void ClosingStage(Window *self);              // Этап закрытия окна.
+static Input_Scancode ConvertScancode(SDL_Scancode scancode);    // Для Input.
 static void Impl_set_mouse_pos(Window *self, int x, int y);      // Для Input.
 static void Impl_set_mouse_visible(Window *self, bool visible);  // Для Input.
 
@@ -177,7 +177,7 @@ static void MainLoop(Window *self, WinConfig *config) {
         // Получаем копию указателя на систему ввода:
         Input *input = self->input;
 
-        // Сброс состояний клавиатуры и мыши:
+        // Сброс состояний клавиатуры и мыши (обнуляем поля):
         input->mouse->rel = (Vec2i){0, 0};
         input->mouse->wheel = (Vec2i){0, 0};
         memset(input->mouse->down, 0, input->mouse->max_keys * sizeof(bool));
@@ -265,7 +265,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если нажимают кнопку на клавиатуре:
                 case SDL_EVENT_KEY_DOWN: {
-                    Input_Scancode scancode = Convert_scancode(event.key.scancode);
+                    Input_Scancode scancode = ConvertScancode(event.key.scancode);
                     if (scancode < input->keyboard->max_keys) {
                         if (!input->keyboard->pressed[scancode]) {
                             input->keyboard->pressed[scancode] = true;
@@ -276,7 +276,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если отпускают кнопку на клавиатуре:
                 case SDL_EVENT_KEY_UP: {
-                    Input_Scancode scancode = Convert_scancode(event.key.scancode);
+                    Input_Scancode scancode = ConvertScancode(event.key.scancode);
                     if (scancode < input->keyboard->max_keys) {
                         input->keyboard->pressed[scancode] = false;
                         input->keyboard->up[scancode] = true;
@@ -294,7 +294,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
         // Проверяем что окно хотят закрыть:
         if (vars->closing) {
-            Closing_stage(self);
+            ClosingStage(self);
             return;
         }
 
@@ -317,11 +317,11 @@ static void MainLoop(Window *self, WinConfig *config) {
 
     // Закрываем окно:
     Window_close(self);
-    if (vars->closing) Closing_stage(self);
+    if (vars->closing) ClosingStage(self);
 }
 
 // Этап закрытия окна:
-static void Closing_stage(Window *self) {
+static void ClosingStage(Window *self) {
     if (!self || !self->config) return;
     WinVars *vars = self->vars;
     if (!vars || !vars->window) return;
@@ -839,7 +839,7 @@ void Window_display(Window *self) {
 // -------- Реализация функций ввода: --------
 
 
-static Input_Scancode Convert_scancode(SDL_Scancode scancode) {
+static Input_Scancode ConvertScancode(SDL_Scancode scancode) {
     switch (scancode) {
         case SDL_SCANCODE_0: return K_0;
         case SDL_SCANCODE_1: return K_1;

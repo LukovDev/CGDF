@@ -9,7 +9,7 @@
 
 // Подключаем:
 #include <cgdf/core/std.h>
-// #include "shader.h"
+#include "shader.h"
 
 
 // Объявление структур:
@@ -18,10 +18,13 @@ typedef struct Renderer Renderer;  // Рендерер.
 
 // Рендерер:
 struct Renderer {
-    bool initialized;       // Флаг инициализации контекста OpenGL.
-    // ShaderProgram *shader;  // Дефолтная шейдерная программа.
-    // void          *camera;  // Текущая активная камера.
+    bool initialized;  // Флаг инициализации контекста OpenGL.
+    void *camera;      // Текущая активная камера.
+    Shader *shader;    // Дефолтная шейдерная программа.
 };
+
+
+// -------- API рендерера: --------
 
 
 // Создать рендерер:
@@ -29,10 +32,6 @@ Renderer* Renderer_create(void);
 
 // Уничтожить рендерер:
 void Renderer_destroy(Renderer **rnd);
-
-
-// -------- API рендерера: --------
-
 
 // Инициализация рендерера:
 void Renderer_init(Renderer *self);

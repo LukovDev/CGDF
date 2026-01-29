@@ -12,8 +12,12 @@ extern "C" {
 
 
 // Подключаем:
+#include "controllers/controllers.h"
+#include "camera.h"
 #include "input.h"
 #include "renderer.h"
+#include "shader.h"
+#include "texture.h"
 #include "window.h"
 
 
