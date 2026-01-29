@@ -73,6 +73,9 @@ void Camera2D_update(Camera2D *self);
 // Изменение размера камеры:
 void Camera2D_resize(Camera2D *self, int width, int height);
 
+// Изменить масштаб единицы измерения:
+void Camera2D_set_meter(Camera2D *self, float meter);
+
 // Начало отрисовки UI:
 void Camera2D_ui_begin(Camera2D *self);
 

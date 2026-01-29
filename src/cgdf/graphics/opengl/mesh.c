@@ -7,9 +7,19 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include "../vertex.h"
+#include "../mesh.h"
 #include "buffers/buffers.h"
 #include "gl.h"
-#include "mesh.h"
+
+
+// Структура сетки:
+struct Mesh {
+    BufferVAO *vao;  // Атрибуты вершин.
+    BufferVBO *vbo;  // Буфер вершин.
+    BufferEBO *ebo;  // Буфер индексов.
+    uint32_t index_count;  // Количество индексов.
+    bool is_dynamic;       // Динамическая ли сетка.
+};
 
 
 // Создать сетку:

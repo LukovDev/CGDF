@@ -6,7 +6,6 @@
 // Подключаем:
 #include <cgdf/cgdf.h>
 #include <cgdf/graphics/graphics.h>
-#include <cgdf/graphics/opengl/mesh.h>
 
 
 static const float f = 1.0f;
@@ -48,13 +47,14 @@ void start(Window *self) {
     Window_set_fps(self, 60);
     Window_set_vsync(self, false);
 
-    Pixmap *icon = Pixmap_load("data/icons/icon.png", PIXMAP_RGBA);
+    Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
     Window_set_icon(self, icon);
     Pixmap_destroy(&icon);
 
     int width = Window_get_width(self);
     int height = Window_get_height(self);
     camera = Camera2D_create(self, width, height, (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
+    Camera2D_set_meter(camera, 1.0f);
 
     ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.2f);
 
@@ -66,18 +66,17 @@ void start(Window *self) {
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
-    Texture_set_pixelized(tex1);
 }
 
 
 // Вызывается каждый кадр (цикл окна):
 void update(Window *self, Input *input, float dtime) {
-    // if (Window_get_is_focused(self)) {
-    //     Window_set_fps(self, 60.0f);
-    // }
-    // if (Window_get_is_defocused(self)) {
-    //     Window_set_fps(self, 10.0f);
-    // }
+    if (Window_get_is_focused(self)) {
+        Window_set_fps(self, 60.0f);
+    }
+    if (Window_get_is_defocused(self)) {
+        Window_set_fps(self, 10.0f);
+    }
 
     CameraController2D_update(ctrl, dtime, false);
     Camera2D_update(camera);

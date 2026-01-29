@@ -7,22 +7,13 @@
 
 // Подключаем:
 #include <cgdf/core/std.h>
-#include "buffers/buffers.h"
-#include "../vertex.h"
+#include "vertex.h"
 
 
 // Объявление структур:
-typedef struct Mesh Mesh;      // Структура одной сетки модели.
+typedef struct Mesh Mesh;  // Структура сетки.
 
-
-// Структура сетки:
-struct Mesh {
-    BufferVAO *vao;  // Атрибуты вершин.
-    BufferVBO *vbo;  // Буфер вершин.
-    BufferEBO *ebo;  // Буфер индексов.
-    uint32_t index_count;  // Количество индексов.
-    bool is_dynamic;       // Динамическая ли сетка.
-};
+// (Определение структуры находится в реализации).
 
 
 // -------- API сетки: --------

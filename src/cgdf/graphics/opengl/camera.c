@@ -90,6 +90,13 @@ void Camera2D_resize(Camera2D *self, int width, int height) {
     glm_ortho(-wdth, wdth, -hght, hght, -1.0, 1.0, self->proj);
 }
 
+// Изменить масштаб единицы измерения:
+void Camera2D_set_meter(Camera2D *self, float meter) {
+    if (!self) return;
+    self->meter = meter;
+    Camera2D_resize(self, self->width, self->height);
+}
+
 // Начало отрисовки UI:
 void Camera2D_ui_begin(Camera2D *self) {
     if (!self || self->_ui_begin_ || !self->window->renderer) return;
