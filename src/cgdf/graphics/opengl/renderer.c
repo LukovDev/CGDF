@@ -89,6 +89,7 @@ Renderer* Renderer_create() {
     Shader *shader = Shader_create(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
     if (!shader || Shader_get_error(shader)) {
         log_msg("[!] Error (from Renderer_create): Creating default shader failed: %s\n", shader->error);
+
         // Самоуничтожение при провале создания шейдера:
         Shader_destroy(&shader);
         mm_free(rnd);

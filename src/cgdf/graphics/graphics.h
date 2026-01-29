@@ -18,6 +18,7 @@ extern "C" {
 #include "renderer.h"
 #include "shader.h"
 #include "texture.h"
+#include "vertex.h"
 #include "window.h"
 
 
