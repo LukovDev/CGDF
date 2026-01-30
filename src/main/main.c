@@ -8,22 +8,9 @@
 #include <cgdf/graphics/graphics.h>
 
 
-static const float f = 1.0f;
-static const Vertex quad_vertices[] = {
-    {-f, -f, 0,  0,0,0,  1,1,1,  0,1}, // 0
-    {+f, -f, 0,  0,0,0,  1,1,1,  1,1}, // 1
-    {+f, +f, 0,  0,0,0,  1,1,1,  1,0}, // 2
-    {-f, +f, 0,  0,0,0,  1,1,1,  0,0}  // 3
-};
-static const uint32_t quad_indices[] = {
-    0, 1, 2,
-    2, 3, 0
-};
-
 Texture *tex1;
 CameraController2D *ctrl;
 Camera2D *camera;
-Mesh *mesh;
 
 
 void print_before_free() {
@@ -49,6 +36,7 @@ void start(Window *self) {
 
     Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
     Window_set_icon(self, icon);
+    Window_set_title(self, "CGDF Window");
     Pixmap_destroy(&icon);
 
     int width = Window_get_width(self);
@@ -57,12 +45,6 @@ void start(Window *self) {
     Camera2D_set_meter(camera, 1.0f);
 
     ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.2f);
-
-    mesh = Mesh_create(
-        quad_vertices, sizeof(quad_vertices) / sizeof(Vertex),
-        quad_indices, sizeof(quad_indices) / sizeof(uint32_t),
-        false
-    );
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
@@ -86,9 +68,17 @@ void update(Window *self, Input *input, float dtime) {
 // Вызывается каждый кадр (отрисовка окна):
 void render(Window *self, Input *input, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
-    Shader_set_bool(self->renderer->shader, "u_use_texture", true);
-    Shader_set_tex2d(self->renderer->shader, "u_texture", tex1->id);
-    Mesh_render(mesh, false);
+
+    Vec2i mouse_pos = Input_get_mouse_pos(self);
+    Vec2d globpos = local_to_global_2d(camera, mouse_pos);
+
+    for (int y=0; y < 100; y++) {
+        for (int x=0; x < 100; x++) {
+            Sprite2D_render(self->renderer, tex1, x, y, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+        }
+    }
+
+    Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
     Window_display(self);
 }
 
@@ -116,7 +106,6 @@ void hide(Window *self) {
 void destroy(Window *self) {
     printf("Destroy called.\n");
     Camera2D_destroy(&camera);
-    Mesh_destroy(&mesh);
     CameraController2D_destroy(&ctrl);
     Texture_destroy(&tex1);
 }

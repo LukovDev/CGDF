@@ -18,7 +18,9 @@ extern "C" {
 #include "mesh.h"
 #include "renderer.h"
 #include "shader.h"
+#include "sprite.h"
 #include "texture.h"
+#include "utils.h"
 #include "vertex.h"
 #include "window.h"
 

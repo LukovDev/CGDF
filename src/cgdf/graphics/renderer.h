@@ -9,6 +9,7 @@
 
 // Подключаем:
 #include <cgdf/core/std.h>
+#include "mesh.h"
 #include "shader.h"
 
 
@@ -21,6 +22,9 @@ struct Renderer {
     bool initialized;  // Флаг инициализации контекста OpenGL.
     void *camera;      // Текущая активная камера.
     Shader *shader;    // Дефолтная шейдерная программа.
+
+    // Другое:
+    Mesh *sprite_mesh;  // Сетка спрайта.
 };
 
 

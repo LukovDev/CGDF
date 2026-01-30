@@ -56,7 +56,7 @@ void Camera2D_update(Camera2D *self) {
     Renderer *renderer = self->window->renderer;
 
     glm_mat4_identity(self->view);
-    if (self->zoom != 0.0) {
+    if (self->zoom != 0.0f) {
         glm_scale(self->view, (vec3){1.0f/self->zoom, 1.0f/self->zoom, 1.0f});
     } else {
         glm_scale(self->view, (vec3){0.0f, 0.0f, 1.0f});
@@ -87,7 +87,7 @@ void Camera2D_resize(Camera2D *self, int width, int height) {
     glm_mat4_identity(self->proj);
     float wdth = ((float)self->width)/2.0f * self->meter/100.0f;
     float hght = ((float)self->height)/2.0f * self->meter/100.0f;
-    glm_ortho(-wdth, wdth, -hght, hght, -1.0, 1.0, self->proj);
+    glm_ortho(-wdth, wdth, -hght, hght, -1.0f, 1.0f, self->proj);
 }
 
 // Изменить масштаб единицы измерения:

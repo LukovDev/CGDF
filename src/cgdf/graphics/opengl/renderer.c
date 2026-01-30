@@ -7,6 +7,8 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/logger.h>
+#include "../vertex.h"
+#include "../mesh.h"
 #include "../renderer.h"
 #include "buffer_gc.h"
 #include "texunit.h"
@@ -73,6 +75,20 @@ void main(void) {\n\
 ";
 
 
+// Квадрат с текстурой для спрайта:
+static const Vertex _sprite_vertices_[] = {
+    // vertex, normal, color, texcoord.
+    {-1,-1,0,  0,0,0,  1,1,1,  0,1},  // id 0.
+    {+1,-1,0,  0,0,0,  1,1,1,  1,1},  // id 1.
+    {+1,+1,0,  0,0,0,  1,1,1,  1,0},  // id 2.
+    {-1,+1,0,  0,0,0,  1,1,1,  0,0}   // id 3.
+};
+static const uint32_t _sprite_indices_[] = {
+    0, 1, 2,  // Triangle 1.
+    2, 3, 0   // Triangle 2.
+};
+
+
 // -------- API рендерера: --------
 
 
@@ -84,6 +100,7 @@ Renderer* Renderer_create() {
     rnd->initialized = false;
     rnd->camera = NULL;
     rnd->shader = NULL;
+    rnd->sprite_mesh = NULL;
 
     // Создаём шейдер:
     Shader *shader = Shader_create(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
@@ -115,6 +132,9 @@ void Renderer_destroy(Renderer **rnd) {
         Shader_destroy(&(*rnd)->shader);
     }
 
+    // Удаляем сетку спрайта:
+    Mesh_destroy(&(*rnd)->sprite_mesh);
+
     // Освобождаем память рендерера:
     mm_free(*rnd);
     *rnd = NULL;
@@ -141,6 +161,13 @@ void Renderer_init(Renderer *self) {
 
     // Компилируем дефолтный шейдер:
     if (self->shader) Shader_compile(self->shader);
+
+    // Создаём сетку спрайта:
+    self->sprite_mesh = Mesh_create(
+        _sprite_vertices_, sizeof(_sprite_vertices_)/sizeof(Vertex),
+        _sprite_indices_, sizeof(_sprite_indices_)/sizeof(uint32_t),
+        false
+    );
 
     // Поднимаем флаг инициализации:
     self->initialized = true;
