@@ -22,6 +22,7 @@ struct Renderer {
     bool initialized;  // Флаг инициализации контекста OpenGL.
     void *camera;      // Текущая активная камера.
     Shader *shader;    // Дефолтная шейдерная программа.
+    Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
 
     // Другое:
     Mesh *sprite_mesh;  // Сетка спрайта.

@@ -142,7 +142,7 @@ Vec2i Input_get_mouse_wheel(Window *self) {
 
 // Установить позицию мыши:
 void Input_set_mouse_pos(Window *self, int x, int y) {
-    if (!self || !self->input || self->input->set_mouse_pos) return;
+    if (!self || !self->input || !self->input->set_mouse_pos) return;
 
     // Вызываем функцию, из реализации окна:
     self->input->set_mouse_pos(self, x, y);
@@ -156,7 +156,7 @@ Vec2i Input_get_mouse_pos(Window *self) {
 
 // Установить видимость мыши:
 void Input_set_mouse_visible(Window *self, bool visible) {
-    if (!self || !self->input || self->input->set_mouse_visible) return;
+    if (!self || !self->input || !self->input->set_mouse_visible) return;
 
     // Вызываем функцию, из реализации окна:
     self->input->set_mouse_visible(self, visible);

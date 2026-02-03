@@ -56,6 +56,7 @@ struct Texture {
     bool has_mipmap;
     bool _is_begin_;
     int32_t _id_before_begin_;
+    int32_t _active_id_before_begin_;
 };
 
 

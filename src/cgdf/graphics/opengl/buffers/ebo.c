@@ -61,8 +61,11 @@ void BufferEBO_end(BufferEBO *self) {
 // Получить размер буфера:
 size_t BufferEBO_get_size(BufferEBO *self) {
     if (!self) return 0;
+    bool was_begin = self->_is_begin_;
+    if (!was_begin) BufferEBO_begin(self);
     int buffer_size;
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);
+    if (!was_begin) BufferEBO_end(self);
     return buffer_size;
 }
 

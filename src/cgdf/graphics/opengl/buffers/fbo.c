@@ -55,7 +55,7 @@ void BufferFBO_destroy(BufferFBO **fbo) {
 // -------- Вспомогательные функции: --------
 
 
-static inline void attach_handle_array(BufferFBO *self, uint32_t attachment, uint32_t tex_id) {
+static void attach_handle_array(BufferFBO *self, uint32_t attachment, uint32_t tex_id) {
     // Если текстура не равна нулю, то добавляем ее в список привязок:
     if (tex_id != 0) {
         // Проверяем есть ли в массиве уже эта привязка, и если есть - перезаписываем:
@@ -80,7 +80,7 @@ static inline void attach_handle_array(BufferFBO *self, uint32_t attachment, uin
 }
 
 
-static inline void fbo_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height, int64_t mode) {
+static void fbo_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height, int64_t mode) {
     // Сохраняем состояние буферов:
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &self->_id_before_read_);
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &self->_id_before_draw_);
@@ -108,8 +108,8 @@ void BufferFBO_begin(BufferFBO *self) {
     if (!self || self->_is_begin_ || self->id == 0) return;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &self->_id_before_begin_);
     glBindFramebuffer(GL_FRAMEBUFFER, self->id);
-    BufferFBO_apply(self);
     self->_is_begin_ = true;
+    BufferFBO_apply(self);  // Только после _is_begin_ = true.
 }
 
 // Не использовать буфер:

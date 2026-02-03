@@ -217,7 +217,7 @@ void Array_remove(Array *arr, size_t index, void *out) {
 }
 
 
-// Удаление элемента без сдвига, заменяем удаляемый последний элементом (порядок нарушается, зато быстро):
+// Удаление элемента без сдвига, заменяем удаляемый, последним элементом (порядок нарушается, зато быстро):
 void Array_remove_swap(Array *arr, size_t index, void *out) {
     if (!arr || index >= arr->len) return;
     void *src = (char*)arr->data + index * arr->item_size;

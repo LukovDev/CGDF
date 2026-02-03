@@ -26,6 +26,8 @@ struct TextureUnits {
 
 // Один текстурный юнит:
 struct TexUnit {
+    uint32_t shd_id;  // Айди шейдера.
+    uint32_t loc_id;  // Локация юниформа.
     uint32_t tex_id;  // Айди текстуры.
     uint32_t type;    // Тип текстуры.
     bool     used;    // Флаг использования.
@@ -42,27 +44,6 @@ void TextureUnits_init();
 // Уничтожить текстурные юниты (вызывается автоматически):
 void TextureUnits_destroy();
 
-// Привязать текстуру к юниту:
-int TexUnits_bind(uint32_t tex_id, TextureType type);
-
-// Отвязать текстуру от юнита:
-int TexUnits_unbind(uint32_t tex_id);
-
-// Перепривязать текстуру к конкретному юниту:
-int TexUnits_rebind(uint32_t tex_id, uint32_t unit_id, TextureType type);
-
-// Получить айди юнита к которому привязана текстура:
-int TexUnits_get_unit_id(uint32_t tex_id);
-
-// Получить айди текстуры по айди юнита:
-uint32_t TexUnits_get_tex_id(uint32_t unit_id);
-
-// Отвязать все текстуры:
-void TexUnits_unbind_all();
-
-// Сбросить активный юнит:
-void TexUnits_reset_active();
-
 // Получить всего возможных юнитов:
 size_t TexUnits_get_total_units();
 
@@ -71,3 +52,15 @@ size_t TexUnits_get_used_units();
 
 // Получить количество свободных юнитов:
 size_t TexUnits_get_free_units();
+
+// Получить номер юнита по (шейдер, локация):
+int TexUnits_find(uint32_t shd_id, int32_t loc_id);
+
+// Зарезервировать юнит для шейдера:
+int TexUnits_reserve(uint32_t shd_id, int32_t loc_id);
+
+// Перепривязать текстуру к юниту, которая уже зарезервирована для шейдера:
+int TexUnits_rebind_owned(uint32_t shd_id, int32_t loc_id, uint32_t tex_id, TextureType type);
+
+// Освободить все юниты, которые зарезервированы для шейдера (используйте только при удалении шейдера!):
+void TexUnits_release_shader(uint32_t shd_id);

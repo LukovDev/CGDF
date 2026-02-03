@@ -173,6 +173,7 @@ void BufferEBO_set_subdata(BufferEBO *self, const void *data, const size_t offse
 struct BufferVAO {
     uint32_t id;
     bool _is_begin_;
+    int32_t _id_before_begin_;
 };
 
 // Создать буфер атрибутов:
@@ -189,5 +190,11 @@ void BufferVAO_end(BufferVAO *self);
 
 // Установить атрибуты вершин:
 void BufferVAO_attrib_pointer(
-    BufferVAO *self, int loc, size_t count, int type, bool normalize, size_t stride, size_t offset
+    BufferVAO *self, uint32_t loc, int count, int type, bool normalize, size_t stride, size_t offset
+);
+
+// Установить дивизор:
+void BufferVAO_attrib_divisor(
+    BufferVAO *self, uint32_t loc, int count, int type, bool normalize,
+    size_t stride, size_t offset, uint32_t divisor
 );

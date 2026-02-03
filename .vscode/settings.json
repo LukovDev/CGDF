@@ -5,5 +5,7 @@
         "*.cpp": "cpp",
         "*.h": "c",
         "*.hpp": "cpp"
-    }
+    },
+    "chatgpt.openOnStartup": false,
+    "chatgpt.commentCodeLensEnabled": false
 }

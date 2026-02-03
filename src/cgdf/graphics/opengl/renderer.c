@@ -15,19 +15,19 @@
 #include "gl.h"
 
 
-// Стандартные шейдеры рендеринга:
+// -------- Стандартные шейдеры рендеринга: --------
+
+
 static const char* DEFAULT_SHADER_VERT = "\
 #version 330 core\n\
 \n\
 uniform mat4 u_model = mat4(1.0);\n\
 uniform mat4 u_view = mat4(1.0);\n\
 uniform mat4 u_proj = mat4(1.0);\n\
-\n\
 layout (location = 0) in vec3 a_position;\n\
 layout (location = 1) in vec3 a_normal;\n\
 layout (location = 2) in vec3 a_color;\n\
 layout (location = 3) in vec2 a_texcoord;\n\
-\n\
 out vec2 v_texcoord;\n\
 out vec3 v_normal;\n\
 out vec3 v_color;\n\
@@ -37,8 +37,7 @@ void main(void) {\n\
     v_texcoord = a_texcoord;\n\
     v_normal = a_normal;\n\
     v_color = a_color;\n\
-}\n\
-";
+}";
 
 static const char* DEFAULT_SHADER_FRAG = "\
 #version 330 core\n\
@@ -49,7 +48,6 @@ uniform bool u_use_normals;\n\
 uniform bool u_use_vcolor;\n\
 uniform vec4 u_color = vec4(1.0);\n\
 uniform sampler2D u_texture;\n\
-\n\
 in vec2 v_texcoord;\n\
 in vec3 v_normal;\n\
 in vec3 v_color;\n\
@@ -71,22 +69,69 @@ void main(void) {\n\
     } else {\n\
         FragColor = u_color;\n\
     }\n\
-}\n\
-";
+}";
+
+
+// -------- Шейдеры пакетной отрисовки спрайтов: --------
+
+
+static const char* SPRITEBATCH_SHADER_VERT = "\
+#version 330 core\n\
+\n\
+uniform mat4 u_view;\n\
+uniform mat4 u_proj;\n\
+layout(location = 0) in vec2 a_position;\n\
+layout(location = 1) in vec2 a_texcoord;\n\
+layout(location = 2) in vec4 a_color;\n\
+out vec2 v_texcoord;\n\
+out vec4 v_color;\n\
+\n\
+void main() {\n\
+    gl_Position = u_proj * u_view * vec4(a_position, 0.0, 1.0);\n\
+    v_texcoord = a_texcoord;\n\
+    v_color = a_color;\n\
+}";
+
+static const char* SPRITEBATCH_SHADER_FRAG = "\
+#version 330 core\n\
+uniform sampler2D u_texture;\n\
+in vec2 v_texcoord;\n\
+in vec4 v_color;\n\
+out vec4 FragColor;\n\
+\n\
+void main() {\n\
+    FragColor = texture(u_texture, v_texcoord) * v_color;\n\
+}";
+
+
+// -------- Данные по умолчанию: --------
 
 
 // Квадрат с текстурой для спрайта:
+static const float _texcoord_[] = {0.0f, 0.0f, 1.0f, 1.0f};
 static const Vertex _sprite_vertices_[] = {
     // vertex, normal, color, texcoord.
-    {-1,-1,0,  0,0,0,  1,1,1,  0,1},  // id 0.
-    {+1,-1,0,  0,0,0,  1,1,1,  1,1},  // id 1.
-    {+1,+1,0,  0,0,0,  1,1,1,  1,0},  // id 2.
-    {-1,+1,0,  0,0,0,  1,1,1,  0,0}   // id 3.
+    {-1,-1,0,  0,0,0,  1,1,1,  _texcoord_[0], _texcoord_[3]},  // 0.
+    {+1,-1,0,  0,0,0,  1,1,1,  _texcoord_[2], _texcoord_[3]},  // 1.
+    {+1,+1,0,  0,0,0,  1,1,1,  _texcoord_[2], _texcoord_[1]},  // 2.
+    {-1,+1,0,  0,0,0,  1,1,1,  _texcoord_[0], _texcoord_[1]}   // 3.
 };
 static const uint32_t _sprite_indices_[] = {
     0, 1, 2,  // Triangle 1.
     2, 3, 0   // Triangle 2.
 };
+
+
+// -------- Вспомогательные функции: --------
+
+
+static inline Shader* create_shader(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
+    Shader *shader = Shader_create(rnd, vert, frag, geom);
+    if (!shader || Shader_get_error(shader)) {
+        log_msg("[!] Error (from Renderer_create): Creating shader failed: %s\n", shader->error);
+    }
+    return shader;
+}
 
 
 // -------- API рендерера: --------
@@ -102,17 +147,9 @@ Renderer* Renderer_create() {
     rnd->shader = NULL;
     rnd->sprite_mesh = NULL;
 
-    // Создаём шейдер:
-    Shader *shader = Shader_create(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
-    if (!shader || Shader_get_error(shader)) {
-        log_msg("[!] Error (from Renderer_create): Creating default shader failed: %s\n", shader->error);
-
-        // Самоуничтожение при провале создания шейдера:
-        Shader_destroy(&shader);
-        mm_free(rnd);
-        return NULL;
-    }
-    rnd->shader = shader;
+    // Создаём шейдеры:
+    rnd->shader = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
+    rnd->shader_spritebatch = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
     return rnd;
 }
 
@@ -127,10 +164,9 @@ void Renderer_destroy(Renderer **rnd) {
     // Уничтожение текстурных юнитов:
     TextureUnits_destroy();
 
-    // Освобождаем память шейдера:
-    if ((*rnd)->shader) {
-        Shader_destroy(&(*rnd)->shader);
-    }
+    // Освобождаем память шейдеров:
+    if ((*rnd)->shader) { Shader_destroy(&(*rnd)->shader); }
+    if ((*rnd)->shader_spritebatch) { Shader_destroy(&(*rnd)->shader_spritebatch); }
 
     // Удаляем сетку спрайта:
     Mesh_destroy(&(*rnd)->sprite_mesh);
@@ -162,12 +198,18 @@ void Renderer_init(Renderer *self) {
     // Компилируем дефолтный шейдер:
     if (self->shader) Shader_compile(self->shader);
 
+    // Компилируем шейдер пакетной отрисовки спрайтов:
+    if (self->shader_spritebatch) Shader_compile(self->shader_spritebatch);
+
     // Создаём сетку спрайта:
     self->sprite_mesh = Mesh_create(
         _sprite_vertices_, sizeof(_sprite_vertices_)/sizeof(Vertex),
         _sprite_indices_, sizeof(_sprite_indices_)/sizeof(uint32_t),
         false
     );
+
+    // На всякий случай, насильно отправляем инструкции видеокарте и ждём ответа:
+    glFinish();
 
     // Поднимаем флаг инициализации:
     self->initialized = true;

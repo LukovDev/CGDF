@@ -249,7 +249,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если нажимают кнопку мыши:
                 case SDL_EVENT_MOUSE_BUTTON_DOWN: {
-                    if (event.button.button < input->mouse->max_keys) {
+                    if (event.button.button >= 1 && event.button.button <= input->mouse->max_keys) {
                         input->mouse->pressed[event.button.button - 1] = true;
                         input->mouse->down[event.button.button - 1] = true;
                     }
@@ -257,7 +257,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если отпускают кнопку мыши:
                 case SDL_EVENT_MOUSE_BUTTON_UP: {
-                    if (event.button.button < input->mouse->max_keys) {
+                    if (event.button.button >= 1 && event.button.button <= input->mouse->max_keys) {
                         input->mouse->pressed[event.button.button - 1] = false;
                         input->mouse->up[event.button.button - 1] = true;
                     }
@@ -687,6 +687,8 @@ void Window_set_min_size(Window *self, int width, int height) {
     WinVars *vars = self->vars;
     if (!vars || !vars->window) return;
     SDL_SetWindowMinimumSize(vars->window, width, height);
+    self->config->min_width = width;
+    self->config->min_height = height;
 }
 
 // Получить минимальный размер окна:
@@ -703,6 +705,8 @@ void Window_set_max_size(Window *self, int width, int height) {
     WinVars *vars = self->vars;
     if (!vars || !vars->window) return;
     SDL_SetWindowMaximumSize(vars->window, width, height);
+    self->config->max_width = width;
+    self->config->max_height = height;
 }
 
 // Получить максимальный размер окна:

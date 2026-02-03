@@ -40,6 +40,7 @@ void BufferVAO_destroy(BufferVAO **vao) {
 // Использовать буфер:
 void BufferVAO_begin(BufferVAO *self) {
     if (!self || self->_is_begin_ || self->id == 0) return;
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &self->_id_before_begin_);
     glBindVertexArray(self->id);
     self->_is_begin_ = true;
 }
@@ -47,15 +48,24 @@ void BufferVAO_begin(BufferVAO *self) {
 // Не использовать буфер:
 void BufferVAO_end(BufferVAO *self) {
     if (!self || !self->_is_begin_) return;
-    glBindVertexArray(0);
+    glBindVertexArray((uint32_t)self->_id_before_begin_);
     self->_is_begin_ = false;
 }
 
 // Установить атрибуты вершин:
 void BufferVAO_attrib_pointer(
-    BufferVAO *self, int loc, size_t count, int type, bool normalize, size_t stride, size_t offset
+    BufferVAO *self, uint32_t loc, int count, int type, bool normalize, size_t stride, size_t offset
 ) {
     if (!self) return;
     glVertexAttribPointer(loc, count, type, normalize ? GL_TRUE : GL_FALSE, stride, (void*)offset);
     glEnableVertexAttribArray(loc);
+}
+
+// Установить дивизор:
+void BufferVAO_attrib_divisor(
+    BufferVAO *self, uint32_t loc, int count, int type, bool normalize,
+    size_t stride, size_t offset, uint32_t divisor
+) {
+    BufferVAO_attrib_pointer(self, loc, count, type, normalize, stride, offset);
+    glVertexAttribDivisor(loc, divisor);
 }

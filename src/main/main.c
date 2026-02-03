@@ -6,11 +6,15 @@
 // Подключаем:
 #include <cgdf/cgdf.h>
 #include <cgdf/graphics/graphics.h>
+#include <cgdf/graphics/opengl/texunit.h>
 
 
 Texture *tex1;
+Texture *tex2;
 CameraController2D *ctrl;
 Camera2D *camera;
+Sprite2D *sprite;
+SpriteBatch *batch;
 
 
 void print_before_free() {
@@ -31,7 +35,7 @@ void print_after_free() {
 // Вызывается после создания окна:
 void start(Window *self) {
     printf("Start called.\n");
-    Window_set_fps(self, 60);
+    Window_set_fps(self, 0);
     Window_set_vsync(self, false);
 
     Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
@@ -44,21 +48,28 @@ void start(Window *self) {
     camera = Camera2D_create(self, width, height, (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
     Camera2D_set_meter(camera, 1.0f);
 
-    ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.2f);
+    ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.9f);
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
+
+    tex2 = Texture_create(self->renderer);
+    Texture_load(tex2, "data/textures/gradient_uv_checker.png", true);
+
+    sprite = Sprite2D_create(self->renderer, tex2, -100.0f, -100.0f, 10.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    batch = SpriteBatch_create(self->renderer);
 }
 
 
 // Вызывается каждый кадр (цикл окна):
 void update(Window *self, Input *input, float dtime) {
-    if (Window_get_is_focused(self)) {
-        Window_set_fps(self, 60.0f);
-    }
-    if (Window_get_is_defocused(self)) {
-        Window_set_fps(self, 10.0f);
-    }
+    // if (Window_get_is_focused(self)) {
+    //     Window_set_fps(self, 60.0f);
+    // }
+    // if (Window_get_is_defocused(self)) {
+    //     Window_set_fps(self, 10.0f);
+    // }
 
     CameraController2D_update(ctrl, dtime, false);
     Camera2D_update(camera);
@@ -72,13 +83,22 @@ void render(Window *self, Input *input, float dtime) {
     Vec2i mouse_pos = Input_get_mouse_pos(self);
     Vec2d globpos = local_to_global_2d(camera, mouse_pos);
 
-    for (int y=0; y < 100; y++) {
-        for (int x=0; x < 100; x++) {
-            Sprite2D_render(self->renderer, tex1, x, y, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+    static bool enable = true;
+    if (Input_get_key_down(self)[K_1]) enable = !enable;
+    if (enable) {
+        SpriteBatch_begin(batch);
+        for (int y=0; y < 1024; y++) {
+            for (int x=0; x < 1024; x++) {
+                SpriteBatch_draw(batch, tex2, x, y, 1.0, 1.0, 0);
+                // Sprite2D_render(self->renderer, tex2, x, y, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+            }
         }
+        SpriteBatch_end(batch);
     }
 
     Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    sprite->render(sprite);
     Window_display(self);
 }
 
@@ -108,6 +128,9 @@ void destroy(Window *self) {
     Camera2D_destroy(&camera);
     CameraController2D_destroy(&ctrl);
     Texture_destroy(&tex1);
+    Texture_destroy(&tex2);
+    Sprite2D_destroy(&sprite);
+    SpriteBatch_destroy(&batch);
 }
 
 

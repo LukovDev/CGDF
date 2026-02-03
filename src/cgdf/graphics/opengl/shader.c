@@ -18,7 +18,7 @@
 // -------- Вспомогательные функции: --------
 
 
-static inline ShaderCacheUniformValue* find_cached_uniform(Shader *self, int loc, ShaderCacheUniformType type) {
+static ShaderCacheUniformValue* find_cached_uniform(Shader *self, int loc, ShaderCacheUniformType type) {
     for (size_t i = 0; i < Array_len(self->uniform_values); i++) {
         ShaderCacheUniformValue *item = (ShaderCacheUniformValue*)Array_get(self->uniform_values, i);
         if (item->location == loc && item->type == type) return item;
@@ -26,7 +26,7 @@ static inline ShaderCacheUniformValue* find_cached_uniform(Shader *self, int loc
     return NULL;
 }
 
-static inline ShaderCacheSampler* find_cached_sampler(Shader *self, int32_t location) {
+static ShaderCacheSampler* find_cached_sampler(Shader *self, int32_t location) {
     for (size_t i = 0; i < Array_len(self->sampler_units); i++) {
         ShaderCacheSampler *item = (ShaderCacheSampler*)Array_get(self->sampler_units, i);
         if (item->location == location) return item;
@@ -34,7 +34,7 @@ static inline ShaderCacheSampler* find_cached_sampler(Shader *self, int32_t loca
     return NULL;
 }
 
-static inline void clear_caches(Shader *shader, bool destroy_arrays) {
+static void clear_caches(Shader *shader, bool destroy_arrays) {
     if (!shader) return;
 
     // Освобождаем кэш локаций:
@@ -55,62 +55,81 @@ static inline void clear_caches(Shader *shader, bool destroy_arrays) {
 
     // Освобождаем кэш юнитов:
     if (shader->sampler_units) {
-        for (size_t i = 0; i < Array_len(shader->sampler_units); i++) {
-            ShaderCacheSampler *s = Array_get(shader->sampler_units, i);
-            if (s->tex_id) { TexUnits_unbind(s->tex_id); }
-        }
+        // Освобождаем юниты текстур:
+        TexUnits_release_shader(shader->id);
         if (destroy_arrays) { Array_destroy(&shader->sampler_units); }
         else { Array_clear(shader->sampler_units, false); }
     }
 }
 
-static inline void set_sampler(Shader *self, const char* name, uint32_t tex_id, TextureType type) {
+static void set_sampler(Shader *self, const char* name, uint32_t tex_id, TextureType type) {
+    if (!tex_id) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
 
-    // Ищем самплер в кэше:
-    ShaderCacheSampler *s = find_cached_sampler(self, loc);
+    /*
+    Как работает? Специально для этого был реализован менеджер управления
+    текстурными юнитами (texunit.c/.h -> TexUnits).
 
-    // Проверяем, есть ли текстура в стеке юнитов (-1 = нет):
-    int uid = TexUnits_get_unit_id(tex_id);
+    Концептуально работает так:
+    Шейдер при установке текстуры юниформе проверяет у себя в кэше:
+    - Если нет кэша -> выделяем юнит, привязываем юнит к юниформе, создаём кэш, привязываем текстуру.
+    - Если кэш есть и текстуры совпадают -> Проверяем на всякий, выделен ли юнит:
+        - Если юнит выделен, но не совпадает с тем что в кэше, это крайне странно. Просто обновляем юнит в кэше.
+        - Если юнита нет, выделяем юнит, привязываем юнит к юниформе, обновляем кэш и привязываем текстуру.
+        - Иначе, ничего не делаем. Всё должно быть в порядке.
+    - Если кэш есть, но текстуры не совпадают -> перепривязываем текстуру к юниту и обновляем кэш.
+    При удалении шейдера: Делаем запрос на освобождение выделенных для шейдера юнитов.
+    */
 
-    // Если в кэше есть запись, но текстура реально НЕ привязана - нужно перебиндить:
-    if (s && uid == -1) {
-        // Убрали извне - забываем старый unit, просто перебиндим:
-        uint32_t unit_id = TexUnits_bind(tex_id, type);
-        s->tex_id = tex_id;
-        glUniform1i(loc, unit_id);
+    /* (копия пометки из texunit.c):
+    ВНИМАНИЕ:
+        Мы резервируем нулевой юнит.
+        Нельзя шейдерам использовать нулевой юнит glActiveTexture(GL_TEXTURE0).
+        Потому что нулевой юнит общий, и зарезервирован глобально для всех вызовов привязки текстур.
+        Если вы всё равно укажете нулевой юнит для шейдера, то скорее всего, шейдер может
+        получить другую текстуру, из за возможных вызовов привязки других текстур к этому юниту.
+    */
+
+    // Ищем сэмплер в кэше:
+    ShaderCacheSampler *smp = find_cached_sampler(self, loc);
+
+    // 1. Первый раз видим эту юниформу -> запрашиваем резервирование юнита:
+    if (!smp) {
+        // Выделяем юнит:
+        int unit = TexUnits_reserve(self->id, loc);
+        if (unit < 0) {
+            log_msg("[!] Error (from set_sampler): no free texture units for %s\n", name);
+            return;
+        }
+
+        // Привязываем sampler к юниту ОДИН раз:
+        glUniform1i(loc, unit);
+
+        // Создаём кэш:
+        ShaderCacheSampler cache = {
+            .location = loc,
+            .tex_id   = tex_id,
+            .unit_id  = unit
+        };
+        Array_push(self->sampler_units, &cache);
+
+        // Привязываем текстуру в уже зарезервированный юнит:
+        TexUnits_rebind_owned(self->id, loc, tex_id, type);
         return;
     }
 
-    // Если в кэше есть запись и tex_id совпадает - ничего делать не нужно:
-    if (s && s->tex_id == tex_id) return;
-
-    // Если текстура есть в юнитах, но в кэше нет - создаём запись:
-    if (!s && uid != -1) {
-        ShaderCacheSampler cache = {
-            .location = loc,
-            .tex_id = tex_id
-        };
-        Array_push(self->sampler_units, &cache);
-        glUniform1i(loc, uid);
-        return;
+    // 2. Кэш есть:
+    if (smp->tex_id == tex_id) {
+        return;  // Всё совпадает, ничего делать не нужно.
     }
 
-    // Иначе: запись либо новая, либо изменённая, либо отвязанная:
-    uint32_t unit_id = TexUnits_bind(tex_id, type);
-
-    if (!s) {
-        ShaderCacheSampler cache = {
-            .location = loc,
-            .tex_id = tex_id
-        };
-        Array_push(self->sampler_units, &cache);
-    } else { s->tex_id = tex_id; }
-    glUniform1i(loc, unit_id);
+    // 3. Та же юниформа, но другая текстура:
+    smp->tex_id = tex_id;
+    TexUnits_rebind_owned(self->id, loc, tex_id, type);
 }
 
-static inline uint32_t compile_shader(Shader *program, const char* source, GLenum type) {
+static uint32_t compile_shader(Shader *program, const char* source, GLenum type) {
     if (!source) return 0;
     if (program->error) {
         mm_free(program->error);
@@ -147,6 +166,17 @@ static inline uint32_t compile_shader(Shader *program, const char* source, GLenu
         return 0;
     }
     return shader;
+}
+
+
+static void cleanup_shaders(uint32_t program, uint32_t shaders[3], bool attached[3]) {
+    for (int i = 0; i < 3; ++i) {
+        if (shaders[i]) {
+            if (program && attached[i]) glDetachShader(program, shaders[i]);
+            glDeleteShader(shaders[i]);
+        }
+    }
+    if (program) glDeleteProgram(program);
 }
 
 
@@ -198,8 +228,31 @@ void Shader_destroy(Shader **shader) {
 void Shader_compile(Shader *self) {
     if (!self) return;
 
+    // Очищаем старые ошибки:
+    if (self->error) {
+        mm_free(self->error);
+        self->error = NULL;
+    }
+
+    // Проверяем наличие шейдеров:
+    if (!self->vertex || !self->fragment) {
+        int needed = snprintf(NULL, 0, "ShaderCreateError: Vertex and Fragment shaders are required.\n");
+        self->error = mm_alloc(needed + 1);
+        sprintf(self->error, "ShaderCreateError: Vertex and Fragment shaders are required.\n");
+        log_msg("%s", self->error);
+        return;
+    }
+
+    // Удаляем шейдерную программу, если она существует:
+    if (self->id) {
+        glDeleteProgram(self->id);
+        self->id = 0;
+    }
+
+    // Создаём шейдерную программу:
     uint32_t program = glCreateProgram();
     uint32_t shaders[3] = {0};
+    bool attached[3] = {false, false, false};
 
     if (!program) {
         // Сколько надо выделить памяти:
@@ -212,13 +265,21 @@ void Shader_compile(Shader *self) {
     }
 
     // Компилируем шейдеры:
-    if (self->vertex)   shaders[0] = compile_shader(self, self->vertex, GL_VERTEX_SHADER);
-    if (self->fragment) shaders[1] = compile_shader(self, self->fragment, GL_FRAGMENT_SHADER);
-    if (self->geometry) shaders[2] = compile_shader(self, self->geometry, GL_GEOMETRY_SHADER);
+    shaders[0] = compile_shader(self, self->vertex, GL_VERTEX_SHADER);
+    if (!shaders[0]) { cleanup_shaders(program, shaders, attached); return; }
+    shaders[1] = compile_shader(self, self->fragment, GL_FRAGMENT_SHADER);
+    if (!shaders[1]) { cleanup_shaders(program, shaders, attached); return; }
+    if (self->geometry) {
+        shaders[2] = compile_shader(self, self->geometry, GL_GEOMETRY_SHADER);
+        if (!shaders[2]) { cleanup_shaders(program, shaders, attached); return; }
+    }
 
     // Линкуем программу:
     for (int i = 0; i < 3; ++i) {
-        if (shaders[i]) glAttachShader(program, shaders[i]);
+        if (shaders[i]) {
+            glAttachShader(program, shaders[i]);
+            attached[i] = true;
+        }
     }
     glLinkProgram(program);
 
@@ -241,14 +302,14 @@ void Shader_compile(Shader *self) {
         sprintf(self->error, "ShaderLinkingError:\n%s\n", log_msg_str);
         log_msg("%s", self->error);
         if (has_source) mm_free(log_msg_str);
-        glDeleteProgram(program);
+        cleanup_shaders(program, shaders, attached);
         return;
     }
 
     // Удаляем отдельные шейдеры:
     for (int i = 0; i < 3; ++i) {
         if (shaders[i]) {
-            glDetachShader(program, shaders[i]);
+            if (attached[i]) glDetachShader(program, shaders[i]);
             glDeleteShader(shaders[i]);
         }
     }
@@ -292,9 +353,7 @@ int32_t Shader_get_location(Shader *self, const char* name) {
     }
 
     // Иначе получаем локацию и добавляем в кэш:
-    Shader_begin(self);
     int32_t location = glGetUniformLocation(self->id, name);
-    Shader_end(self);
     if (location == -1) return -1;
 
     ShaderCacheUniformLocation cache = {

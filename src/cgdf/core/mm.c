@@ -119,12 +119,14 @@ void* mm_realloc(void *ptr, size_t new_size) {
     if (!ptr) return mm_alloc(new_size);  // Если NULL -> обычный alloc.
     mm_last_request_size = _header_size + new_size;
     void *raw_ptr = (char*)ptr - _header_size;
+    size_t old_size = *(size_t*)raw_ptr;
     char *new_raw_ptr = NULL;
     if (MM_RETRY_ALLOC_AGAIN) {
         while (!new_raw_ptr) { new_raw_ptr = _m_realloc(raw_ptr, _header_size + new_size); }
     } else { new_raw_ptr = _m_realloc(raw_ptr, _header_size + new_size); }
     if (!new_raw_ptr) { mm_alloc_error(); return NULL; }
-    mm_used_size_add(new_size - *(size_t*)new_raw_ptr);
+    if (new_size > old_size) { mm_used_size_add(new_size - old_size); }
+    else if (old_size > new_size) { mm_used_size_sub(old_size - new_size); }
     *(size_t*)new_raw_ptr = new_size;
     return (char*)new_raw_ptr + _header_size;
 }

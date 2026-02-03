@@ -16,7 +16,7 @@ BufferGC_GL buffer_gc_gl = {0};
 
 
 // Найти максимальный размер стеков:
-static inline size_t find_max_stacks_len() {
+static size_t find_max_stacks_len() {
     size_t max_stack_len = 0;
     if (Array_len(buffer_gc_gl.qbo)  > max_stack_len) max_stack_len = Array_len(buffer_gc_gl.qbo);
     if (Array_len(buffer_gc_gl.ssbo) > max_stack_len) max_stack_len = Array_len(buffer_gc_gl.ssbo);

@@ -56,6 +56,7 @@ struct ShaderCacheUniformValue {
 struct ShaderCacheSampler {
     int32_t  location;
     uint32_t tex_id;
+    uint32_t unit_id;
 };
 
 

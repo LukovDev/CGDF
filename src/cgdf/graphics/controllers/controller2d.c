@@ -75,8 +75,13 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
     if (camera->zoom       > self->max_zoom) camera->zoom = self->max_zoom;
 
     // Плавное перемещение камеры:
-    camera->position.x += ((self->target_pos.x - camera->position.x)*self->friction)*dtime;
-    camera->position.y += ((self->target_pos.y - camera->position.y)*self->friction)*dtime;
+    float fr = 1.0f - self->friction;
+    if (fr > 0.0f) {
+        camera->position.x += ((self->target_pos.x - camera->position.x) * 1.0f/fr) * dtime;
+        camera->position.y += ((self->target_pos.y - camera->position.y) * 1.0f/fr) * dtime;
+    } else {
+        camera->position = (Vec2d){self->target_pos.x, self->target_pos.y};
+    }
 
     // Проверяем перемещается камера или нет:
     vec3 diff;
