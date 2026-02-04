@@ -46,7 +46,7 @@ void start(Window *self) {
     int width = Window_get_width(self);
     int height = Window_get_height(self);
     camera = Camera2D_create(self, width, height, (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
-    Camera2D_set_meter(camera, 1.0f);
+    // Camera2D_set_meter(camera, 1.0f);
 
     ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.9f);
 
@@ -87,76 +87,19 @@ void render(Window *self, Input *input, float dtime) {
     if (Input_get_key_down(self)[K_1]) enable = !enable;
     if (enable) {
         SpriteBatch_begin(batch);
-        for (int y=0; y < 1024; y++) {
-            for (int x=0; x < 1024; x++) {
+        for (int y=0; y < 256; y++) {
+            for (int x=0; x < 256; x++) {
                 // SpriteBatch_draw(batch, tex1, x, y, 1.0, 1.0, 45.0f);
-                SpriteBatch_draw(batch, tex1, x, y, 1.0, 1.0, sinf(Window_get_time(self))*180.0f);
+                SpriteBatch_draw(batch, tex1, x*64, y*64, 64.0, 64.0, 0.0f);
             }
             // SpriteBatch_draw(batch, tex1, 0, y, 1.0, 1.0, sinf(Window_get_time(self))*180.0f);
         }
         SpriteBatch_end(batch);
     }
 
-    // Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+    Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
-    // sprite->render(sprite);
-
-    // static FILE *fps_log = NULL;
-    // if (!fps_log) {
-    //     fps_log = fopen("data/fps_log_1024_1024.txt", "w");
-    // } else {
-    //     fprintf(fps_log, "%f\n", Window_get_current_fps(self));
-    //     fflush(fps_log);
-    // }
-
-    // --- Логика замера FPS ---
-    static float total_time = 0.0f;
-    static float record_time = 0.0f;
-    static int   recording = 0;
-
-    // буфер под 60 секунд при 60 FPS
-    static float *fps_buf = NULL;
-    static int fps_count = 0;
-    static int fps_capacity = 0;
-
-    if (!fps_buf) {
-        fps_capacity = 60 * 120; // запас на 120 FPS
-        fps_buf = (float*)mm_alloc(sizeof(float) * fps_capacity);
-    }
-
-    total_time += dtime;
-
-    // старт записи после 0 сек работы
-    if (!recording && total_time >= 0.0f) {
-        recording = 1;
-        record_time = 0.0f;
-        fps_count = 0;
-    }
-
-    if (recording) {
-        record_time += dtime;
-        float fps = (dtime > 0.0f) ? (1.0f / dtime) : 0.0f;
-
-        if (fps_count < fps_capacity) {
-            fps_buf[fps_count++] = fps;
-        }
-
-        // после 60 сек записи — сохраняем файл и закрываем
-        if (record_time >= 60.0f) {
-            FILE *f = fopen("data/c_fps_log_1024_active_rotating.txt", "w");
-            if (f) {
-                for (int i = 0; i < fps_count; ++i) {
-                    fprintf(f, "%.3f\n", fps_buf[i]);
-                }
-                fclose(f);
-            }
-
-            // Освободить память, если хочешь
-            mm_free(fps_buf);
-            fps_buf = NULL;
-            Window_close(self);
-        }
-    }
+    sprite->render(sprite);
     Window_display(self);
 }
 
