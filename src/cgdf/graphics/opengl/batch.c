@@ -32,22 +32,25 @@ struct SpriteBatch {
 // -------- Вспомогательные функции: --------
 
 
-// Отрисовать все спрайты:
+// Отрисовать буфер спрайтов:
 static void batch_flush(SpriteBatch *batch) {
-    if (!batch) return;
+    if (!batch || !batch->_is_begin_ || batch->vertex_count == 0) {
+        // Экономим вызовы отрисовки (ничего не рисуем) если в буфере нет вершин.
+        batch->sprite_count = 0;
+        batch->vertex_count = 0;
+        return;
+    }
 
-    // Обновляем в шейдере текстуру
-    Shader_set_tex2d(batch->renderer->shader_spritebatch, "u_texture", batch->current_tex_id);
+    // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch_begin):
+    Shader *shader = batch->renderer->shader_spritebatch;
+    Shader_set_bool(shader, "u_use_texture", batch->current_tex_id != 0 ? true : false);
+    Shader_set_tex2d(shader, "u_texture", batch->current_tex_id);
 
-    // Обновляем данные в буфере сетки спрайтов:
-    BufferVBO_begin(batch->vbo);
+    // Обновляем данные в буфере сетки спрайтов (буфер VBO должен быть активен):
     BufferVBO_set_subdata(batch->vbo, batch->array, 0, batch->vertex_count * sizeof(SpriteVertex));
-    BufferVBO_end(batch->vbo);
 
-    // Рисуем:
-    BufferVAO_begin(batch->vao);
+    // Рисуем (буфер VAO должен быть активен):
     glDrawArrays(GL_TRIANGLES, 0, batch->vertex_count);
-    BufferVAO_end(batch->vao);
 
     // Сбрасываем данные:
     batch->sprite_count = 0;
@@ -66,14 +69,14 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     size_t stride = sizeof(SpriteVertex);
 
     // Размер буфера спрайтов в байтах:
-    // 6 вершин спрайта * размер одной вершины в байтах * максимальное количество спрайтов.
-    size_t size = BATCH_VERTS_PER_SPRITE * stride * BATCH_MAX_SPRITES;
+    // Размер одной вершины в байтах * 6 вершин спрайта * максимальное количество спрайтов.
+    size_t size = stride * BATCH_VERTS_PER_SPRITE * BATCH_MAX_SPRITES;
 
     // Заполняем поля:
     batch->renderer = renderer;
     batch->vao = BufferVAO_create();
     batch->vbo = BufferVBO_create(NULL, size, GL_DYNAMIC_DRAW);
-    batch->array = (SpriteVertex*)mm_calloc(BATCH_VERTS_PER_SPRITE * BATCH_MAX_SPRITES, sizeof(SpriteVertex));
+    batch->array = (SpriteVertex*)mm_alloc(BATCH_VERTS_PER_SPRITE * BATCH_MAX_SPRITES * sizeof(SpriteVertex));
     batch->sprite_count = 0;
     batch->vertex_count = 0;
     batch->current_tex_id = 0;
@@ -108,7 +111,6 @@ void SpriteBatch_destroy(SpriteBatch **batch) {
 // Начать отрисовку:
 void SpriteBatch_begin(SpriteBatch *batch) {
     if (!batch || batch->_is_begin_) return;
-    batch->_is_begin_ = true;
     batch->sprite_count = 0;
     batch->vertex_count = 0;
     batch->current_tex_id = 0;
@@ -117,6 +119,8 @@ void SpriteBatch_begin(SpriteBatch *batch) {
     Shader *shader = batch->renderer->shader_spritebatch;
     Camera2D *camera = (Camera2D*)batch->renderer->camera;
     Shader_begin(shader);
+    BufferVAO_begin(batch->vao);
+    BufferVBO_begin(batch->vbo);
     if (camera) {
         Shader_set_mat4(shader, "u_view", camera->view);
         Shader_set_mat4(shader, "u_proj", camera->proj);
@@ -126,6 +130,7 @@ void SpriteBatch_begin(SpriteBatch *batch) {
         Shader_set_mat4(shader, "u_view", ident);
         Shader_set_mat4(shader, "u_proj", ident);
     }
+    batch->_is_begin_ = true;
 }
 
 // Установить цвет следующим спрайтам:
@@ -225,25 +230,28 @@ void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, fl
     }
 
     // Добавляем сетку в буфер:
-    uint32_t base = batch->vertex_count;  // Смещение в массиве вершин.
-    Vec4f color = batch->color;
     Vec4f tc = batch->texcoord;
-    batch->array[base+0] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=color};  // 1.
-    batch->array[base+1] = (SpriteVertex){v[2], v[3], tc.z, tc.w, .color=color};  // 2.
-    batch->array[base+2] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=color};  // 3.
-    batch->array[base+3] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=color};  // 3.
-    batch->array[base+4] = (SpriteVertex){v[6], v[7], tc.x, tc.y, .color=color};  // 4.
-    batch->array[base+5] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=color};  // 1.
+    uint32_t base = batch->vertex_count;  // Смещение в массиве вершин.
+    // Треугольник 1:
+    batch->array[base+0] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=batch->color};  // 1.
+    batch->array[base+1] = (SpriteVertex){v[2], v[3], tc.z, tc.w, .color=batch->color};  // 2.
+    batch->array[base+2] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=batch->color};  // 3.
+    // Треугольник 2:
+    batch->array[base+3] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=batch->color};  // 3.
+    batch->array[base+4] = (SpriteVertex){v[6], v[7], tc.x, tc.y, .color=batch->color};  // 4.
+    batch->array[base+5] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=batch->color};  // 1.
 
     // Обновляем счётчики:
-    batch->vertex_count += 6;
-    batch->sprite_count += 1;
+    batch->vertex_count += 6;  // Записали 6 вершин.
+    batch->sprite_count += 1;  // Записали 1 спрайт.
 }
 
 // Закончить отрисовку:
 void SpriteBatch_end(SpriteBatch *batch) {
     if (!batch || !batch->_is_begin_) return;
-    batch->_is_begin_ = false;
     batch_flush(batch);
+    BufferVBO_end(batch->vbo);
+    BufferVAO_end(batch->vao);
     Shader_end(batch->renderer->shader_spritebatch);
+    batch->_is_begin_ = false;
 }

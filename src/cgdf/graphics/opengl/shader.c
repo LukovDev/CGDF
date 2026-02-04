@@ -34,6 +34,56 @@ static ShaderCacheSampler* find_cached_sampler(Shader *self, int32_t location) {
     return NULL;
 }
 
+static const char* shader_type_str(GLenum type) {
+    switch (type) {
+        case GL_VERTEX_SHADER:   return "Vertex";
+        case GL_FRAGMENT_SHADER: return "Fragment";
+        case GL_GEOMETRY_SHADER: return "Geometry";
+        default:                 return "Unknown";
+    }
+}
+
+static void cleanup_shaders(uint32_t program, uint32_t shaders[3], bool attached[3]) {
+    for (int i = 0; i < 3; ++i) {
+        if (shaders[i]) {
+            if (program && attached[i]) glDetachShader(program, shaders[i]);
+            glDeleteShader(shaders[i]);
+        }
+    }
+    if (program) glDeleteProgram(program);
+}
+
+static char* get_shader_info_log(GLuint obj, bool is_program) {
+    GLint len = 0;
+    if (is_program) glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &len);
+    else glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &len);
+
+    if (len <= 1) return mm_strdup("No shader source.");
+
+    char *buf = mm_alloc(len);
+    if (is_program) glGetProgramInfoLog(obj, len, NULL, buf);
+    else glGetShaderInfoLog(obj, len, NULL, buf);
+    return buf;
+}
+
+static void shader_set_error(Shader *self, const char *fmt, ...) {
+    if (!self) return;
+    if (self->error) { mm_free(self->error); self->error = NULL; }
+
+    va_list ap;
+    va_start(ap, fmt);
+    int needed = vsnprintf(NULL, 0, fmt, ap);
+    va_end(ap);
+
+    self->error = mm_alloc(needed + 1);
+
+    va_start(ap, fmt);
+    vsnprintf(self->error, needed + 1, fmt, ap);
+    va_end(ap);
+
+    log_msg("%s", self->error);
+}
+
 static void clear_caches(Shader *shader, bool destroy_arrays) {
     if (!shader) return;
 
@@ -62,8 +112,36 @@ static void clear_caches(Shader *shader, bool destroy_arrays) {
     }
 }
 
+static uint32_t compile_shader(Shader *program, const char* source, GLenum type) {
+    const char* type_str = shader_type_str(type);
+
+    if (!source) {
+        shader_set_error(program, "ShaderCompileError (%s): source is NULL\n", type_str);
+        return 0;
+    }
+
+    if (program->error) {
+        mm_free(program->error);
+        program->error = NULL;
+    }
+
+    uint32_t shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+
+    int compiled = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if (!compiled) {
+        char *log_msg_str = get_shader_info_log(shader, false);
+        shader_set_error(program, "ShaderCompileError (%s):\n%s\n", type_str, log_msg_str);
+        mm_free(log_msg_str);
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
 static void set_sampler(Shader *self, const char* name, uint32_t tex_id, TextureType type) {
-    if (!tex_id) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
 
@@ -120,63 +198,11 @@ static void set_sampler(Shader *self, const char* name, uint32_t tex_id, Texture
     }
 
     // 2. Кэш есть:
-    if (smp->tex_id == tex_id) {
-        return;  // Всё совпадает, ничего делать не нужно.
-    }
+    if (smp->tex_id == tex_id) { return; }  // Всё совпадает, ничего делать не нужно.
 
     // 3. Та же юниформа, но другая текстура:
     smp->tex_id = tex_id;
     TexUnits_rebind_owned(self->id, loc, tex_id, type);
-}
-
-static uint32_t compile_shader(Shader *program, const char* source, GLenum type) {
-    if (!source) return 0;
-    if (program->error) {
-        mm_free(program->error);
-        program->error = NULL;
-    }
-
-    uint32_t shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, NULL);
-    glCompileShader(shader);
-
-    int compiled = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-    if (!compiled) {
-        int logLength = 0;
-        char* log_msg_str = "No shader source.";
-        bool has_source = program->vertex || program->fragment || program->geometry;
-        if (has_source) {
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-            log_msg_str = mm_alloc(logLength);
-            glGetShaderInfoLog(shader, logLength, NULL, log_msg_str);
-        }
-        // Тип шейдера:
-        const char* type_str = (type == GL_VERTEX_SHADER)   ? "VERTEX"   :
-                               (type == GL_FRAGMENT_SHADER) ? "FRAGMENT" :
-                               (type == GL_GEOMETRY_SHADER) ? "GEOMETRY" : "UNKNOWN";
-        // Сколько надо выделить памяти:
-        int needed = snprintf(NULL, 0, "ShaderCompileError (%s):\n%s\n", type_str, log_msg_str);
-        program->error = mm_alloc(needed + 1);
-        // Форматируем строку:
-        sprintf(program->error, "ShaderCompileError (%s):\n%s\n", type_str, log_msg_str);
-        log_msg("%s", program->error);
-        if (has_source) mm_free(log_msg_str);
-        glDeleteShader(shader);
-        return 0;
-    }
-    return shader;
-}
-
-
-static void cleanup_shaders(uint32_t program, uint32_t shaders[3], bool attached[3]) {
-    for (int i = 0; i < 3; ++i) {
-        if (shaders[i]) {
-            if (program && attached[i]) glDetachShader(program, shaders[i]);
-            glDeleteShader(shaders[i]);
-        }
-    }
-    if (program) glDeleteProgram(program);
 }
 
 
@@ -213,6 +239,7 @@ void Shader_destroy(Shader **shader) {
     clear_caches(*shader, true);
 
     // Удаляем сам шейдер:
+    Shader_end(*shader);
     if ((*shader)->id) {
         glDeleteProgram((*shader)->id);
         (*shader)->id = 0;
@@ -236,10 +263,7 @@ void Shader_compile(Shader *self) {
 
     // Проверяем наличие шейдеров:
     if (!self->vertex || !self->fragment) {
-        int needed = snprintf(NULL, 0, "ShaderCreateError: Vertex and Fragment shaders are required.\n");
-        self->error = mm_alloc(needed + 1);
-        sprintf(self->error, "ShaderCreateError: Vertex and Fragment shaders are required.\n");
-        log_msg("%s", self->error);
+        shader_set_error(self, "ShaderCreateError: Vertex and Fragment shaders are required.\n");
         return;
     }
 
@@ -255,12 +279,7 @@ void Shader_compile(Shader *self) {
     bool attached[3] = {false, false, false};
 
     if (!program) {
-        // Сколько надо выделить памяти:
-        int needed = snprintf(NULL, 0, "ShaderCreateError: The OpenGL context has not been created or is inactive.\n");
-        self->error = mm_alloc(needed + 1);
-        // Форматируем строку:
-        sprintf(self->error, "ShaderCreateError: The OpenGL context has not been created or is inactive.\n");
-        log_msg("%s", self->error);
+        shader_set_error(self, "ShaderCreateError: The OpenGL context has not been created or is inactive.\n");
         return;
     }
 
@@ -287,21 +306,9 @@ void Shader_compile(Shader *self) {
     int linked = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (!linked) {
-        int logLength = 0;
-        char* log_msg_str = "No shader source.";
-        bool has_source = self->vertex || self->fragment || self->geometry;
-        if (has_source) {
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
-            log_msg_str = mm_alloc(logLength);
-            glGetProgramInfoLog(program, logLength, NULL, log_msg_str);
-        }
-        // Сколько надо выделить памяти:
-        int needed = snprintf(NULL, 0, "ShaderLinkingError:\n%s\n", log_msg_str);
-        self->error = mm_alloc(needed + 1);
-        // Форматируем строку:
-        sprintf(self->error, "ShaderLinkingError:\n%s\n", log_msg_str);
-        log_msg("%s", self->error);
-        if (has_source) mm_free(log_msg_str);
+        char *log_msg_str = get_shader_info_log(program, true);
+        shader_set_error(self, "ShaderLinkingError:\n%s\n", log_msg_str);
+        mm_free(log_msg_str);
         cleanup_shaders(program, shaders, attached);
         return;
     }
@@ -592,12 +599,12 @@ void Shader_set_mat4x3(Shader *self, const char* name, mat4x3 value) {
 
 // Установить 2D текстуру:
 void Shader_set_tex2d(Shader *self, const char* name, uint32_t tex_id) {
-    if (!self || !self->_is_begin_ || !name || !tex_id) return;
+    if (!self || !self->_is_begin_ || !name) return;
     set_sampler(self, name, tex_id, TEX_TYPE_2D);
 }
 
 // Установить 3D текстуру:
 void Shader_set_tex3d(Shader *self, const char* name, uint32_t tex_id) {
-    if (!self || !self->_is_begin_ || !name || !tex_id) return;
+    if (!self || !self->_is_begin_ || !name) return;
     set_sampler(self, name, tex_id, TEX_TYPE_3D);
 }

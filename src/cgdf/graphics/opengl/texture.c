@@ -41,6 +41,7 @@ void Texture_destroy(Texture **texture) {
     if (!texture || !*texture) return;
 
     // Удаляем саму текстуру:
+    Texture_end(*texture);
     BufferGC_GL_push(BGC_GL_TBO, (*texture)->id);  // Добавляем буфер в стек на уничтожение.
 
     // Освобождаем структуру:

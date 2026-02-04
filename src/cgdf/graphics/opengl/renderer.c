@@ -94,13 +94,18 @@ void main() {\n\
 
 static const char* SPRITEBATCH_SHADER_FRAG = "\
 #version 330 core\n\
+uniform bool u_use_texture;\n\
 uniform sampler2D u_texture;\n\
 in vec2 v_texcoord;\n\
 in vec4 v_color;\n\
 out vec4 FragColor;\n\
 \n\
 void main() {\n\
-    FragColor = texture(u_texture, v_texcoord) * v_color;\n\
+    vec4 color = v_color;\n\
+    if (u_use_texture) {\n\
+        color *= texture(u_texture, v_texcoord);\n\
+    }\n\
+    FragColor = color;\n\
 }";
 
 

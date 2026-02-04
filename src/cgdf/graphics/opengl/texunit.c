@@ -188,7 +188,7 @@ int TexUnits_reserve(uint32_t shd_id, int32_t loc_id) {
 
 // Перепривязать текстуру к юниту, которая уже зарезервирована для шейдера:
 int TexUnits_rebind_owned(uint32_t shd_id, int32_t loc_id, uint32_t tex_id, TextureType type) {
-    if (!shd_id || loc_id < 0 || !tex_id) return -1;
+    if (!shd_id || loc_id < 0) return -1;
 
     /*
     - Найти юнит по (shd_id, loc_id).

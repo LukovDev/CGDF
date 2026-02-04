@@ -29,7 +29,7 @@
     "libnames":      [
         "SDL3"
     ],
-    "optimization":  "-Og",
+    "optimization":  "-O",
     "std-c":         "c17",
     "std-cpp":       "c++17",
     "compiler-s":    "gcc",

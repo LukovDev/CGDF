@@ -31,7 +31,6 @@ struct WinVars {
     uint64_t perf_freq;
     double start_time;
     double dtime;
-    double dtime_old;
     bool create_failed;
     bool running;
     bool focused;
@@ -170,9 +169,8 @@ static void MainLoop(Window *self, WinConfig *config) {
         vars->focused = false;
         vars->defocused = false;
 
-        // Проверяем чтобы дельта времени не была равна нулю. Иначе используем прошлую дельту времени:
-        if (vars->dtime > 0.0) { vars->dtime_old = vars->dtime; }
-        else { vars->dtime = vars->dtime_old; }
+        // Проверяем чтобы дельта времени не была равна нулю:
+        if (vars->dtime <= 0.0f) vars->dtime = 1e-6f;
 
         // Получаем копию указателя на систему ввода:
         Input *input = self->input;
@@ -405,8 +403,7 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
     vars->window = window;
     vars->perf_freq = SDL_GetPerformanceFrequency();
     vars->start_time = Window_get_time(self);
-    vars->dtime = cfg->fps <= 0 ? 1.0/60.0 : 1.0/cfg->fps;
-    vars->dtime_old = vars->dtime;
+    vars->dtime = cfg->fps <= 0 ? 1e-6f : 1.0/cfg->fps;
     vars->closing = false;
 
     // Настройка окна:
@@ -803,7 +800,7 @@ float Window_get_current_fps(Window *self) {
     if (!self) return 0.0f;
     WinVars *vars = self->vars;
     if (!vars) return 0.0f;
-    return (float)(1.0/vars->dtime);
+    return (float)((vars->dtime > 0.0f) ? (1.0f / vars->dtime) : 0.0f);
 }
 
 // Получить дельту времени:
