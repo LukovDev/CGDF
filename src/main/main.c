@@ -44,10 +44,11 @@ void update(Window *self, float dtime) {
 
     // Пример перемещения камеры:
     float speed = 4.0f;
-    if (Input_get_key_pressed(self)[K_w]) camera->position.y += 100.0f * speed * dtime;
-    if (Input_get_key_pressed(self)[K_a]) camera->position.x -= 100.0f * speed * dtime;
-    if (Input_get_key_pressed(self)[K_s]) camera->position.y -= 100.0f * speed * dtime;
-    if (Input_get_key_pressed(self)[K_d]) camera->position.x += 100.0f * speed * dtime;
+    bool *keys = Input_get_key_pressed(self);
+    if (keys[K_w]) camera->position.y += 100.0f * speed * dtime;
+    if (keys[K_a]) camera->position.x -= 100.0f * speed * dtime;
+    if (keys[K_s]) camera->position.y -= 100.0f * speed * dtime;
+    if (keys[K_d]) camera->position.x += 100.0f * speed * dtime;
 
     // Обновляем камеру (применяем её параметры):
     Camera2D_update(camera);

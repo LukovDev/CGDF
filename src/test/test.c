@@ -89,12 +89,11 @@ void render(Window *self, float dtime) {
         SpriteBatch_begin(batch);
         for (int y=0; y < 1024; y++) {
             for (int x=0; x < 1024; x++) {
-                // SpriteBatch_draw(batch, tex1, x, y, 1.0, 1.0, 45.0f);
-                SpriteBatch_draw(batch, tex1, x*64, y*64, 64.0, 64.0, x+y+0.0f);
+                SpriteBatch_draw(batch, tex1, x*64.0f, y*64.0f, 64.0f, 64.0f, 0.0f);
             }
-            // SpriteBatch_draw(batch, tex1, 0, y, 1.0, 1.0, sinf(Window_get_time(self))*180.0f);
         }
         SpriteBatch_end(batch);
+        // 30 fps стабильно, ура!!!
     }
 
     Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
