@@ -45,8 +45,8 @@ struct WinVars {
 // Создать конфигурацию окна:
 WinConfig* Window_create_config(
     void (*start)   (Window *self),
-    void (*update)  (Window *self, Input *input, float dtime),
-    void (*render)  (Window *self, Input *input, float dtime),
+    void (*update)  (Window *self, float dtime),
+    void (*render)  (Window *self, float dtime),
     void (*resize)  (Window *self, int width, int height),
     void (*show)    (Window *self),
     void (*hide)    (Window *self),
@@ -284,8 +284,8 @@ static void MainLoop(Window *self, WinConfig *config) {
         }
 
         // Обработка основных функций (обновление и отрисовка):
-        if (cfg->update) cfg->update(self, self->input, Window_get_dtime(self));
-        if (cfg->render) cfg->render(self, self->input, Window_get_dtime(self));
+        if (cfg->update) cfg->update(self, Window_get_dtime(self));
+        if (cfg->render) cfg->render(self, Window_get_dtime(self));
 
         // Очищаем все буфера (массивное удаление всех буферов за раз):
         Renderer_buffers_flush(self->renderer);

@@ -13,7 +13,7 @@
 size_t mm_get_block_header_size();
 
 // Получить количество выделенных блоков:
-size_t mm_get_total_allocated_blocks();
+size_t mm_get_allocated_blocks();
 
 // Получить абсолютный размер используемой памяти в байтах с учётом заголовков блоков:
 size_t mm_get_absolute_used_size();

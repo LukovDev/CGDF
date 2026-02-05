@@ -26,7 +26,7 @@ void  (*_m_free)    (void *p)            = free;
 
 // Сколько памяти используется в байтах:
 static const size_t _header_size = sizeof(size_t) * 8;  // Выравнивание по 8 байт для SSE, AVX/2, кэша и чётных адресов.
-static atomic_size_t mm_total_allocated_blocks = 0;     // Количество выделенных блоков.
+static atomic_size_t mm_allocated_blocks = 0;           // Количество выделенных блоков.
 static atomic_size_t mm_used_size = 0;                  // Количество используемой виртуальной памяти.
 static atomic_size_t mm_last_request_size = 0;          // Размер последнего запроса на выделение (в байтах).
 
@@ -36,11 +36,11 @@ size_t mm_get_block_header_size() { return _header_size; }
 
 
 // Получить количество выделенных блоков:
-size_t mm_get_total_allocated_blocks() { return mm_total_allocated_blocks; }
+size_t mm_get_allocated_blocks() { return mm_allocated_blocks; }
 
 
 // Получить абсолютный размер используемой памяти в байтах с учётом заголовков блоков:
-size_t mm_get_absolute_used_size() { return mm_used_size + _header_size * mm_total_allocated_blocks; }
+size_t mm_get_absolute_used_size() { return mm_used_size + _header_size * mm_allocated_blocks; }
 
 
 // Получить сколько всего используется памяти в байтах этим менеджером памяти:
@@ -93,7 +93,7 @@ void* mm_alloc(size_t size) {
     *(size_t*)raw_ptr = size;  // Сохраняем размер.
     void *ptr = raw_ptr + _header_size;
     mm_used_size_add(mm_get_block_size(ptr));
-    mm_total_allocated_blocks++;
+    mm_allocated_blocks++;
     return ptr;
 }
 
@@ -109,7 +109,7 @@ void* mm_calloc(size_t count, size_t size) {
     *(size_t*)raw_ptr = count * size;  // Сохраняем размер.
     void *ptr = raw_ptr + _header_size;
     mm_used_size_add(mm_get_block_size(ptr));
-    mm_total_allocated_blocks++;
+    mm_allocated_blocks++;
     return ptr;
 }
 
@@ -146,7 +146,7 @@ char* mm_strdup(const char *str) {
 void mm_free(void *ptr) {
     if (!ptr) return;
     mm_used_size_sub(mm_get_block_size(ptr));
-    mm_total_allocated_blocks--;
+    mm_allocated_blocks--;
     _m_free((char*)ptr - _header_size);
 }
 
@@ -156,7 +156,7 @@ void mm_alloc_error() {
     log_msg("----------------\n");
     log_msg("Memory Allocation Error!\n");
     log_msg("Memory used: %g kb (%zu b).\n", mm_get_used_size_kb(), mm_get_used_size());
-    log_msg("Allocated blocks: %zu.\n", mm_get_total_allocated_blocks());
+    log_msg("Allocated blocks: %zu.\n", mm_get_allocated_blocks());
     log_msg("Absolute memory used: %zu b.\n", mm_get_absolute_used_size());
     log_msg("Block Header Size: %zu b.\n", mm_get_block_header_size());
     log_msg("Last request for allocation: %zu b.\n", mm_last_request_size);

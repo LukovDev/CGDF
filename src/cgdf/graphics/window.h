@@ -73,9 +73,9 @@ struct WinConfig {
 
     // Основные функции окна (callbacks):
     void (*start)   (Window *self);  // Вызывается после создания окна.
-    void (*update)  (Window *self, Input *input, float dtime);  // Вызывается каждый кадр (цикл окна).
-    void (*render)  (Window *self, Input *input, float dtime);  // Вызывается каждый кадр (отрисовка окна).
-    void (*resize)  (Window *self, int width, int height);      // Вызывается при изменении размера окна.
+    void (*update)  (Window *self, float dtime);  // Вызывается каждый кадр (цикл окна).
+    void (*render)  (Window *self, float dtime);  // Вызывается каждый кадр (отрисовка окна).
+    void (*resize)  (Window *self, int width, int height);  // Вызывается при изменении размера окна.
     void (*show)    (Window *self);  // Вызывается при разворачивании окна.
     void (*hide)    (Window *self);  // Вызывается при сворачивании окна.
     void (*destroy) (Window *self);  // Вызывается при закрытии окна.
@@ -85,8 +85,8 @@ struct WinConfig {
 // Создать конфигурацию окна:
 WinConfig* Window_create_config(
     void (*start)   (Window *self),
-    void (*update)  (Window *self, Input *input, float dtime),
-    void (*render)  (Window *self, Input *input, float dtime),
+    void (*update)  (Window *self, float dtime),
+    void (*render)  (Window *self, float dtime),
     void (*resize)  (Window *self, int width, int height),
     void (*show)    (Window *self),
     void (*hide)    (Window *self),

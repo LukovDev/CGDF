@@ -4,156 +4,159 @@
 
 
 // Подключаем:
-#include <cgdf/cgdf.h>
-#include <cgdf/graphics/graphics.h>
-#include <cgdf/graphics/opengl/texunit.h>
+#include <cgdf/cgdf.h>               // Подключаем ядро и основные базовые вещи (без модулей).
+#include <cgdf/graphics/graphics.h>  // Графика, и другие модули подключаются отдельно.
 
 
+// Объявялем ресурсы:
 Texture *tex1;
-Texture *tex2;
-CameraController2D *ctrl;
 Camera2D *camera;
 Sprite2D *sprite;
-SpriteBatch *batch;
-
-
-void print_before_free() {
-    printf("(Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
-            mm_get_used_size_kb(), mm_get_used_size(), mm_get_total_allocated_blocks(), mm_get_absolute_used_size(),
-            mm_get_block_header_size());
-}
-
-
-void print_after_free() {
-    printf("(After free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
-            mm_get_used_size_kb(), mm_get_used_size(), mm_get_total_allocated_blocks(), mm_get_absolute_used_size(),
-            mm_get_block_header_size());
-    if (mm_get_used_size() > 0) printf("Memory leak!\n");
-}
 
 
 // Вызывается после создания окна:
 void start(Window *self) {
-    printf("Start called.\n");
-    Window_set_fps(self, 0);
-    Window_set_vsync(self, false);
-
+    // Загружаем и устанавливаем иконку:
     Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
     Window_set_icon(self, icon);
-    Window_set_title(self, "CGDF Window");
     Pixmap_destroy(&icon);
 
-    int width = Window_get_width(self);
-    int height = Window_get_height(self);
+    // Создаём камеру:
+    int width, height;
+    Window_get_size(self, &width, &height);
     camera = Camera2D_create(self, width, height, (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
-    // Camera2D_set_meter(camera, 1.0f);
 
-    ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.9f);
-
+    // Создаём текстуру и загружаем в неё данные:
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
 
-    tex2 = Texture_create(self->renderer);
-    Texture_load(tex2, "data/textures/gradient_uv_checker.png", true);
-
-    sprite = Sprite2D_create(self->renderer, tex2, -100.0f, -100.0f, 10.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
-
-    batch = SpriteBatch_create(self->renderer);
+    // Создаём спрайт:
+    sprite = Sprite2D_create(
+        self->renderer, tex1,             // Рендерер и текстура спрайта.
+        0.0f, 0.0f, 100.0f, 100.0f,       // Позиция и размер (x, y, w, h).
+        0.0f, (Vec4f){1, 1, 1, 1}, false  // Угол поворота, цвет и кастомный шейдер.
+    );
 }
 
 
 // Вызывается каждый кадр (цикл окна):
-void update(Window *self, Input *input, float dtime) {
-    // if (Window_get_is_focused(self)) {
-    //     Window_set_fps(self, 60.0f);
-    // }
-    // if (Window_get_is_defocused(self)) {
-    //     Window_set_fps(self, 10.0f);
-    // }
+void update(Window *self, float dtime) {
 
-    CameraController2D_update(ctrl, dtime, false);
+    // Пример перемещения камеры:
+    float speed = 4.0f;
+    if (Input_get_key_pressed(self)[K_w]) camera->position.y += 100.0f * speed * dtime;
+    if (Input_get_key_pressed(self)[K_a]) camera->position.x -= 100.0f * speed * dtime;
+    if (Input_get_key_pressed(self)[K_s]) camera->position.y -= 100.0f * speed * dtime;
+    if (Input_get_key_pressed(self)[K_d]) camera->position.x += 100.0f * speed * dtime;
+
+    // Обновляем камеру (применяем её параметры):
     Camera2D_update(camera);
 }
 
 
 // Вызывается каждый кадр (отрисовка окна):
-void render(Window *self, Input *input, float dtime) {
+void render(Window *self, float dtime) {
+    // Очищаем содержимое окна:
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
-    Vec2i mouse_pos = Input_get_mouse_pos(self);
-    Vec2d globpos = local_to_global_2d(camera, mouse_pos);
-
-    static bool enable = true;
-    if (Input_get_key_down(self)[K_1]) enable = !enable;
-    if (enable) {
-        SpriteBatch_begin(batch);
-        for (int y=0; y < 256; y++) {
-            for (int x=0; x < 256; x++) {
-                // SpriteBatch_draw(batch, tex1, x, y, 1.0, 1.0, 45.0f);
-                SpriteBatch_draw(batch, tex1, x*64, y*64, 64.0, 64.0, 0.0f);
-            }
-            // SpriteBatch_draw(batch, tex1, 0, y, 1.0, 1.0, sinf(Window_get_time(self))*180.0f);
-        }
-        SpriteBatch_end(batch);
-    }
-
-    Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
-
+    // Рисуем спрайт:
     sprite->render(sprite);
+
+    // Также можно рисовать спрайт, не создавая отдельный объект спрайта:
+    float angle = sinf(Window_get_time(self)) * 180.0f;
+    Sprite2D_render(self->renderer, tex1, 100.0f, 100.0f, 50.0f, 50.0f, angle, (Vec4f){1, 1, 1, 1}, false);
+
+    // Обновляем содержимое окна:
     Window_display(self);
 }
 
 
 // Вызывается при изменении размера окна:
 void resize(Window *self, int width, int height) {
-    printf("Resize called.\n");
-    Camera2D_resize(camera, width, height);
+    Camera2D_resize(camera, width, height);  // Масштабируем камеру под новый размер окна.
 }
 
 
 // Вызывается при разворачивании окна:
 void show(Window *self) {
-    printf("Show called.\n");
+    // Логика при разворачивании окна.
 }
 
 
 // Вызывается при сворачивании окна:
 void hide(Window *self) {
-    printf("Hide called.\n");
+    // Логика при скрытии окна.
 }
 
 
 // Вызывается при закрытии окна:
 void destroy(Window *self) {
-    printf("Destroy called.\n");
+    // Тут мы уничтожаем все объекты, что создали.
     Camera2D_destroy(&camera);
-    CameraController2D_destroy(&ctrl);
     Texture_destroy(&tex1);
-    Texture_destroy(&tex2);
     Sprite2D_destroy(&sprite);
-    SpriteBatch_destroy(&batch);
 }
 
 
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
-    CGDF_Init();
-
-    const char* cgdf_version = CGDF_GetVersion();
-    log_msg("CGDF version: %s\n", cgdf_version);
-
-    WinConfig *config = Window_create_config(start, update, render, resize, show, hide, destroy);
-    Window *window = Window_create(config);
-    if (!Window_open(window, 3, 3)) {
-        log_msg("Window creation failed.\n");
+    // В первую очередь, нам надо инициализировать библиотеку:
+    if (!CGDF_Init()) {
+        printf("CGDF initialization failed.\n");
+        return 1;
     }
 
-    print_before_free();
+    // Также можно узнать версию библиотеки:
+    printf("CGDF version: %s\n", CGDF_GetVersion());
 
+    // Теперь нам надо создать конфигурацию окна (настройки окна):
+    // При создании, надо передать те функции, которые будут вызываться при событиях окна.
+    // Можно передать NULL если не хотите использовать функцию. Но лучше всё же создать по примеру ниже.
+    WinConfig *config = Window_create_config(start, update, render, resize, show, hide, destroy);
+
+    // Конфигурацию можно настраивать, меняя её поля:
+    config->title = "Hello my First Game!";
+    config->width = 960;
+    config->height = 540;
+    // Есть и другие параметры. Вы можете посмотреть по подсказкам,
+    // или перейти к определению этой структуры.
+
+    // Создаём окно. Оно принимает нашу конфигурацию для настройки:
+    Window *window = Window_create(config);
+
+    // Мы создали просто объект окна, но его ещё надо открыть:
+    // Открываем окно по примеру ниже. Функция возвращает false,
+    // если открыть окно не удалось. Это надо обработать, иначе
+    // могут быть проблемы. Возвращает true, после того как окно
+    // было создано, главный цикл отработал и завершился успешно.
+    // Пометка: Управление окном и графикой, варьируется в зависимости
+    // от выбранной реализации графики (opengl, vulkan, ...).
+    // Это значит, что некоторые функции могут немного отличаться.
+    // Конкретно при opengl, мы передаём объект окна, старшую версию
+    // и младшую версию OpenGL (минимум 3.3!):
+    if (!Window_open(window, 3, 3)) {
+        printf("Window creation failed.\n");
+    }
+
+    // В случае отрабатывания функции Window_open(), последующий код
+    // выполняется уже после закрытия окна. Это значит, что нам теперь
+    // надо удалить созданные нами объекты, чтобы не было утечек памяти:
     Window_destroy_config(&config);
     Window_destroy(&window);
 
-    print_after_free();
+    // Необязательно, но мы можем посмотреть, есть ли утечка памяти после освобождения ресурсов:
+    size_t used_size = mm_get_used_size();         // Сколько байтов всё ещё используется.
+    size_t allocated = mm_get_allocated_blocks();  // Всё ещё существующие блоки аллокаций.
+
+    printf("\nMemory info:\n");
+    printf("Blocks allocated: %zu\n", allocated);
+    printf("Used: %zu kb (%zu b).\n", (size_t)(used_size / 1024), used_size);
+
+    // Если используется больше 0 байтов, значит есть какая то утечка, либо мы забыли что-то освободить:
+    if (used_size > 0) {
+        printf("Memory leak!\n");
+        return 1;
+    }
 
     return 0;
 }

@@ -1,4 +1,4 @@
-//
+﻿//
 // batch.c - Реализация пакетной отрисовки для OpenGL.
 //
 
@@ -194,9 +194,9 @@ void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, fl
         // Предварительные смещения:
         float dx1 = x - center_x;
         float dy1 = y - center_y;
-        float dx2 = x + width  - center_x;
+        float dx2 = x + width - center_x;
         float dy2 = y - center_y;
-        float dx3 = x + width  - center_x;
+        float dx3 = x + width - center_x;
         float dy3 = y + height - center_y;
         float dx4 = x - center_x;
         float dy4 = y + height - center_y;
