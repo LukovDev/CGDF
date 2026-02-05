@@ -46,7 +46,7 @@ void start(Window *self) {
     int width = Window_get_width(self);
     int height = Window_get_height(self);
     camera = Camera2D_create(self, width, height, (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
-    // Camera2D_set_meter(camera, 1.0f);
+    Camera2D_set_meter(camera, 1.0f);
 
     ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.9f);
 
@@ -87,9 +87,9 @@ void render(Window *self, float dtime) {
     if (Input_get_key_down(self)[K_1]) enable = !enable;
     if (enable) {
         SpriteBatch_begin(batch);
-        for (int y=0; y < 1024; y++) {
-            for (int x=0; x < 1024; x++) {
-                SpriteBatch_draw(batch, tex1, x*64.0f, y*64.0f, 64.0f, 64.0f, 0.0f);
+        for (int y=0; y < 16; y++) {
+            for (int x=0; x < 16; x++) {
+                SpriteBatch_draw(batch, tex1, x, y, 1.0f, 1.0f, 0.0f);
             }
         }
         SpriteBatch_end(batch);

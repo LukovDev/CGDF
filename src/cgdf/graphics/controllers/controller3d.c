@@ -52,6 +52,7 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     Window *window = self->window;
     Camera3D *camera = self->camera;
     Vec2i mouse_rel = Input_get_mouse_rel(window);
+    bool *keys = Input_get_key_pressed(window);
 
     // Константы управления:
     const int k_forward = K_w;
@@ -96,9 +97,9 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
             float speed = self->speed * dtime;
 
             // Если нажимают на левый или правый шифт, ускорить перемещение:
-            if (Input_get_key_pressed(window)[K_LSHIFT] || Input_get_key_pressed(window)[K_RSHIFT]) {
+            if (keys[K_LSHIFT] || keys[K_RSHIFT]) {
                 speed = self->shift_speed * dtime;
-            } else if (Input_get_key_pressed(window)[K_LCTRL] || Input_get_key_pressed(window)[K_RCTRL]) {
+            } else if (keys[K_LCTRL] || keys[K_RCTRL]) {
                 speed = self->ctrl_speed * dtime;
             }
 
@@ -130,35 +131,35 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
             }
 
             // Управление движением:
-            if (Input_get_key_pressed(window)[k_forward]) {  // Вперед:
+            if (keys[k_forward]) {  // Вперед:
                 self->target_pos.x += forward[0] * speed;
                 self->target_pos.y += forward[1] * speed;
                 self->target_pos.z += forward[2] * speed;
-            } if (Input_get_key_pressed(window)[k_back]) {  // Назад:
+            } if (keys[k_back]) {  // Назад:
                 self->target_pos.x -= forward[0] * speed;
                 self->target_pos.y -= forward[1] * speed;
                 self->target_pos.z -= forward[2] * speed;
-            } if (Input_get_key_pressed(window)[k_left]) {  // Влево:
+            } if (keys[k_left]) {  // Влево:
                 self->target_pos.x -= right[0] * speed;
                 self->target_pos.y -= right[1] * speed;
                 self->target_pos.z -= right[2] * speed;
-            } if (Input_get_key_pressed(window)[k_right]) {  // Вправо:
+            } if (keys[k_right]) {  // Вправо:
                 self->target_pos.x += right[0] * speed;
                 self->target_pos.y += right[1] * speed;
                 self->target_pos.z += right[2] * speed;
-            } if (Input_get_key_pressed(window)[k_up]) {  // Вверх:
+            } if (keys[k_up]) {  // Вверх:
                 self->target_pos.x += up[0] * speed;
                 self->target_pos.y += up[1] * speed;
                 self->target_pos.z += up[2] * speed;
-            } if (Input_get_key_pressed(window)[k_down]) {  // Вниз:
+            } if (keys[k_down]) {  // Вниз:
                 self->target_pos.x -= up[0] * speed;
                 self->target_pos.y -= up[1] * speed;
                 self->target_pos.z -= up[2] * speed;
             }
 
             // Управление вращением крена TODO правильно применить крен к векторам направлений:
-            // if (Input_get_key_pressed(window)[k_roll_left])  camera->rotation.z -= 90.0f * dtime;
-            // if (Input_get_key_pressed(window)[k_roll_right]) camera->rotation.z += 90.0f * dtime;
+            // if (keys[k_roll_left])  camera->rotation.z -= 90.0f * dtime;
+            // if (keys[k_roll_right]) camera->rotation.z += 90.0f * dtime;
         }
 
         // Управление мышью:
@@ -188,7 +189,7 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     }
 
     // Управление обзором камеры:
-    if (Input_get_key_pressed(window)[k_zoom]) {
+    if (keys[k_zoom]) {
         if (!camera->is_ortho) {
             self->target_fov -= Input_get_mouse_wheel(window).y * m_whl_factor * self->target_fov;
         } else {

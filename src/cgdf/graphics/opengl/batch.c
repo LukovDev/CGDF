@@ -70,13 +70,14 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
 
     // Размер буфера спрайтов в байтах:
     // Размер одной вершины в байтах * 6 вершин спрайта * максимальное количество спрайтов.
+    // Если пакет равен 2048 спрайтам, то размер буфера: 32 * 6 * 2048 = 393216 байт (384 кб) в озу и в видеопамяти.
     size_t size = stride * BATCH_VERTS_PER_SPRITE * BATCH_MAX_SPRITES;
 
     // Заполняем поля:
     batch->renderer = renderer;
     batch->vao = BufferVAO_create();
     batch->vbo = BufferVBO_create(NULL, size, GL_DYNAMIC_DRAW);
-    batch->array = (SpriteVertex*)mm_alloc(BATCH_VERTS_PER_SPRITE * BATCH_MAX_SPRITES * sizeof(SpriteVertex));
+    batch->array = (SpriteVertex*)mm_alloc(size);
     batch->sprite_count = 0;
     batch->vertex_count = 0;
     batch->current_tex_id = 0;

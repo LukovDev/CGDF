@@ -53,6 +53,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     Window *window = self->window;
     Camera3D *camera = self->camera;
     Vec2i mouse_rel = Input_get_mouse_rel(window);
+    bool *keys = Input_get_key_pressed(window);
 
     // Константы управления:
     // const int k_roll_left  = K_LEFT;
@@ -82,8 +83,8 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
         // Управление с помощью клавиатуры:
         {
             // Управление вращением крена TODO правильно реализовать крен ко вращению камеры:
-            // if (Input_get_key_pressed(window)[k_roll_left])  self->rotation.z -= 90.0f * dtime;
-            // if (Input_get_key_pressed(window)[k_roll_right]) self->rotation.z += 90.0f * dtime;
+            // if (keys[k_roll_left])  self->rotation.z -= 90.0f * dtime;
+            // if (keys[k_roll_right]) self->rotation.z += 90.0f * dtime;
         }
 
         // Управление с помощью мыши:
@@ -116,7 +117,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     }
 
     // Управление обзором камеры:
-    if (Input_get_key_pressed(window)[k_zoom]) {
+    if (keys[k_zoom]) {
         if (!camera->is_ortho) {
             self->target_fov -= Input_get_mouse_wheel(window).y * m_whl_factor * self->target_fov;
         } else {
@@ -127,7 +128,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     }
 
     // Если мы не попали на интерфейс:
-    if (!pressed_pass && !Input_get_key_pressed(window)[k_zoom]) {
+    if (!pressed_pass && !keys[k_zoom]) {
         // Масштабируем расстояние:
         self->target_dst -= Input_get_mouse_wheel(window).y * self->target_dst * m_whl_factor;
     }
