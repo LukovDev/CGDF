@@ -15,6 +15,7 @@ CameraController2D *ctrl;
 Camera2D *camera;
 Sprite2D *sprite;
 SpriteBatch *batch;
+SimpleDraw *draw;
 
 
 void print_before_free() {
@@ -59,6 +60,8 @@ void start(Window *self) {
     sprite = Sprite2D_create(self->renderer, tex2, -100.0f, -100.0f, 10.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
     batch = SpriteBatch_create(self->renderer);
+
+    draw = SimpleDraw_create(self->renderer);
 }
 
 
@@ -99,6 +102,56 @@ void render(Window *self, float dtime) {
     Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
     sprite->render(sprite);
+
+    // Нарисовать точку:
+    SimpleDraw_point(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 2, 0}, 16.0f);
+
+    // Нарисовать точки:
+    SimpleDraw_points(draw, (Vec4f){1, 0, 0, 1}, (Vec3f[]){
+        {0, 0, 0}, {1, 0.5, 0}, {2, 1, 0}, {1, 2, 0}
+    }, 4, 8.0f);
+
+    // Нарисовать линию:
+    SimpleDraw_line(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){-3, -2, 0}, (Vec3f){3, 2, 0}, 1.0f);
+
+    // Нарисовать ломаную линию:
+    SimpleDraw_line_strip(draw, (Vec4f){1, 0, 1, 1}, (Vec3f[]){
+        {-2, 2, 0}, {-1, 0.5, 0}, {2, -1, 0}, {-1, -2, 0}
+    }, 4, 8.0f);
+
+    // Нарисовать замкнутую ломаную линию:
+    SimpleDraw_line_loop(draw, (Vec4f){0, 1, 1, 1}, (Vec3f[]){
+        {3, -1, 0}, {4, -1.5, 0}, {2, -1, 0}, {-2, 4, 0}
+    }, 4, 3.0f);
+
+    // Нарисовать треугольники:
+    SimpleDraw_triangles(draw, (Vec4f){1, 1, 1, 1}, (Vec3f[]){
+        {-1, -1, 0}, {1, -1, 0}, {0, 1, 0}
+    }, 3);
+
+    // Нарисовать треугольники последняя вершина которой будет соединена с первой:
+    SimpleDraw_triangle_fan(draw, (Vec4f){1, 1, 1, 0.5}, (Vec3f[]){
+        {-4, -4, 0}, {-3, -4, 0}, {0, 4, 0}, {1, 4, 0}
+    }, 4);
+
+    // Нарисовать квадрат:
+    SimpleDraw_quad(draw, (Vec4f){1, 0, 1, 0.5}, (Vec3f){-4, 4, 0}, (Vec2f){2, 2}, 4.0f);
+
+    // Нарисовать квадрат с заливкой:
+    SimpleDraw_quad_fill(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){-1, 4, 0}, (Vec2f){2, 2});
+
+    // Нарисовать круг:
+    SimpleDraw_circle(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){4, 4, 0}, 2.0f, 32, 1.0f);
+
+    // Нарисовать круг с заливкой:
+    SimpleDraw_circle_fill(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){4, 0, 0}, 2.0f, 8);
+
+    // Нарисовать звезду:
+    SimpleDraw_star(draw, (Vec4f){0, 0, 1, 1}, (Vec3f){0, -4, 0}, 2.0f, 1.0f, 5, 1.0f);
+
+    // Нарисовать звезду с заливкой:
+    SimpleDraw_star_fill(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){-4, 0, 0}, 2.0f, 1.0f, 5);
+
     Window_display(self);
 }
 
@@ -131,6 +184,7 @@ void destroy(Window *self) {
     Texture_destroy(&tex2);
     Sprite2D_destroy(&sprite);
     SpriteBatch_destroy(&batch);
+    SimpleDraw_destroy(&draw);
 }
 
 
@@ -139,7 +193,7 @@ int main(int argc, char *argv[]) {
     CGDF_Init();
 
     const char* cgdf_version = CGDF_GetVersion();
-    log_msg("CGDF version: %s\n", cgdf_version);
+    log_msg("[I] CGDF version: %s\n", cgdf_version);
 
     WinConfig *config = Window_create_config(start, update, render, resize, show, hide, destroy);
     Window *window = Window_create(config);

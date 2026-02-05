@@ -107,7 +107,9 @@ static void fbo_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int wi
 void BufferFBO_begin(BufferFBO *self) {
     if (!self || self->_is_begin_ || self->id == 0) return;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &self->_id_before_begin_);
-    glBindFramebuffer(GL_FRAMEBUFFER, self->id);
+    if (self->_id_before_begin_ != self->id) {
+        glBindFramebuffer(GL_FRAMEBUFFER, self->id);
+    }
     self->_is_begin_ = true;
     BufferFBO_apply(self);  // Только после _is_begin_ = true.
 }
@@ -115,7 +117,9 @@ void BufferFBO_begin(BufferFBO *self) {
 // Не использовать буфер:
 void BufferFBO_end(BufferFBO *self) {
     if (!self || !self->_is_begin_) return;
-    glBindFramebuffer(GL_FRAMEBUFFER, (uint32_t)self->_id_before_begin_);
+    if (self->_id_before_begin_ != self->id) {
+        glBindFramebuffer(GL_FRAMEBUFFER, (uint32_t)self->_id_before_begin_);
+    }
     if (self->_id_before_begin_ == 0) glDrawBuffer(GL_BACK);
     self->_is_begin_ = false;
 }

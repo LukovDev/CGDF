@@ -33,7 +33,7 @@ struct SpriteBatch {
 
 
 // Отрисовать буфер спрайтов:
-static void batch_flush(SpriteBatch *batch) {
+static void _batch_flush_(SpriteBatch *batch) {
     if (!batch || !batch->_is_begin_ || batch->vertex_count == 0) {
         // Экономим вызовы отрисовки (ничего не рисуем) если в буфере нет вершин.
         batch->sprite_count = 0;
@@ -171,13 +171,13 @@ void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, fl
 
     // Если текущая текстура не совпадает с предыдущей, то отрисовываем всё что накопили:
     if (tex_id != batch->current_tex_id) {
-        batch_flush(batch);
+        _batch_flush_(batch);
         batch->current_tex_id = tex_id;
     }
 
     // Если превышен лимит спрайтов, то отрисовываем все что накопили:
     if (batch->sprite_count >= BATCH_MAX_SPRITES) {
-        batch_flush(batch);
+        _batch_flush_(batch);
     };
 
     // Временные вершины (квадрат из 4 вершин по 2 координаты):
@@ -250,7 +250,7 @@ void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, fl
 // Закончить отрисовку:
 void SpriteBatch_end(SpriteBatch *batch) {
     if (!batch || !batch->_is_begin_) return;
-    batch_flush(batch);
+    _batch_flush_(batch);
     BufferVBO_end(batch->vbo);
     BufferVAO_end(batch->vao);
     Shader_end(batch->renderer->shader_spritebatch);

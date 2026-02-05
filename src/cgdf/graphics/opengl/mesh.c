@@ -1,5 +1,5 @@
 //
-// mesh.c - Реализует работу с сетками модели.
+// mesh.c - Реализует работу с сетками модели для OpenGL.
 //
 
 
@@ -44,7 +44,6 @@ Mesh* Mesh_create(
 
     // Настраиваем атрибуты:
     BufferVAO_begin(mesh->vao);
-    // Привязываем буферы к VAO:
     BufferVBO_begin(mesh->vbo);
     BufferEBO_begin(mesh->ebo);
     // Позиция:
@@ -52,10 +51,12 @@ Mesh* Mesh_create(
     // Нормаль:
     BufferVAO_attrib_pointer(mesh->vao, 1, 3, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, nx));
     // Цвет:
-    BufferVAO_attrib_pointer(mesh->vao, 2, 3, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, r));
+    BufferVAO_attrib_pointer(mesh->vao, 2, 4, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, r));
     // Текстурные координаты:
     BufferVAO_attrib_pointer(mesh->vao, 3, 2, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, u));
-    // Готово, можем отвязать атрибуты:
+    // Готово, можем отвязать буферы:
+    BufferEBO_begin(mesh->ebo);
+    BufferVBO_begin(mesh->vbo);
     BufferVAO_end(mesh->vao);
 
     // Возвращаем сетку:

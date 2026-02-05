@@ -47,14 +47,18 @@ void BufferEBO_destroy(BufferEBO **ebo) {
 void BufferEBO_begin(BufferEBO *self) {
     if (!self || self->_is_begin_ || self->id == 0) return;
     glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &self->_id_before_begin_);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->id);
+    if (self->_id_before_begin_ != self->id) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->id);
+    }
     self->_is_begin_ = true;
 }
 
 // Не использовать буфер:
 void BufferEBO_end(BufferEBO *self) {
     if (!self || !self->_is_begin_) return;
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, (uint32_t)self->_id_before_begin_);
+    if (self->_id_before_begin_ != self->id) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, (uint32_t)self->_id_before_begin_);
+    }
     self->_is_begin_ = false;
 }
 

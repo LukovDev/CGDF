@@ -41,14 +41,18 @@ void BufferVAO_destroy(BufferVAO **vao) {
 void BufferVAO_begin(BufferVAO *self) {
     if (!self || self->_is_begin_ || self->id == 0) return;
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &self->_id_before_begin_);
-    glBindVertexArray(self->id);
+    if (self->_id_before_begin_ != self->id) {
+        glBindVertexArray(self->id);
+    }
     self->_is_begin_ = true;
 }
 
 // Не использовать буфер:
 void BufferVAO_end(BufferVAO *self) {
     if (!self || !self->_is_begin_) return;
-    glBindVertexArray((uint32_t)self->_id_before_begin_);
+    if (self->_id_before_begin_ != self->id) {
+        glBindVertexArray((uint32_t)self->_id_before_begin_);
+    }
     self->_is_begin_ = false;
 }
 

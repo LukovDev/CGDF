@@ -1,5 +1,5 @@
 //
-// renderer.c - Реализует функционал рендерера.
+// renderer.c - Реализует функционал рендерера для OpenGL.
 //
 
 
@@ -26,11 +26,11 @@ uniform mat4 u_view = mat4(1.0);\n\
 uniform mat4 u_proj = mat4(1.0);\n\
 layout (location = 0) in vec3 a_position;\n\
 layout (location = 1) in vec3 a_normal;\n\
-layout (location = 2) in vec3 a_color;\n\
+layout (location = 2) in vec4 a_color;\n\
 layout (location = 3) in vec2 a_texcoord;\n\
 out vec2 v_texcoord;\n\
 out vec3 v_normal;\n\
-out vec3 v_color;\n\
+out vec4 v_color;\n\
 \n\
 void main(void) {\n\
     gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);\n\
@@ -50,7 +50,7 @@ uniform vec4 u_color = vec4(1.0);\n\
 uniform sampler2D u_texture;\n\
 in vec2 v_texcoord;\n\
 in vec3 v_normal;\n\
-in vec3 v_color;\n\
+in vec4 v_color;\n\
 out vec4 FragColor;\n\
 \n\
 void main(void) {\n\
@@ -65,7 +65,7 @@ void main(void) {\n\
     } else if (u_use_normals) {\n\
         FragColor = vec4(v_normal.rgb, 1.0);\n\
     } else if (u_use_vcolor) {\n\
-        FragColor = vec4(v_color.rgb, 1.0);\n\
+        FragColor = v_color;\n\
     } else {\n\
         FragColor = u_color;\n\
     }\n\
@@ -116,10 +116,10 @@ void main() {\n\
 static const float _texcoord_[] = {0.0f, 0.0f, 1.0f, 1.0f};
 static const Vertex _sprite_vertices_[] = {
     // vertex, normal, color, texcoord.
-    {-1,-1,0,  0,0,0,  1,1,1,  _texcoord_[0], _texcoord_[3]},  // 0.
-    {+1,-1,0,  0,0,0,  1,1,1,  _texcoord_[2], _texcoord_[3]},  // 1.
-    {+1,+1,0,  0,0,0,  1,1,1,  _texcoord_[2], _texcoord_[1]},  // 2.
-    {-1,+1,0,  0,0,0,  1,1,1,  _texcoord_[0], _texcoord_[1]}   // 3.
+    {-1,-1,0,  0,0,0,  1,1,1,1,  _texcoord_[0], _texcoord_[3]},  // 0.
+    {+1,-1,0,  0,0,0,  1,1,1,1,  _texcoord_[2], _texcoord_[3]},  // 1.
+    {+1,+1,0,  0,0,0,  1,1,1,1,  _texcoord_[2], _texcoord_[1]},  // 2.
+    {-1,+1,0,  0,0,0,  1,1,1,1,  _texcoord_[0], _texcoord_[1]}   // 3.
 };
 static const uint32_t _sprite_indices_[] = {
     0, 1, 2,  // Triangle 1.
@@ -189,6 +189,14 @@ void Renderer_init(Renderer *self) {
     glEnable(GL_BLEND);  // Включаем смешивание цветов.
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Устанавливаем режим смешивания.
     glEnable(GL_PROGRAM_POINT_SIZE);  // Разрешаем установку размера точки через шейдер.
+
+    // Включаем сглаживание линий только если драйвер сообщает поддержку:
+    float smooth_line_range[2] = {0.0f, 0.0f};
+    glGetFloatv(GL_SMOOTH_LINE_WIDTH_RANGE, smooth_line_range);
+    if (smooth_line_range[1] > 0.0f) {
+        glEnable(GL_LINE_SMOOTH);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Просим использовать максимально качественное сглаживание.
+    }
 
     // Делаем нулевой текстурный юнит привязанным к нулевой текстуре:
     glActiveTexture(GL_TEXTURE0);
