@@ -19,6 +19,7 @@ struct SpriteBatch {
     Renderer     *renderer;       // Рендерер.
     BufferVAO    *vao;            // Буфер атрибутов.
     BufferVBO    *vbo;            // Буфер вершин.
+    BufferEBO    *ebo;            // Буфер граней.
     SpriteVertex *array;          // Массив вершин.
     uint32_t     sprite_count;    // Сколько спрайтов накоплено.
     uint32_t     vertex_count;    // Сколько вершин реально записано.
@@ -29,12 +30,37 @@ struct SpriteBatch {
 };
 
 
+// Глобальные переменные:
+uint32_t BATCH_SPRITES_SIZE = BATCH_MAX_SPRITES;
+
+
 // -------- Вспомогательные функции: --------
+
+
+static uint32_t* _create_indices_buffer_(uint32_t size, uint32_t batch_size) {
+    /*
+        Создаём буфер максимального размера, чтобы из 4 вершины спрайта можно было рисовать 2 треугольника.
+        Мы просто дублируем pattern для каждого спрайта на весь буфер. Благодаря этому, мы используем весь
+        буфер только один раз и больше не будем в нём менять память. Это производительно.
+    */
+    uint32_t *indices = (uint32_t*)mm_alloc(size);
+    static const uint32_t pattern[6] = {0, 1, 2, 2, 3, 0};
+    // Проходимся по спрайтам в буфере:
+    for (uint32_t i = 0; i < batch_size; i++) {
+        uint32_t *dst = indices + i * BATCH_INDCS_PER_SPRITE;  // Определяем сдвиг для записи.
+        // Проходимся по индексам в паттерне и записываем их в буфер:
+        for (uint32_t j = 0; j < BATCH_INDCS_PER_SPRITE; j++) {
+            dst[j] = i * BATCH_VERTS_PER_SPRITE + pattern[j];
+        }
+    }
+    return indices;  // Не забудьте освободить память!
+}
 
 
 // Отрисовать буфер спрайтов:
 static void _batch_flush_(SpriteBatch *batch) {
-    if (!batch || !batch->_is_begin_ || batch->vertex_count == 0) {
+    if (!batch) return;
+    if (!batch->_is_begin_ || batch->vertex_count == 0) {
         // Экономим вызовы отрисовки (ничего не рисуем) если в буфере нет вершин.
         batch->sprite_count = 0;
         batch->vertex_count = 0;
@@ -50,7 +76,7 @@ static void _batch_flush_(SpriteBatch *batch) {
     BufferVBO_set_subdata(batch->vbo, batch->array, 0, batch->vertex_count * sizeof(SpriteVertex));
 
     // Рисуем (буфер VAO должен быть активен):
-    glDrawArrays(GL_TRIANGLES, 0, batch->vertex_count);
+    glDrawElements(GL_TRIANGLES, BATCH_INDCS_PER_SPRITE * batch->sprite_count, GL_UNSIGNED_INT, 0);
 
     // Сбрасываем данные:
     batch->sprite_count = 0;
@@ -63,20 +89,27 @@ static void _batch_flush_(SpriteBatch *batch) {
 
 // Создать пакетную отрисовку спрайтов:
 SpriteBatch* SpriteBatch_create(Renderer *renderer) {
+    if (!renderer) return NULL;
     SpriteBatch *batch = (SpriteBatch*)mm_alloc(sizeof(SpriteBatch));
 
-    // Размер одной вершины в байтах (8 * 4 = 32):
+    // Размер одной вершины в байтах (8 параметров * 4 байта по каждому = 32 байт):
     size_t stride = sizeof(SpriteVertex);
 
     // Размер буфера спрайтов в байтах:
-    // Размер одной вершины в байтах * 6 вершин спрайта * максимальное количество спрайтов.
-    // Если пакет равен 2048 спрайтам, то размер буфера: 32 * 6 * 2048 = 393216 байт (384 кб) в озу и в видеопамяти.
-    size_t size = stride * BATCH_VERTS_PER_SPRITE * BATCH_MAX_SPRITES;
+    // Размер одной вершины в байтах (32) * 4 вершины спрайта * максимальное количество спрайтов (2048).
+    // Если пакет равен 2048 спрайтам, то размер буфера: 32 * 4 * 2048 = 262144 байт (256 кб) в озу и в видеопамяти.
+    size_t size = stride * BATCH_VERTS_PER_SPRITE * BATCH_SPRITES_SIZE;
+
+    // Размер буфера индексов в байтах:
+    // Размер одного индекса (4 байта) * количество индексов на спрайт (6) * размер пакета спрайтов (2048).
+    // Если пакет равен 2048 спрайтам, то размер буфера: 4 * 6 * 2048 = 49152 байт (48 кб) в озу и в видеопамяти.
+    size_t size_indices = sizeof(uint32_t) * BATCH_INDCS_PER_SPRITE * BATCH_SPRITES_SIZE;
 
     // Заполняем поля:
     batch->renderer = renderer;
     batch->vao = BufferVAO_create();
     batch->vbo = BufferVBO_create(NULL, size, GL_DYNAMIC_DRAW);
+    // batch->ebo настраивается ниже.
     batch->array = (SpriteVertex*)mm_alloc(size);
     batch->sprite_count = 0;
     batch->vertex_count = 0;
@@ -85,14 +118,22 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     batch->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
     batch->_is_begin_ = false;
 
+    // Создаём массив индексов, чтобы из 4 вершины спрайта можно было рисовать 2 треугольника:
+    uint32_t *indices = _create_indices_buffer_(size_indices, BATCH_SPRITES_SIZE);
+    batch->ebo = BufferEBO_create(indices, size_indices, GL_STATIC_DRAW);
+    mm_free(indices);  // Освобождаем массив индексов.
+    // Больше трогать память ebo буфера не нужно. Мы заполнили его полностью.
+
     // Настраиваем буфер:
     BufferVAO_begin(batch->vao);
+    BufferEBO_begin(batch->ebo);  // Подключаем к VAO наш буфер индексов.
     BufferVBO_begin(batch->vbo);
     BufferVAO_attrib_pointer(batch->vao, 0, 2, GL_FLOAT, false, stride, offsetof(SpriteVertex, x));  // Позиция.
     BufferVAO_attrib_pointer(batch->vao, 1, 2, GL_FLOAT, false, stride, offsetof(SpriteVertex, u));  // UV.
     BufferVAO_attrib_pointer(batch->vao, 2, 4, GL_FLOAT, false, stride, offsetof(SpriteVertex, r));  // Цвет.
     BufferVBO_end(batch->vbo);
     BufferVAO_end(batch->vao);
+    BufferEBO_end(batch->ebo);  // Отвязываем буфер индексов ТОЛЬКО после отвязывания VAO!
     return batch;
 }
 
@@ -103,6 +144,7 @@ void SpriteBatch_destroy(SpriteBatch **batch) {
     // Удаляем буферы:
     BufferVAO_destroy(&(*batch)->vao);
     BufferVBO_destroy(&(*batch)->vbo);
+    BufferEBO_destroy(&(*batch)->ebo);
     if ((*batch)->array) mm_free((*batch)->array);
 
     mm_free(*batch);
@@ -121,6 +163,7 @@ void SpriteBatch_begin(SpriteBatch *batch) {
     Camera2D *camera = (Camera2D*)batch->renderer->camera;
     Shader_begin(shader);
     BufferVAO_begin(batch->vao);
+    BufferEBO_begin(batch->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
     BufferVBO_begin(batch->vbo);
     if (camera) {
         Shader_set_mat4(shader, "u_view", camera->view);
@@ -176,7 +219,7 @@ void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, fl
     }
 
     // Если превышен лимит спрайтов, то отрисовываем все что накопили:
-    if (batch->sprite_count >= BATCH_MAX_SPRITES) {
+    if (batch->sprite_count >= BATCH_SPRITES_SIZE) {
         _batch_flush_(batch);
     };
 
@@ -233,17 +276,13 @@ void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, fl
     // Добавляем сетку в буфер:
     Vec4f tc = batch->texcoord;
     uint32_t base = batch->vertex_count;  // Смещение в массиве вершин.
-    // Треугольник 1:
     batch->array[base+0] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=batch->color};  // 1.
     batch->array[base+1] = (SpriteVertex){v[2], v[3], tc.z, tc.w, .color=batch->color};  // 2.
     batch->array[base+2] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=batch->color};  // 3.
-    // Треугольник 2:
-    batch->array[base+3] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=batch->color};  // 3.
-    batch->array[base+4] = (SpriteVertex){v[6], v[7], tc.x, tc.y, .color=batch->color};  // 4.
-    batch->array[base+5] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=batch->color};  // 1.
+    batch->array[base+3] = (SpriteVertex){v[6], v[7], tc.x, tc.y, .color=batch->color};  // 4.
 
     // Обновляем счётчики:
-    batch->vertex_count += 6;  // Записали 6 вершин.
+    batch->vertex_count += 4;  // Записали 4 вершины.
     batch->sprite_count += 1;  // Записали 1 спрайт.
 }
 

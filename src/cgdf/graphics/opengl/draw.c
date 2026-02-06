@@ -241,14 +241,13 @@ void SimpleDraw_circle_fill(SimpleDraw *draw, Vec4f color, Vec3f center, float r
     float angle_step = 2.0f * GLM_PIf / num_verts;
 
     // Создаём массив вершин:
-    uint32_t base = 0;  // Шаг между вершинами.
     Vec3f *verts = (Vec3f*)mm_alloc(count * sizeof(Vec3f));
     for (uint32_t i = 0; i < num_verts; i++) {
         float theta1 = i * angle_step;
         float theta2 = (i + 1) * angle_step;
-        verts[base++] = (Vec3f){center.x, center.y, center.z};
-        verts[base++] = (Vec3f){center.x + cos(theta1) * radius, center.y + sin(theta1) * radius, center.z};
-        verts[base++] = (Vec3f){center.x + cos(theta2) * radius, center.y + sin(theta2) * radius, center.z};
+        verts[i*3+0] = (Vec3f){center.x, center.y, center.z};
+        verts[i*3+1] = (Vec3f){center.x + cos(theta1) * radius, center.y + sin(theta1) * radius, center.z};
+        verts[i*3+2] = (Vec3f){center.x + cos(theta2) * radius, center.y + sin(theta2) * radius, center.z};
     }
     SimpleDraw_triangles(draw, color, verts, count);
     mm_free(verts);
@@ -283,16 +282,15 @@ void SimpleDraw_star_fill(
     uint32_t count = num_verts * 2 * 3;  // Всего вершин (в треугольниках).
 
     // Создаём массив вершин:
-    uint32_t base = 0;  // Шаг между вершинами.
     Vec3f *verts = (Vec3f*)mm_alloc(count * sizeof(Vec3f));
     for (uint32_t i = 0; i < num_verts*2; i++) {
         float r1 = i % 2 ? inradius : outradius;
         float r2 = (i+1) % 2 ? inradius : outradius;
         float a1 = radians(i * 180.0 / num_verts);
         float a2 = radians((i+1) * 180.0 / num_verts);
-        verts[base++] = (Vec3f){center.x, center.y, center.z};
-        verts[base++] = (Vec3f){center.x + sinf(a1)*r1, center.y + cosf(a1)*r1, center.z};
-        verts[base++] = (Vec3f){center.x + sinf(a2)*r2, center.y + cosf(a2)*r2, center.z};
+        verts[i*3+0] = (Vec3f){center.x, center.y, center.z};
+        verts[i*3+1] = (Vec3f){center.x + sinf(a1)*r1, center.y + cosf(a1)*r1, center.z};
+        verts[i*3+2] = (Vec3f){center.x + sinf(a2)*r2, center.y + cosf(a2)*r2, center.z};
     }
     SimpleDraw_triangles(draw, color, verts, count);
     mm_free(verts);
