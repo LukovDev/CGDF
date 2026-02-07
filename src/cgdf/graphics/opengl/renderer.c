@@ -9,6 +9,7 @@
 #include <cgdf/core/logger.h>
 #include "../vertex.h"
 #include "../mesh.h"
+#include "../camera.h"
 #include "../renderer.h"
 #include "buffer_gc.h"
 #include "texunit.h"
@@ -148,8 +149,10 @@ Renderer* Renderer_create() {
 
     // Заполняем поля:
     rnd->initialized = false;
-    rnd->camera = NULL;
     rnd->shader = NULL;
+    rnd->shader_spritebatch = NULL;
+    rnd->camera = NULL;
+    rnd->camera_type = RENDERER_CAMERA_2D;
     rnd->sprite_mesh = NULL;
 
     // Создаём шейдеры:
@@ -232,4 +235,32 @@ void Renderer_init(Renderer *self) {
 void Renderer_buffers_flush(Renderer *self) {
     if (!self) return;
     BufferGC_GL_flush();
+}
+
+// Получить матрицу вида камеры:
+void Renderer_get_view(Renderer *self, mat4 view) {
+    glm_mat4_identity(view);
+    if (!self || !self->camera) return;
+    if (self->camera_type == RENDERER_CAMERA_2D) {
+        glm_mat4_copy(((Camera2D*)self->camera)->view, view);
+    } else if (self->camera_type == RENDERER_CAMERA_3D) {
+        glm_mat4_copy(((Camera3D*)self->camera)->view, view);
+    }
+}
+
+// Получить матрицу проекции камеры:
+void Renderer_get_proj(Renderer *self, mat4 proj) {
+    glm_mat4_identity(proj);
+    if (!self || !self->camera) return;
+    if (self->camera_type == RENDERER_CAMERA_2D) {
+        glm_mat4_copy(((Camera2D*)self->camera)->proj, proj);
+    } else if (self->camera_type == RENDERER_CAMERA_3D) {
+        glm_mat4_copy(((Camera3D*)self->camera)->proj, proj);
+    }
+}
+
+// Получить матрицу вида и проекции камеры:
+void Renderer_get_view_proj(Renderer *self, mat4 view, mat4 proj) {
+    Renderer_get_view(self, view);
+    Renderer_get_proj(self, proj);
 }

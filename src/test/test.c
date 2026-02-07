@@ -12,7 +12,9 @@
 Texture *tex1;
 Texture *tex2;
 CameraController2D *ctrl;
+CameraController3D *ctrl3d;
 Camera2D *camera;
+Camera3D *camera3d;
 Sprite2D *sprite;
 SpriteBatch *batch;
 SimpleDraw *draw;
@@ -51,6 +53,19 @@ void start(Window *self) {
 
     ctrl = CameraController2D_create(self, camera, 1.0f, 0.001f, 128000.0f, 0.9f);
 
+    camera3d = Camera3D_create(
+        self, Window_get_width(self), Window_get_height(self),
+        (Vec3d){0.0f, 0.0f, 0.0f},
+        (Vec3d){0.0f, 0.0f, 0.0f},
+        (Vec3d){1.0f, 1.0f, 1.0f},
+        90.0f,
+        0.01f, 100.0f,
+        false
+    );
+    Camera3D_set_cull_faces(camera3d, false);
+    Camera3D_set_depth_test(camera3d, false);
+    ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
+
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
 
@@ -74,8 +89,10 @@ void update(Window *self, float dtime) {
     //     Window_set_fps(self, 10.0f);
     // }
 
-    CameraController2D_update(ctrl, dtime, false);
-    Camera2D_update(camera);
+    // CameraController2D_update(ctrl, dtime, false);
+    // Camera2D_update(camera);
+    CameraController3D_update(ctrl3d, dtime, false);
+    Camera3D_update(camera3d);
 }
 
 
@@ -84,19 +101,29 @@ void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
     Vec2i mouse_pos = Input_get_mouse_pos(self);
-    Vec2d globpos = local_to_global_2d(camera, mouse_pos);
+    Vec2d globpos = {0};
+
+    static Vec3f hit_pos;
+    Vec3f plane_point  = {0.0f, 0.0f, 0.0f};
+    Vec3f plane_normal = {0.0f, 0.0f, 1.0f};
+
+    mat4 view, proj;
+    Renderer_get_view_proj(self->renderer, view, proj);
+    if (camera_screen_to_plane(self, view, proj, mouse_pos, plane_point, plane_normal, &hit_pos)) {
+        globpos.x = hit_pos.x;
+        globpos.y = hit_pos.y;
+    }
 
     static bool enable = true;
     if (Input_get_key_down(self)[K_1]) enable = !enable;
     if (enable) {
         SpriteBatch_begin(batch);
-        for (int y=0; y < 16; y++) {
-            for (int x=0; x < 16; x++) {
+        for (int y=-8; y < 8; y++) {
+            for (int x=-8; x < 8; x++) {
                 SpriteBatch_draw(batch, tex1, x, y, 1.0f, 1.0f, 0.0f);
             }
         }
         SpriteBatch_end(batch);
-        // 30 fps стабильно, ура!!!
     }
 
     Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
@@ -113,6 +140,11 @@ void render(Window *self, float dtime) {
 
     // Нарисовать линию:
     SimpleDraw_line(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){-3, -2, 0}, (Vec3f){3, 2, 0}, 1.0f);
+
+    // Нарисовать линии:
+    SimpleDraw_lines(draw, (Vec4f){0, 0, 1, 1}, (Vec3f[]){
+        {0, 0, 100}, {0, 0, -100}, {100, 0, 0}, {-100, 0, 0}, {0, 100, 0}, {0, -100, 0}
+    }, 6, 1.0f);
 
     // Нарисовать ломаную линию:
     SimpleDraw_line_strip(draw, (Vec4f){1, 0, 1, 1}, (Vec3f[]){
@@ -159,7 +191,8 @@ void render(Window *self, float dtime) {
 // Вызывается при изменении размера окна:
 void resize(Window *self, int width, int height) {
     printf("Resize called.\n");
-    Camera2D_resize(camera, width, height);
+    // Camera2D_resize(camera, width, height);
+    Camera3D_resize(camera3d, width, height, false);
 }
 
 
@@ -185,6 +218,9 @@ void destroy(Window *self) {
     Sprite2D_destroy(&sprite);
     SpriteBatch_destroy(&batch);
     SimpleDraw_destroy(&draw);
+
+    Camera3D_destroy(&camera3d);
+    CameraController3D_destroy(&ctrl3d);
 }
 
 

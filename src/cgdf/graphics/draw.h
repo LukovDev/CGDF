@@ -37,6 +37,9 @@ void SimpleDraw_points(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t co
 // Нарисовать линию:
 void SimpleDraw_line(SimpleDraw *draw, Vec4f color, Vec3f start, Vec3f end, float width);
 
+// Нарисовать линии:
+void SimpleDraw_lines(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float width);
+
 // Нарисовать ломаную линию:
 void SimpleDraw_line_strip(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float width);
 

@@ -142,6 +142,17 @@ void SimpleDraw_line(SimpleDraw *draw, Vec4f color, Vec3f start, Vec3f end, floa
     }, 2, GL_LINES);
 }
 
+// Нарисовать линии:
+void SimpleDraw_lines(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float width) {
+    if (!draw || !points) return;
+    glLineWidth(width);
+
+    // Создаём массив вершин:
+    Vertex *verts = _get_verts_(points, count);
+    _simpledraw_render_(draw, color, verts, count, GL_LINES);
+    mm_free(verts);
+}
+
 // Нарисовать ломаную линию:
 void SimpleDraw_line_strip(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float width) {
     if (!draw || !points) return;
@@ -288,9 +299,9 @@ void SimpleDraw_star_fill(
         float r2 = (i+1) % 2 ? inradius : outradius;
         float a1 = radians(i * 180.0 / num_verts);
         float a2 = radians((i+1) * 180.0 / num_verts);
-        verts[i*3+0] = (Vec3f){center.x, center.y, center.z};
+        verts[i*3+0] = (Vec3f){center.x + sinf(a2)*r2, center.y + cosf(a2)*r2, center.z};
         verts[i*3+1] = (Vec3f){center.x + sinf(a1)*r1, center.y + cosf(a1)*r1, center.z};
-        verts[i*3+2] = (Vec3f){center.x + sinf(a2)*r2, center.y + cosf(a2)*r2, center.z};
+        verts[i*3+2] = (Vec3f){center.x, center.y, center.z};
     }
     SimpleDraw_triangles(draw, color, verts, count);
     mm_free(verts);

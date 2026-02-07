@@ -9,6 +9,7 @@
 
 // Подключаем:
 #include <cgdf/core/std.h>
+#include <cgdf/core/math.h>
 #include "mesh.h"
 #include "shader.h"
 
@@ -17,12 +18,21 @@
 typedef struct Renderer Renderer;  // Рендерер.
 
 
+// Тип используемой камеры:
+typedef enum {
+    RENDERER_CAMERA_2D,
+    RENDERER_CAMERA_3D,
+} RendererCameraType;
+
+
 // Рендерер:
 struct Renderer {
     bool initialized;  // Флаг инициализации контекста OpenGL.
-    void *camera;      // Текущая активная камера.
-    Shader *shader;    // Дефолтная шейдерная программа.
+    Shader *shader;              // Дефолтная шейдерная программа.
     Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
+
+    void *camera;  // Текущая активная камера.
+    RendererCameraType camera_type;  // Тип камеры который используется (для корректировок).
 
     // Другое:
     Mesh *sprite_mesh;  // Сетка спрайта.
@@ -43,3 +53,12 @@ void Renderer_init(Renderer *self);
 
 // Освобождение буферов:
 void Renderer_buffers_flush(Renderer *self);
+
+// Получить матрицу вида камеры:
+void Renderer_get_view(Renderer *self, mat4 view);
+
+// Получить матрицу проекции камеры:
+void Renderer_get_proj(Renderer *self, mat4 proj);
+
+// Получить матрицу вида и проекции камеры:
+void Renderer_get_view_proj(Renderer *self, mat4 view, mat4 proj);

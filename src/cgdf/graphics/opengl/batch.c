@@ -159,21 +159,15 @@ void SpriteBatch_begin(SpriteBatch *batch) {
     batch->current_tex_id = 0;
 
     // Обновляем данные в шейдере:
+    mat4 view, proj;
+    Renderer_get_view_proj(batch->renderer, view, proj);
     Shader *shader = batch->renderer->shader_spritebatch;
-    Camera2D *camera = (Camera2D*)batch->renderer->camera;
     Shader_begin(shader);
     BufferVAO_begin(batch->vao);
     BufferEBO_begin(batch->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
     BufferVBO_begin(batch->vbo);
-    if (camera) {
-        Shader_set_mat4(shader, "u_view", camera->view);
-        Shader_set_mat4(shader, "u_proj", camera->proj);
-    } else {
-        mat4 ident;
-        glm_mat4_identity(ident);
-        Shader_set_mat4(shader, "u_view", ident);
-        Shader_set_mat4(shader, "u_proj", ident);
-    }
+    Shader_set_mat4(shader, "u_view", view);
+    Shader_set_mat4(shader, "u_proj", proj);
     batch->_is_begin_ = true;
 }
 

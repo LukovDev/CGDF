@@ -66,6 +66,7 @@ void Camera2D_update(Camera2D *self) {
 
     // Устанавливаем активную камеру:
     renderer->camera = (void*)self;
+    renderer->camera_type = RENDERER_CAMERA_2D;
 
     // Обновляем данные матриц в шейдере по умолчанию:
     glDisable(GL_DEPTH_TEST);
@@ -213,6 +214,7 @@ void Camera3D_update(Camera3D *self) {
 
     // Устанавливаем активную камеру:
     renderer->camera = (void*)self;
+    renderer->camera_type = RENDERER_CAMERA_3D;
 
     // Обновляем данные матриц в шейдере по умолчанию:
     Shader *shader = renderer->shader;

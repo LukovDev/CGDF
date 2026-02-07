@@ -18,14 +18,14 @@ typedef struct Camera3D Camera3D;  // 3D Камера.
 
 // Структура 2D камеры:
 struct Camera2D {
+    mat4 view;        // Матрица вида.
+    mat4 proj;        // Матрица проекции.
     Window *window;   // Указатель на окно.
     Vec2d position;   // Позиция камеры.
     float angle;      // Угол наклона камеры.
     float zoom;       // Масштаб камеры.
     float meter;      // Масштаб единицы измерения.
     bool _ui_begin_;  // Отрисовывается ли интерфейс.
-    mat4 view;        // Матрица вида.
-    mat4 proj;        // Матрица проекции.
 
     // Можно обратиться как к size.x/y так и к width/height:
     union {
@@ -40,6 +40,8 @@ struct Camera2D {
 
 // Структура 3D камеры:
 struct Camera3D {
+    mat4 view;        // Матрица вида.
+    mat4 proj;        // Матрица проекции.
     Window *window;   // Указатель на окно.
     Vec3d position;   // Позиция камеры.
     Vec3d rotation;   // Поворот камеры (x=pitch, y=yaw, z=roll).
@@ -48,8 +50,6 @@ struct Camera3D {
     float z_far;      // Дальняя плоскость отсечения.
     float z_near;     // Ближняя плоскость отсечения.
     bool is_ortho;    // Ортографическая камера.
-    mat4 view;        // Матрица вида.
-    mat4 proj;        // Матрица проекции.
     int width;        // Ширина.
     int height;       // Высота.
     float _oldfov_;   // Старый угол обзора.
