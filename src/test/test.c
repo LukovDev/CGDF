@@ -18,6 +18,8 @@ Camera3D *camera3d;
 Sprite2D *sprite;
 SpriteBatch *batch;
 SimpleDraw *draw;
+Texture *anim[18];
+FrameAnimator2D *anim2d;
 
 
 void print_before_free() {
@@ -65,6 +67,15 @@ void start(Window *self) {
     Camera3D_set_cull_faces(camera3d, false);
     Camera3D_set_depth_test(camera3d, false);
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
+
+    for (int i=0; i < 18; i++) {
+        anim[i] = Texture_create(self->renderer);
+        char path[256];
+        snprintf(path, sizeof(path), "data/animation/%d.png", i+1);
+        Texture_load(anim[i], path, false);
+        Texture_set_pixelized(anim[i]);
+    }
+    anim2d = FrameAnimator2D_create(18, 0.1f);
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
@@ -126,7 +137,8 @@ void render(Window *self, float dtime) {
         SpriteBatch_end(batch);
     }
 
-    Sprite2D_render(self->renderer, tex1, globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+    FrameAnimator2D_update(anim2d, dtime);
+    Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
     sprite->render(sprite);
 
@@ -221,6 +233,10 @@ void destroy(Window *self) {
 
     Camera3D_destroy(&camera3d);
     CameraController3D_destroy(&ctrl3d);
+    FrameAnimator2D_destroy(&anim2d);
+    for (int i=0; i < 18; i++) {
+        Texture_destroy(&anim[i]);
+    }
 }
 
 

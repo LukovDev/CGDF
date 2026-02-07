@@ -13,6 +13,7 @@ extern "C" {
 
 // Подключаем:
 #include "controllers/controllers.h"
+#include "animator.h"
 #include "batch.h"
 #include "camera.h"
 #include "draw.h"
