@@ -38,7 +38,7 @@ void FrameAnimator2D_update(FrameAnimator2D *self, float dtime) {
 
     // Если анимация не на паузе:
     if (!self->_paused_) {
-        self->count += (1.0f / self->duration) * dtime;
+        self->count += 1.0f / self->duration * dtime;
     }
 
     // Если счётчик превысил количество кадров, обнуляем его:

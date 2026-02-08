@@ -11,6 +11,7 @@
 #include "../renderer.h"
 #include "../texture.h"
 #include "buffer_gc.h"
+#include "texunit.h"
 #include "gl.h"
 
 
@@ -43,6 +44,7 @@ void Texture_destroy(Texture **texture) {
     // Удаляем саму текстуру:
     Texture_end(*texture);
     BufferGC_GL_push(BGC_GL_TBO, (*texture)->id);  // Добавляем буфер в стек на уничтожение.
+    TexUnits_invalidate_texture((*texture)->id);   // Отвязываем текстуру от всех привязанных юнитов.
 
     // Освобождаем структуру:
     mm_free(*texture);

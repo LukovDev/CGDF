@@ -53,6 +53,12 @@ size_t TexUnits_get_used_units();
 // Получить количество свободных юнитов:
 size_t TexUnits_get_free_units();
 
+// Отвязать все текстуры:
+void TexUnits_unbind_all();
+
+// Деактивировать определённую текстуру во всех юнитах:
+void TexUnits_invalidate_texture(uint32_t tex_id);
+
 // Получить номер юнита по (шейдер, локация):
 int TexUnits_find(uint32_t shd_id, int32_t loc_id);
 

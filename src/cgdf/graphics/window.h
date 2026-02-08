@@ -8,6 +8,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/pixmap.h>
+#include "scene.h"
 #include "renderer.h"
 #include "input.h"
 
@@ -20,10 +21,11 @@ typedef struct WinVars WinVars;      // Внутренние переменны�
 
 // Структура окна:
 struct Window {
-    WinConfig *config;    // Конфигурация окна.
-    WinVars   *vars;      // Указатель на переменные окна.
-    Input     *input;     // Ввод.
-    Renderer  *renderer;  // Рендерер.
+    WindowScene scene;      // Текущая сцена окна.
+    WinConfig   *config;    // Конфигурация окна.
+    WinVars     *vars;      // Указатель на переменные окна.
+    Input       *input;     // Ввод.
+    Renderer    *renderer;  // Рендерер.
 };
 
 
@@ -38,6 +40,7 @@ struct WinConfig {
     bool resizable;     // Масштабируемость окна.
     bool fullscreen;    // Полноэкранный режим.
     bool always_top;    // Всегда на переднем плане.
+    WindowScene scene;  // Сцена окна.
 
     union {
         int size[2];  // Размер окна.
@@ -70,28 +73,11 @@ struct WinConfig {
             int max_height;  // Максимальный размер окна по высоте.
         };
     };
-
-    // Основные функции окна (callbacks):
-    void (*start)   (Window *self);  // Вызывается после создания окна.
-    void (*update)  (Window *self, float dtime);  // Вызывается каждый кадр (цикл окна).
-    void (*render)  (Window *self, float dtime);  // Вызывается каждый кадр (отрисовка окна).
-    void (*resize)  (Window *self, int width, int height);  // Вызывается при изменении размера окна.
-    void (*show)    (Window *self);  // Вызывается при разворачивании окна.
-    void (*hide)    (Window *self);  // Вызывается при сворачивании окна.
-    void (*destroy) (Window *self);  // Вызывается при закрытии окна.
 };
 
 
 // Создать конфигурацию окна:
-WinConfig* Window_create_config(
-    void (*start)   (Window *self),
-    void (*update)  (Window *self, float dtime),
-    void (*render)  (Window *self, float dtime),
-    void (*resize)  (Window *self, int width, int height),
-    void (*show)    (Window *self),
-    void (*hide)    (Window *self),
-    void (*destroy) (Window *self)
-);
+WinConfig* Window_create_config(WindowScene scene);
 
 // Уничтожить конфигурацию окна:
 void Window_destroy_config(WinConfig **config);
@@ -240,6 +226,12 @@ double Window_get_dtime(Window *self);
 
 // Получить время со старта окна:
 double Window_get_time(Window *self);
+
+// Установить сцену окна:
+void Window_set_scene(Window *self, WindowScene scene);
+
+// Получить сцену окна:
+WindowScene Window_get_scene(Window *self);
 
 // Очистить окно:
 void Window_clear(Window *self, float r, float g, float b);

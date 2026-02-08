@@ -20,6 +20,7 @@ extern "C" {
 #include "input.h"
 #include "mesh.h"
 #include "renderer.h"
+#include "scene.h"
 #include "shader.h"
 #include "sprite.h"
 #include "texture.h"

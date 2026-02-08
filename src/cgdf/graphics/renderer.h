@@ -54,6 +54,9 @@ void Renderer_init(Renderer *self);
 // Освобождение буферов:
 void Renderer_buffers_flush(Renderer *self);
 
+// Освобождаем кэши:
+void Renderer_clear_caches(Renderer *self);
+
 // Получить матрицу вида камеры:
 void Renderer_get_view(Renderer *self, mat4 view);
 

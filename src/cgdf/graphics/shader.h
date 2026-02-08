@@ -152,3 +152,6 @@ void Shader_set_tex2d(Shader *self, const char* name, uint32_t tex_id);
 
 // Установить 3D текстуру:
 void Shader_set_tex3d(Shader *self, const char* name, uint32_t tex_id);
+
+// Очистить кэши шейдера:
+void Shader_clear_caches(Shader *self);
