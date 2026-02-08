@@ -237,6 +237,17 @@ void Renderer_buffers_flush(Renderer *self) {
     BufferGC_GL_flush();
 }
 
+// Освобождаем кэши:
+void Renderer_clear_caches(Renderer *self) {
+    if (!self) return;
+    // Освобождаем текстурные юниты:
+    TexUnits_unbind_all();
+
+    // Освобождаем кэши в шейдерах:
+    Shader_clear_caches(self->shader);
+    Shader_clear_caches(self->shader_spritebatch);
+}
+
 // Получить матрицу вида камеры:
 void Renderer_get_view(Renderer *self, mat4 view) {
     glm_mat4_identity(view);

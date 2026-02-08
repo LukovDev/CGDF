@@ -44,29 +44,6 @@ static uint32_t TextureType_to_gl(TextureType type) {
 }
 
 
-// Отвязать все текстуры:
-static void TexUnits_unbind_all() {
-    // Проходимся по стеку:
-    for (size_t i=1; i < Array_len(texunits_gl.stack); i++) {
-        TexUnit *unit = (TexUnit*)Array_get(texunits_gl.stack, i);
-        // Если юнит используется, то отвязываем его:
-        if (unit->used) {
-            if (unit->tex_id) {
-                // Обнуляем бинд, сохраняя тип:
-                glActiveTexture(GL_TEXTURE0 + i);
-                glBindTexture(unit->type, 0);
-            }
-            unit->used   = false;
-            unit->tex_id = 0;
-            unit->shd_id = 0;
-            unit->loc_id = 0;
-        }
-    }
-    texunits_gl.used = 1;
-    glActiveTexture(GL_TEXTURE0);
-}
-
-
 // -------- Основной код: --------
 
 
@@ -108,7 +85,6 @@ void TextureUnits_init() {
     texunits_gl.used++;
 }
 
-
 // Уничтожить текстурные юниты:
 void TextureUnits_destroy() {
     // Отвязываем текстурные юниты:
@@ -120,27 +96,76 @@ void TextureUnits_destroy() {
     texunits_gl.used = 0;
 }
 
-
 // Получить всего возможных юнитов:
 size_t TexUnits_get_total_units() {
     return texunits_gl.total;
 }
-
 
 // Получить количество занятых юнитов:
 size_t TexUnits_get_used_units() {
     return texunits_gl.used;
 }
 
-
 // Получить количество свободных юнитов:
 size_t TexUnits_get_free_units() {
     return texunits_gl.total - texunits_gl.used;
 }
 
+// Отвязать все текстуры:
+void TexUnits_unbind_all() {
+    // Проходимся по стеку:
+    for (size_t i=1; i < Array_len(texunits_gl.stack); i++) {
+        TexUnit *unit = (TexUnit*)Array_get(texunits_gl.stack, i);
+        // Если юнит используется, то отвязываем его:
+        if (unit->used) {
+            if (unit->tex_id) {
+                // Обнуляем бинд, сохраняя тип:
+                glActiveTexture(GL_TEXTURE0 + i);
+                glBindTexture(unit->type, 0);
+            }
+            unit->used   = false;
+            unit->tex_id = 0;
+            unit->shd_id = 0;
+            unit->loc_id = 0;
+        }
+    }
+    texunits_gl.used = 1;
+    glActiveTexture(GL_TEXTURE0);
+}
+
+// Деактивировать определённую текстуру во всех юнитах:
+void TexUnits_invalidate_texture(uint32_t tex_id) {
+    if (!texunits_gl.stack || tex_id == 0) return;
+
+    /*
+        Эта функция должна использоваться внутри кода удаления текстуры.
+        Потому что при удалении текстуры, OpenGL автоматически отвязывает
+        её от текстурных юнитов. По этому нам надо учитывать это тоже.
+        И чтобы не было сложностей, просто сразу автоматически отвязываем
+        от всех наших юнитов.
+
+        Таким образом мы корректно обрабатываем удаление текстуры и их
+        автоматическую отвязку от текстурных юнитов.
+    */
+
+    // i = 1, потому что мы пропускаем нулевой юнит. Он разерервирован.
+    for (size_t i = 1; i < Array_len(texunits_gl.stack); i++) {
+        TexUnit *u = (TexUnit*)Array_get(texunits_gl.stack, i);
+        // Если юнит используется, и текстура такая же что наша:
+        if (u->used && u->tex_id == tex_id) {
+            // Просто отвязываем текстуру:
+            glActiveTexture(GL_TEXTURE0 + (int)i);
+            glBindTexture(u->type, 0);
+            u->tex_id = 0;
+        }
+    }
+    glActiveTexture(GL_TEXTURE0);
+}
 
 // Получить номер юнита по (шейдер, локация):
 int TexUnits_find(uint32_t shd_id, int32_t loc_id) {
+    if (!texunits_gl.stack) return -1;
+
     // i = 1, потому что мы пропускаем нулевой юнит. Он разерервирован.
     for (size_t i = 1; i < Array_len(texunits_gl.stack); i++) {
         TexUnit *u = Array_get(texunits_gl.stack, i);
@@ -152,10 +177,9 @@ int TexUnits_find(uint32_t shd_id, int32_t loc_id) {
     return -1;  // Этого юнита не существует.
 }
 
-
 // Зарезервировать юнит для шейдера:
 int TexUnits_reserve(uint32_t shd_id, int32_t loc_id) {
-    if (!shd_id || loc_id < 0) return -1;
+    if (!shd_id || loc_id < 0 || !texunits_gl.stack) return -1;
 
     /*
     - Если юнит уже закреплён за (shd_id, loc_id) -> вернуть его.
@@ -188,7 +212,7 @@ int TexUnits_reserve(uint32_t shd_id, int32_t loc_id) {
 
 // Перепривязать текстуру к юниту, которая уже зарезервирована для шейдера:
 int TexUnits_rebind_owned(uint32_t shd_id, int32_t loc_id, uint32_t tex_id, TextureType type) {
-    if (!shd_id || loc_id < 0) return -1;
+    if (!shd_id || loc_id < 0 || !texunits_gl.stack) return -1;
 
     /*
     - Найти юнит по (shd_id, loc_id).
@@ -205,7 +229,7 @@ int TexUnits_rebind_owned(uint32_t shd_id, int32_t loc_id, uint32_t tex_id, Text
         // Получаем указатель на конкретный юнит из стека:
         TexUnit *u = Array_get(texunits_gl.stack, find_unit);
 
-        // Проверка: та же ли это текстура?:
+        // Проверка - та же ли это текстура?:
         if (u->tex_id == tex_id && u->type == gl_type) {
             return (int)find_unit;  // Ничего не делаем.
         }

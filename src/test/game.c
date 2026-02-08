@@ -1,0 +1,130 @@
+//
+// main.c - Основной файл программы.
+//
+
+
+// Подключаем:
+#include <cgdf/cgdf.h>               // Подключаем ядро и основные базовые вещи (без модулей).
+#include <cgdf/graphics/graphics.h>  // Графика, и другие модули подключаются отдельно.
+#include "test.h"
+
+
+// Объявялем ресурсы:
+static Texture *tex1;
+static Camera2D *camera;
+static Sprite2D *sprite;
+
+
+static void print_before_free() {
+    printf("(Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
+            mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
+            mm_get_block_header_size());
+}
+
+
+static void print_after_free() {
+    printf("(After free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
+            mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
+            mm_get_block_header_size());
+    if (mm_get_used_size() > 0) printf("Memory leak!\n");
+}
+
+
+// Вызывается после создания окна:
+void Game_start(Window *self) {
+    // Загружаем и устанавливаем иконку:
+    Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
+    Window_set_icon(self, icon);
+    Pixmap_destroy(&icon);
+
+    // Создаём камеру:
+    int width, height;
+    Window_get_size(self, &width, &height);
+    camera = Camera2D_create(self, width, height, (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
+
+    // Создаём текстуру и загружаем в неё данные:
+    tex1 = Texture_create(self->renderer);
+    Texture_load(tex1, "data/logo/CGDF2x2.png", true);
+
+    // Создаём спрайт:
+    sprite = Sprite2D_create(
+        self->renderer, tex1,             // Рендерер и текстура спрайта.
+        0.0f, 0.0f, 100.0f, 100.0f,       // Позиция и размер (x, y, w, h).
+        0.0f, (Vec4f){1, 1, 1, 1}, false  // Угол поворота, цвет и кастомный шейдер.
+    );
+}
+
+
+// Вызывается каждый кадр (цикл окна):
+void Game_update(Window *self, float dtime) {
+    // Пример перемещения камеры:
+    float speed = 4.0f;
+    bool *keys = Input_get_key_pressed(self);
+    if (keys[K_w]) camera->position.y += 100.0f * speed * dtime;
+    if (keys[K_a]) camera->position.x -= 100.0f * speed * dtime;
+    if (keys[K_s]) camera->position.y -= 100.0f * speed * dtime;
+    if (keys[K_d]) camera->position.x += 100.0f * speed * dtime;
+
+    if (Input_get_key_down(self)[K_0]) {
+        Window_set_scene(self, TestScene);
+        return;
+    }
+
+    // Обновляем камеру (применяем её параметры):
+    Camera2D_update(camera);
+}
+
+
+// Вызывается каждый кадр (отрисовка окна):
+void Game_render(Window *self, float dtime) {
+    // Очищаем содержимое окна:
+    Window_clear(self, 0.0f, 0.0f, 0.0f);
+
+    // Рисуем спрайт:
+    sprite->render(sprite);
+
+    // Также можно рисовать спрайт, не создавая отдельный объект спрайта:
+    float angle = sinf(Window_get_time(self)) * 180.0f;
+    Sprite2D_render(self->renderer, tex1, 100.0f, 100.0f, 50.0f, 50.0f, angle, (Vec4f){1, 1, 1, 1}, false);
+
+    // Обновляем содержимое окна:
+    Window_display(self);
+}
+
+
+// Вызывается при изменении размера окна:
+void Game_resize(Window *self, int width, int height) {
+    Camera2D_resize(camera, width, height);  // Масштабируем камеру под новый размер окна.
+}
+
+
+// Вызывается при разворачивании окна:
+void Game_show(Window *self) {
+    // Логика при разворачивании окна.
+}
+
+
+// Вызывается при сворачивании окна:
+void Game_hide(Window *self) {
+    // Логика при скрытии окна.
+}
+
+
+// Вызывается при закрытии окна:
+void Game_destroy(Window *self) {
+    // Тут мы уничтожаем все объекты, что создали.
+    Camera2D_destroy(&camera);
+    Texture_destroy(&tex1);
+    Sprite2D_destroy(&sprite);
+}
+
+
+WindowScene GameScene = {
+    .start   = Game_start,
+    .update  = Game_update,
+    .render  = Game_render,
+    .resize  = Game_resize,
+    .show    = Game_show,
+    .hide    = Game_hide,
+    .destroy = Game_destroy
+};

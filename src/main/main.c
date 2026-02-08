@@ -15,7 +15,7 @@ Sprite2D *sprite;
 
 
 // Вызывается после создания окна:
-void start(Window *self) {
+void Main_start(Window *self) {
     // Загружаем и устанавливаем иконку:
     Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
     Window_set_icon(self, icon);
@@ -40,7 +40,7 @@ void start(Window *self) {
 
 
 // Вызывается каждый кадр (цикл окна):
-void update(Window *self, float dtime) {
+void Main_update(Window *self, float dtime) {
 
     // Пример перемещения камеры:
     float speed = 4.0f;
@@ -56,7 +56,7 @@ void update(Window *self, float dtime) {
 
 
 // Вызывается каждый кадр (отрисовка окна):
-void render(Window *self, float dtime) {
+void Main_render(Window *self, float dtime) {
     // Очищаем содержимое окна:
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
@@ -73,30 +73,44 @@ void render(Window *self, float dtime) {
 
 
 // Вызывается при изменении размера окна:
-void resize(Window *self, int width, int height) {
+void Main_resize(Window *self, int width, int height) {
     Camera2D_resize(camera, width, height);  // Масштабируем камеру под новый размер окна.
 }
 
 
 // Вызывается при разворачивании окна:
-void show(Window *self) {
+void Main_show(Window *self) {
     // Логика при разворачивании окна.
 }
 
 
 // Вызывается при сворачивании окна:
-void hide(Window *self) {
+void Main_hide(Window *self) {
     // Логика при скрытии окна.
 }
 
 
 // Вызывается при закрытии окна:
-void destroy(Window *self) {
+void Main_destroy(Window *self) {
     // Тут мы уничтожаем все объекты, что создали.
     Camera2D_destroy(&camera);
     Texture_destroy(&tex1);
     Sprite2D_destroy(&sprite);
 }
+
+
+// Наша сцена:
+// Это просто структура с нашими функциями, которые будут вызываться нашим окном.
+// Можно указать NULL вместо функции, чтобы она не вызывалась, но лучше оставить.
+WindowScene MainScene = {
+    .start   = Main_start,
+    .update  = Main_update,
+    .render  = Main_render,
+    .resize  = Main_resize,
+    .show    = Main_show,
+    .hide    = Main_hide,
+    .destroy = Main_destroy
+};
 
 
 // Точка входа в программу:
@@ -111,9 +125,8 @@ int main(int argc, char *argv[]) {
     printf("CGDF version: %s\n", CGDF_GetVersion());
 
     // Теперь нам надо создать конфигурацию окна (настройки окна):
-    // При создании, надо передать те функции, которые будут вызываться при событиях окна.
-    // Можно передать NULL если не хотите использовать функцию. Но лучше всё же создать по примеру ниже.
-    WinConfig *config = Window_create_config(start, update, render, resize, show, hide, destroy);
+    // При создании, надо передать нашу сцену.
+    WinConfig *config = Window_create_config(MainScene);
 
     // Конфигурацию можно настраивать, меняя её поля:
     config->title = "Hello my First Game!";

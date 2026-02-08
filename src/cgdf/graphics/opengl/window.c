@@ -10,6 +10,7 @@
 #include <cgdf/core/pixmap.h>
 #include <cgdf/core/logger.h>
 #include "../input.h"
+#include "../scene.h"
 #include "../renderer.h"
 #include "../window.h"
 #include "gl.h"
@@ -36,6 +37,8 @@ struct WinVars {
     bool focused;
     bool defocused;
     bool closing;
+    bool is_new_scene;      // Устанавливается ли новая сцена.
+    WindowScene new_scene;  // Новая устанавливаемая сцена.
 };
 
 
@@ -43,15 +46,7 @@ struct WinVars {
 
 
 // Создать конфигурацию окна:
-WinConfig* Window_create_config(
-    void (*start)   (Window *self),
-    void (*update)  (Window *self, float dtime),
-    void (*render)  (Window *self, float dtime),
-    void (*resize)  (Window *self, int width, int height),
-    void (*show)    (Window *self),
-    void (*hide)    (Window *self),
-    void (*destroy) (Window *self)
-) {
+WinConfig* Window_create_config(WindowScene scene) {
     WinConfig* config = (WinConfig*)mm_alloc(sizeof(WinConfig));
 
     // Заполняем поля (значениями по умолчанию):
@@ -72,17 +67,7 @@ WinConfig* Window_create_config(
     config->min_height = 0;
     config->max_width = 0;
     config->max_height = 0;
-
-    // Заполняем функции:
-    config->start = start;
-    config->update = update;
-    config->render = render;
-    config->resize = resize;
-    config->show = show;
-    config->hide = hide;
-    config->destroy = destroy;
-
-    // Возвращаем конфигурацию:
+    config->scene = scene;
     return config;
 }
 
@@ -109,6 +94,7 @@ Window* Window_create(WinConfig *config) {
     Input *input = Input_create(Impl_set_mouse_pos, Impl_set_mouse_visible);
 
     // Сохраняем указатели:
+    window->scene = (WindowScene){ NULL };
     window->config = config;
     window->renderer = NULL;  // Создаём рендерер при создании окна.
     window->input = input;
@@ -158,9 +144,6 @@ static void MainLoop(Window *self, WinConfig *config) {
     WinVars *vars = self->vars;
     if (!vars || !vars->window) return;
 
-    // Вызываем старт:
-    if (cfg->start) cfg->start(self);
-
     // Основной цикл окна:
     vars->running = true;
     while (vars->running) {
@@ -183,6 +166,34 @@ static void MainLoop(Window *self, WinConfig *config) {
         memset(input->keyboard->down, 0, input->keyboard->max_keys * sizeof(bool));
         memset(input->keyboard->up,   0, input->keyboard->max_keys * sizeof(bool));
 
+        // Обрабатываем смену сцены на другую:
+        if (vars->is_new_scene) {
+            vars->is_new_scene = false;
+
+            // Если какая-то сцена уже есть:
+            if (self->scene.destroy) self->scene.destroy(self);  // Освобождаем её ресурсы.
+
+            // Очищаем все буфера (массивное удаление всех буферов за раз):
+            Renderer_buffers_flush(self->renderer);
+
+            // Очищаем кэши в шейдерах и текстурных юнитах:
+            Renderer_clear_caches(self->renderer);
+
+            // Устанавливаем новую сцену:
+            self->scene = vars->new_scene;  // Делаем новую сцену текущей.
+            vars->new_scene = (WindowScene){ NULL };  // Обнуляем "новую сцену".
+
+            // Небольшая настройка для новой сцены:
+            vars->dtime = 0.0f;
+            int w, h;
+            Window_get_size(self, &w, &h);
+            glViewport(0, 0, w, h);
+
+            // Запускаем новую текущую сцену:
+            if (self->scene.start) self->scene.start(self);
+        }
+        WindowScene scene = self->scene;  // Получаем текущую сцену (для удобства).
+
         // Обрабатываем события:
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -194,19 +205,19 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если размер окна изменился:
                 case SDL_EVENT_WINDOW_RESIZED: {
-                    if (event.window.data1 > 0 && event.window.data2 > 0 && cfg->resize && vars->context) {
-                        cfg->resize(self, event.window.data1, event.window.data2);
+                    if (event.window.data1 > 0 && event.window.data2 > 0 && vars->context) {
+                        if (scene.resize) scene.resize(self, event.window.data1, event.window.data2);
                     }
                 } break;
 
                 // Окно развернули:
                 case SDL_EVENT_WINDOW_RESTORED: {
-                    if (cfg->show) cfg->show(self);
+                    if (scene.show) scene.show(self);
                 } break;
 
                 // Окно свернули:
                 case SDL_EVENT_WINDOW_MINIMIZED: {
-                    if (cfg->hide) cfg->hide(self);
+                    if (scene.hide) scene.hide(self);
                 } break;
 
                 // Окно стало активным:
@@ -284,8 +295,8 @@ static void MainLoop(Window *self, WinConfig *config) {
         }
 
         // Обработка основных функций (обновление и отрисовка):
-        if (cfg->update) cfg->update(self, Window_get_dtime(self));
-        if (cfg->render) cfg->render(self, Window_get_dtime(self));
+        if (scene.update) scene.update(self, Window_get_dtime(self));
+        if (scene.render) scene.render(self, Window_get_dtime(self));
 
         // Очищаем все буфера (массивное удаление всех буферов за раз):
         Renderer_buffers_flush(self->renderer);
@@ -325,8 +336,12 @@ static void ClosingStage(Window *self) {
     if (!vars || !vars->window) return;
 
     // Вызываем уничтожение:
-    if (self->config->destroy) {
-        self->config->destroy(self);
+    if (self->scene.destroy) {
+        self->scene.destroy(self);
+        // Очищаем все буфера (массивное удаление всех буферов за раз):
+        Renderer_buffers_flush(self->renderer);
+        // Очищаем кэши в шейдерах и текстурных юнитах:
+        Renderer_clear_caches(self->renderer);
     }
 
     // Уничтожаем контекст рендеринга:
@@ -417,6 +432,9 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
     Window_set_max_size(self, cfg->max_width, cfg->max_height);
     Window_set_always_top(self, cfg->always_top);
     Window_set_visible(self, cfg->visible);  // Применяем видимость только после применения других настроек.
+
+    // Устанавливаем сцену:
+    Window_set_scene(self, cfg->scene);
 
     // Запускаем главный цикл:
     MainLoop(self, cfg);
@@ -818,6 +836,23 @@ double Window_get_time(Window *self) {
     if (!vars) return 0.0;
     // Получаем время с начала создания окна в секундах:
     return ((double)SDL_GetPerformanceCounter() / (double)vars->perf_freq) - vars->start_time;
+}
+
+// Установить сцену окна:
+void Window_set_scene(Window *self, WindowScene scene) {
+    if (!self) return;
+    WinVars *vars = self->vars;
+    if (!vars) return;
+
+    // Устанавливаем новую сцену:
+    vars->new_scene = scene;    // Помещаем сцену в буфер новой сцены.
+    vars->is_new_scene = true;  // Поднимаем флаг что устанавливается новая сцена.
+}
+
+// Получить сцену окна:
+WindowScene Window_get_scene(Window *self) {
+    if (!self) return (WindowScene){ NULL };
+    return self->scene;
 }
 
 // Очистить окно:

@@ -7,29 +7,30 @@
 #include <cgdf/cgdf.h>
 #include <cgdf/graphics/graphics.h>
 #include <cgdf/graphics/opengl/texunit.h>
+#include "game.h"
 
 
-Texture *tex1;
-Texture *tex2;
-CameraController2D *ctrl;
-CameraController3D *ctrl3d;
-Camera2D *camera;
-Camera3D *camera3d;
-Sprite2D *sprite;
-SpriteBatch *batch;
-SimpleDraw *draw;
-Texture *anim[18];
-FrameAnimator2D *anim2d;
+static Texture *tex1;
+static Texture *tex2;
+static CameraController2D *ctrl;
+static CameraController3D *ctrl3d;
+static Camera2D *camera;
+static Camera3D *camera3d;
+static Sprite2D *sprite;
+static SpriteBatch *batch;
+static SimpleDraw *draw;
+static Texture *anim[18];
+static FrameAnimator2D *anim2d;
 
 
-void print_before_free() {
+static void print_before_free() {
     printf("(Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
             mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
             mm_get_block_header_size());
 }
 
 
-void print_after_free() {
+static void print_after_free() {
     printf("(After free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
             mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
             mm_get_block_header_size());
@@ -57,11 +58,11 @@ void start(Window *self) {
 
     camera3d = Camera3D_create(
         self, Window_get_width(self), Window_get_height(self),
-        (Vec3d){0.0f, 0.0f, 0.0f},
+        (Vec3d){0.0f, 0.0f, 10.0f},
         (Vec3d){0.0f, 0.0f, 0.0f},
         (Vec3d){1.0f, 1.0f, 1.0f},
         90.0f,
-        0.01f, 100.0f,
+        0.01f, 10000.0f,
         false
     );
     Camera3D_set_cull_faces(camera3d, false);
@@ -75,10 +76,11 @@ void start(Window *self) {
         Texture_load(anim[i], path, false);
         Texture_set_pixelized(anim[i]);
     }
-    anim2d = FrameAnimator2D_create(18, 0.1f);
+    anim2d = FrameAnimator2D_create(18, 1.0f/18.0f);
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
+    printf("tex1 id: %d\n", tex1->id);
 
     tex2 = Texture_create(self->renderer);
     Texture_load(tex2, "data/textures/gradient_uv_checker.png", true);
@@ -99,6 +101,11 @@ void update(Window *self, float dtime) {
     // if (Window_get_is_defocused(self)) {
     //     Window_set_fps(self, 10.0f);
     // }
+
+    if (Input_get_key_down(self)[K_0]) {
+        Window_set_scene(self, GameScene);
+        return;
+    }
 
     // CameraController2D_update(ctrl, dtime, false);
     // Camera2D_update(camera);
@@ -129,8 +136,9 @@ void render(Window *self, float dtime) {
     if (Input_get_key_down(self)[K_1]) enable = !enable;
     if (enable) {
         SpriteBatch_begin(batch);
-        for (int y=-8; y < 8; y++) {
-            for (int x=-8; x < 8; x++) {
+        int size = 16;
+        for (int y=-size/2; y < size/2; y++) {
+            for (int x=-size/2; x < size/2; x++) {
                 SpriteBatch_draw(batch, tex1, x, y, 1.0f, 1.0f, 0.0f);
             }
         }
@@ -240,6 +248,17 @@ void destroy(Window *self) {
 }
 
 
+WindowScene TestScene = {
+    .start   = start,
+    .update  = update,
+    .render  = render,
+    .resize  = resize,
+    .show    = show,
+    .hide    = hide,
+    .destroy = destroy
+};
+
+
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
     CGDF_Init();
@@ -247,7 +266,7 @@ int main(int argc, char *argv[]) {
     const char* cgdf_version = CGDF_GetVersion();
     log_msg("[I] CGDF version: %s\n", cgdf_version);
 
-    WinConfig *config = Window_create_config(start, update, render, resize, show, hide, destroy);
+    WinConfig *config = Window_create_config(TestScene);
     Window *window = Window_create(config);
     if (!Window_open(window, 3, 3)) {
         log_msg("Window creation failed.\n");

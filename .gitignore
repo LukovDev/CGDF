@@ -7,6 +7,7 @@ Thumbs.db
 ._*
 .smbdeleteAAA159
 
+data/animation/
 __pycache__
 metadata.json
 **/**/bin/*
