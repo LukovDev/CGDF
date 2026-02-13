@@ -138,12 +138,8 @@ void main(void) {\n\
     vec4 albedo = texture(u_albedo_texture, uv);\n\
     vec3 light  = texture(u_light_texture, uv).rgb;\n\
     \n\
-    // 2D lighting: final = albedo * (ambient + light * intensity * 2.0f):\n\
-    vec3 lit = albedo.rgb * (u_ambient + light * max(u_intensity, 0.0) * 2.0f);\n\
-    \n\
-    // Чтобы не вылетать за диапазон:\n\
-    lit = clamp(lit, 0.0f, 1.0f);\n\
-    \n\
+    // 2D lighting: final = albedo * (ambient + light * intensity):\n\
+    vec3 lit = albedo.rgb * (u_ambient + light * max(u_intensity, 0.0));\n\
     FragColor = vec4(lit, albedo.a);\n\
 }";
 

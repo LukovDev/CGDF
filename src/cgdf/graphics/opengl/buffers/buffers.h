@@ -86,6 +86,9 @@ void BufferFBO_clear(BufferFBO *self, float r, float g, float b, float a);
 // Изменить размер кадрового буфера:
 void BufferFBO_resize(BufferFBO *self, int width, int height);
 
+// Активировать привязку для записи в неё данных:
+void BufferFBO_active(BufferFBO *self, uint32_t attachment);
+
 // Применить массив привязок для записи данных в них:
 void BufferFBO_apply(BufferFBO *self);
 

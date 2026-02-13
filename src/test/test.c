@@ -25,7 +25,6 @@ static Texture *anim[18];
 static Texture *animation;
 static FrameAnimator2D *anim2d;
 static Light2D *light2d;
-static SpriteLight2D *slights[11];
 
 
 static void print_before_free() {
@@ -89,6 +88,7 @@ void start(Window *self) {
     tex1 = Texture_create(self->renderer);
     // Texture_load(tex1, "data/logo/CGDF2x2.png", true);
     Texture_load(tex1, "data/textures/snow.png", true);
+    Texture_set_pixelized(tex1);
 
     tex2 = Texture_create(self->renderer);
     Texture_load(tex2, "data/textures/gradient_uv_checker.png", true);
@@ -99,38 +99,13 @@ void start(Window *self) {
 
     draw = SimpleDraw_create(self->renderer);
 
-    light2d = Light2D_create(self->renderer, (Vec3f){0.01, 0.01, 0.01}, 1.0f);
+    light2d = Light2D_create(self->renderer, (Vec3f){0.1, 0.1, 0.1}, 1.0f);
 
     light = Texture_create(self->renderer);
     Texture_load(light, "data/textures/light.png", true);
 
     flash_light = Texture_create(self->renderer);
     Texture_load(flash_light, "data/textures/flash-light.png", true);
-
-    for (int i=0; i < 10; i++) {
-        float t = (float)i / 10.0f; // 0..1 по всем 10 спрайтам
-
-        float r, g, b;
-        if (t < 0.5f) {
-            float k = t * 2.0f;    // 0..1
-            r = 1.0f - k;          // red -> 0
-            g = k;                 // 0 -> green
-            b = 0.0f;
-        } else {
-            float k = (t - 0.5f) * 2.0f; // 0..1
-            r = 0.0f;
-            g = 1.0f - k;                // green -> 0
-            b = k;                       // 0 -> blue
-        }
-
-        Vec4f color = (Vec4f){ r, g, b, 1.0f };
-        Vec2f pos = (Vec2f){
-            sinf(i*2.0f*GLM_PI/10.0f) * 10.0f - 5,
-            cosf(i*2.0f*GLM_PI/10.0f) * 10.0f - 5
-        };
-        slights[i] = SpriteLight2D_create(light2d, light, pos, (Vec2f){10, 10}, t*360.0f, color);
-    }
-    slights[10] = SpriteLight2D_create(light2d, light, (Vec2f){-5, -5}, (Vec2f){10, 10}, 0, (Vec4f){1,1,1,1});
 }
 
 
@@ -156,9 +131,6 @@ void destroy(Window *self) {
     Texture_destroy(&animation);
 
     Light2D_destroy(&light2d);
-    for (int i=0; i < 11; i++) {
-        SpriteLight2D_destroy(&slights[i]);
-    }
 }
 
 
@@ -199,13 +171,9 @@ void update(Window *self, float dtime) {
 void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
-    Light2D_begin(light2d);
+    Light2D_scene_begin(light2d);
     Vec2i mouse_pos = Input_get_mouse_pos(self);
-    Vec2d lightpos = {0};
     Vec2d globpos = {0};
-
-    lightpos = local_to_global_2d(camera, mouse_pos);
-    slights[10]->position = (Vec2f){lightpos.x-5, lightpos.y-5};
 
     static Vec3f hit_pos;
     Vec3f plane_point  = {0.0f, 0.0f, 0.0f};
@@ -225,7 +193,7 @@ void render(Window *self, float dtime) {
         int size = 32;
         for (int y=-size/2; y < size/2; y++) {
             for (int x=-size/2; x < size/2; x++) {
-                float delta = FrameAnimator2D_get_frame(anim2d) / 18.0f;
+                // float delta = FrameAnimator2D_get_frame(anim2d) / 18.0f;
                 // SpriteBatch_set_texcoord(batch, (Vec4f){
                 //     delta, 0.0f,
                 //     delta+1.0f/18.0f, 1.0f
@@ -240,7 +208,14 @@ void render(Window *self, float dtime) {
     FrameAnimator2D_update(anim2d, dtime);
     Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
+    Light2D_scene_end(light2d);
+
+    Light2D_light_begin(light2d);
     sprite->render(sprite);
+    float intensity = 1.0f;
+    Sprite2D_render(self->renderer, light, globpos.x-5, globpos.y-5, 10.0f, 10.0f, 0.0f, (Vec4f){0, 1, 0, intensity}, false);
+    Sprite2D_render(self->renderer, light, -10, -5, 10.0f, 10.0f, 0.0f, (Vec4f){0, 0, 1, intensity}, false);
+    Sprite2D_render(self->renderer, light, -5, -5, 10.0f, 10.0f, 0.0f, (Vec4f){1, 0, 0, intensity}, false);
 
     // Нарисовать точку:
     SimpleDraw_point(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 2, 0}, 16.0f);
@@ -296,8 +271,14 @@ void render(Window *self, float dtime) {
     // Нарисовать звезду с заливкой:
     SimpleDraw_star_fill(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){-4, 0, 0}, 2.0f, 1.0f, 5);
 
+    Light2D_light_end(light2d);
+
+    Light2D_scene_begin(light2d);
+    Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], -1, 10, 2.0f, 2.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+    Light2D_scene_end(light2d);
+
     // Рисуем освещение:
-    Light2D_end(light2d);
+    Light2D_render(light2d);
 
     Window_display(self);
 }

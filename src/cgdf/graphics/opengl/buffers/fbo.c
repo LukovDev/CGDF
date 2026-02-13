@@ -147,6 +147,12 @@ void BufferFBO_resize(BufferFBO *self, int width, int height) {
     glBindRenderbuffer(GL_RENDERBUFFER, self->_rbo_id_before_begin_);
 }
 
+// Активировать привязку для записи в неё данных:
+void BufferFBO_active(BufferFBO *self, uint32_t attachment) {
+    if (!self || !self->_is_begin_) return;
+    glDrawBuffer(GL_COLOR_ATTACHMENT0+attachment);
+}
+
 // Применить массив привязок для записи данных в них:
 void BufferFBO_apply(BufferFBO *self) {
     if (!self || !self->_is_begin_) return;
