@@ -132,7 +132,7 @@ void BufferFBO_clear(BufferFBO *self, float r, float g, float b, float a) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-// Изменить размер текстур:
+// Изменить размер кадрового буфера:
 void BufferFBO_resize(BufferFBO *self, int width, int height) {
     if (!self) return;
     self->width = width;

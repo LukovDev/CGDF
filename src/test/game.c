@@ -55,6 +55,15 @@ void Game_start(Window *self) {
 }
 
 
+// Вызывается при закрытии окна:
+void Game_destroy(Window *self) {
+    // Тут мы уничтожаем все объекты, что создали.
+    Camera2D_destroy(&camera);
+    Texture_destroy(&tex1);
+    Sprite2D_destroy(&sprite);
+}
+
+
 // Вызывается каждый кадр (цикл окна):
 void Game_update(Window *self, float dtime) {
     // Пример перемещения камеры:
@@ -110,21 +119,12 @@ void Game_hide(Window *self) {
 }
 
 
-// Вызывается при закрытии окна:
-void Game_destroy(Window *self) {
-    // Тут мы уничтожаем все объекты, что создали.
-    Camera2D_destroy(&camera);
-    Texture_destroy(&tex1);
-    Sprite2D_destroy(&sprite);
-}
-
-
 WindowScene GameScene = {
     .start   = Game_start,
+    .destroy = Game_destroy,
     .update  = Game_update,
     .render  = Game_render,
     .resize  = Game_resize,
     .show    = Game_show,
-    .hide    = Game_hide,
-    .destroy = Game_destroy
+    .hide    = Game_hide
 };

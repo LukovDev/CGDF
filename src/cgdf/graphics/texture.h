@@ -69,8 +69,11 @@ Texture* Texture_create(Renderer *renderer);
 // Уничтожить текстуру:
 void Texture_destroy(Texture **texture);
 
+// Сделать пустую текстуру нужного размера:
+void Texture_empty(Texture *self, int width, int height, bool use_mipmap, TextureFormat format, TextureDataType dtype);
+
 // Загрузить текстуру (из файла):
-void Texture_load(Texture *texture, const char *filepath, bool use_mipmap);
+void Texture_load(Texture *self, const char *filepath, bool use_mipmap);
 
 // Активация текстуры:
 void Texture_begin(Texture *self);

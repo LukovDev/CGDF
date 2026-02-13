@@ -61,25 +61,25 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer);
 void SpriteBatch_destroy(SpriteBatch **batch);
 
 // Начать отрисовку:
-void SpriteBatch_begin(SpriteBatch *batch);
+void SpriteBatch_begin(SpriteBatch *self);
 
 // Установить цвет следующим спрайтам:
-void SpriteBatch_set_color(SpriteBatch *batch, Vec4f color);
+void SpriteBatch_set_color(SpriteBatch *self, Vec4f color);
 
 // Получить установленный цвет:
-Vec4f SpriteBatch_get_color(SpriteBatch *batch);
+Vec4f SpriteBatch_get_color(SpriteBatch *self);
 
 // Установить текстурные координаты следующим спрайтам:
-void SpriteBatch_set_texcoord(SpriteBatch *batch, Vec4f texcoord);
+void SpriteBatch_set_texcoord(SpriteBatch *self, Vec4f texcoord);
 
 // Сбросить текстурные координаты:
-void SpriteBatch_reset_texcoord(SpriteBatch *batch);
+void SpriteBatch_reset_texcoord(SpriteBatch *self);
 
 // Получить текстурные координаты:
-Vec4f SpriteBatch_get_texcoord(SpriteBatch *batch);
+Vec4f SpriteBatch_get_texcoord(SpriteBatch *self);
 
 // Добавить спрайт в пакет данных:
-void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, float width, float height, float angle);
+void SpriteBatch_draw(SpriteBatch *self, Texture *texture, float x, float y, float width, float height, float angle);
 
 // Закончить отрисовку:
-void SpriteBatch_end(SpriteBatch *batch);
+void SpriteBatch_end(SpriteBatch *self);

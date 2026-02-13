@@ -58,29 +58,29 @@ static uint32_t* _create_indices_buffer_(uint32_t size, uint32_t batch_size) {
 
 
 // Отрисовать буфер спрайтов:
-static void _batch_flush_(SpriteBatch *batch) {
-    if (!batch) return;
-    if (!batch->_is_begin_ || batch->vertex_count == 0) {
+static void _batch_flush_(SpriteBatch *self) {
+    if (!self) return;
+    if (!self->_is_begin_ || self->vertex_count == 0) {
         // Экономим вызовы отрисовки (ничего не рисуем) если в буфере нет вершин.
-        batch->sprite_count = 0;
-        batch->vertex_count = 0;
+        self->sprite_count = 0;
+        self->vertex_count = 0;
         return;
     }
 
     // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch_begin):
-    Shader *shader = batch->renderer->shader_spritebatch;
-    Shader_set_bool(shader, "u_use_texture", batch->current_tex_id != 0 ? true : false);
-    Shader_set_tex2d(shader, "u_texture", batch->current_tex_id);
+    Shader *shader = self->renderer->shader_spritebatch;
+    Shader_set_bool(shader, "u_use_texture", self->current_tex_id != 0 ? true : false);
+    Shader_set_tex2d(shader, "u_texture", self->current_tex_id);
 
     // Обновляем данные в буфере сетки спрайтов (буфер VBO должен быть активен):
-    BufferVBO_set_subdata(batch->vbo, batch->array, 0, batch->vertex_count * sizeof(SpriteVertex));
+    BufferVBO_set_subdata(self->vbo, self->array, 0, self->vertex_count * sizeof(SpriteVertex));
 
     // Рисуем (буфер VAO должен быть активен):
-    glDrawElements(GL_TRIANGLES, BATCH_INDCS_PER_SPRITE * batch->sprite_count, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, BATCH_INDCS_PER_SPRITE * self->sprite_count, GL_UNSIGNED_INT, 0);
 
     // Сбрасываем данные:
-    batch->sprite_count = 0;
-    batch->vertex_count = 0;
+    self->sprite_count = 0;
+    self->vertex_count = 0;
 }
 
 
@@ -152,69 +152,69 @@ void SpriteBatch_destroy(SpriteBatch **batch) {
 }
 
 // Начать отрисовку:
-void SpriteBatch_begin(SpriteBatch *batch) {
-    if (!batch || batch->_is_begin_) return;
-    batch->sprite_count = 0;
-    batch->vertex_count = 0;
-    batch->current_tex_id = 0;
+void SpriteBatch_begin(SpriteBatch *self) {
+    if (!self || self->_is_begin_) return;
+    self->sprite_count = 0;
+    self->vertex_count = 0;
+    self->current_tex_id = 0;
 
     // Обновляем данные в шейдере:
     mat4 view, proj;
-    Renderer_get_view_proj(batch->renderer, view, proj);
-    Shader *shader = batch->renderer->shader_spritebatch;
+    Renderer_get_view_proj(self->renderer, view, proj);
+    Shader *shader = self->renderer->shader_spritebatch;
     Shader_begin(shader);
-    BufferVAO_begin(batch->vao);
-    BufferEBO_begin(batch->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
-    BufferVBO_begin(batch->vbo);
+    BufferVAO_begin(self->vao);
+    BufferEBO_begin(self->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
+    BufferVBO_begin(self->vbo);
     Shader_set_mat4(shader, "u_view", view);
     Shader_set_mat4(shader, "u_proj", proj);
-    batch->_is_begin_ = true;
+    self->_is_begin_ = true;
 }
 
 // Установить цвет следующим спрайтам:
-void SpriteBatch_set_color(SpriteBatch *batch, Vec4f color) {
-    if (!batch) return;
-    batch->color = color;
+void SpriteBatch_set_color(SpriteBatch *self, Vec4f color) {
+    if (!self) return;
+    self->color = color;
 }
 
 // Получить установленный цвет:
-Vec4f SpriteBatch_get_color(SpriteBatch *batch) {
-    if (!batch) return (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
-    return batch->color;
+Vec4f SpriteBatch_get_color(SpriteBatch *self) {
+    if (!self) return (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
+    return self->color;
 }
 
 // Установить текстурные координаты следующим спрайтам:
-void SpriteBatch_set_texcoord(SpriteBatch *batch, Vec4f texcoord) {
-    if (!batch) return;
-    batch->texcoord = texcoord;
+void SpriteBatch_set_texcoord(SpriteBatch *self, Vec4f texcoord) {
+    if (!self) return;
+    self->texcoord = texcoord;
 }
 
 // Сбросить текстурные координаты:
-void SpriteBatch_reset_texcoord(SpriteBatch *batch) {
-    if (!batch) return;
-    batch->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
+void SpriteBatch_reset_texcoord(SpriteBatch *self) {
+    if (!self) return;
+    self->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
 }
 
 // Получить текстурные координаты:
-Vec4f SpriteBatch_get_texcoord(SpriteBatch *batch) {
-    if (!batch) return (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
-    return batch->texcoord;
+Vec4f SpriteBatch_get_texcoord(SpriteBatch *self) {
+    if (!self) return (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
+    return self->texcoord;
 }
 
 // Добавить спрайт в пакет данных:
-void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, float width, float height, float angle) {
-    if (!batch || !batch->_is_begin_) return;
+void SpriteBatch_draw(SpriteBatch *self, Texture *texture, float x, float y, float width, float height, float angle) {
+    if (!self || !self->_is_begin_) return;
     uint32_t tex_id = texture ? texture->id : 0;
 
     // Если текущая текстура не совпадает с предыдущей, то отрисовываем всё что накопили:
-    if (tex_id != batch->current_tex_id) {
-        _batch_flush_(batch);
-        batch->current_tex_id = tex_id;
+    if (tex_id != self->current_tex_id) {
+        _batch_flush_(self);
+        self->current_tex_id = tex_id;
     }
 
     // Если превышен лимит спрайтов, то отрисовываем все что накопили:
-    if (batch->sprite_count >= BATCH_SPRITES_SIZE) {
-        _batch_flush_(batch);
+    if (self->sprite_count >= BATCH_SPRITES_SIZE) {
+        _batch_flush_(self);
     };
 
     // Временные вершины (квадрат из 4 вершин по 2 координаты):
@@ -268,24 +268,24 @@ void SpriteBatch_draw(SpriteBatch *batch, Texture *texture, float x, float y, fl
     }
 
     // Добавляем сетку в буфер:
-    Vec4f tc = batch->texcoord;
-    uint32_t base = batch->vertex_count;  // Смещение в массиве вершин.
-    batch->array[base+0] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=batch->color};  // 1.
-    batch->array[base+1] = (SpriteVertex){v[2], v[3], tc.z, tc.w, .color=batch->color};  // 2.
-    batch->array[base+2] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=batch->color};  // 3.
-    batch->array[base+3] = (SpriteVertex){v[6], v[7], tc.x, tc.y, .color=batch->color};  // 4.
+    Vec4f tc = self->texcoord;
+    uint32_t base = self->vertex_count;  // Смещение в массиве вершин.
+    self->array[base+0] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=self->color};  // 1.
+    self->array[base+1] = (SpriteVertex){v[2], v[3], tc.z, tc.w, .color=self->color};  // 2.
+    self->array[base+2] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=self->color};  // 3.
+    self->array[base+3] = (SpriteVertex){v[6], v[7], tc.x, tc.y, .color=self->color};  // 4.
 
     // Обновляем счётчики:
-    batch->vertex_count += 4;  // Записали 4 вершины.
-    batch->sprite_count += 1;  // Записали 1 спрайт.
+    self->vertex_count += 4;  // Записали 4 вершины.
+    self->sprite_count += 1;  // Записали 1 спрайт.
 }
 
 // Закончить отрисовку:
-void SpriteBatch_end(SpriteBatch *batch) {
-    if (!batch || !batch->_is_begin_) return;
-    _batch_flush_(batch);
-    BufferVBO_end(batch->vbo);
-    BufferVAO_end(batch->vao);
-    Shader_end(batch->renderer->shader_spritebatch);
-    batch->_is_begin_ = false;
+void SpriteBatch_end(SpriteBatch *self) {
+    if (!self || !self->_is_begin_) return;
+    _batch_flush_(self);
+    BufferVBO_end(self->vbo);
+    BufferVAO_end(self->vao);
+    Shader_end(self->renderer->shader_spritebatch);
+    self->_is_begin_ = false;
 }

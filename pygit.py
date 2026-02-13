@@ -80,6 +80,15 @@ def reset(args: list) -> None:
 
     Чтобы отправить на гитхаб:
     git push --force-with-lease origin master
+
+    Чтобы посмотреть локально хэши:
+    git reflog
+
+    Чтобы переключить изменения на какой то хэш:
+    git reset --hard <hash>
+
+    Если папка попала в индекс, убрать её:
+    git rm -r --cached <папка>
     """
 
     # Проверяем уверен ли пользователь:

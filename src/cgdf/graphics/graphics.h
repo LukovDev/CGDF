@@ -18,6 +18,7 @@ extern "C" {
 #include "camera.h"
 #include "draw.h"
 #include "input.h"
+#include "light.h"
 #include "mesh.h"
 #include "renderer.h"
 #include "scene.h"

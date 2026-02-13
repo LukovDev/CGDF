@@ -51,11 +51,19 @@ void Texture_destroy(Texture **texture) {
     *texture = NULL;
 }
 
+// Сделать пустую текстуру нужного размера:
+void Texture_empty(Texture *self, int width, int height, bool use_mipmap, TextureFormat format, TextureDataType dtype) {
+    if (!self) return;
+
+    // NULL data -> выделяется пустая текстура нужного размера:
+    Texture_set_data(self, width, height, NULL, use_mipmap, format, format, dtype);
+}
+
 // Загрузить текстуру (из файла):
-void Texture_load(Texture *texture, const char *filepath, bool use_mipmap) {
+void Texture_load(Texture *self, const char *filepath, bool use_mipmap) {
     Pixmap *img = Pixmap_load(filepath, PIXMAP_RGBA);
-    if (!img) return;
-    Texture_set_data(texture, img->width, img->height, img->data, use_mipmap, TEX_RGBA, TEX_RGBA, TEX_DATA_UBYTE);
+    if (!self || !img) return;
+    Texture_set_data(self, img->width, img->height, img->data, use_mipmap, TEX_RGBA, TEX_RGBA, TEX_DATA_UBYTE);
     Pixmap_destroy(&img);
 }
 

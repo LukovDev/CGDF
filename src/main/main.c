@@ -9,9 +9,9 @@
 
 
 // Объявялем ресурсы:
-Texture *tex1;
-Camera2D *camera;
-Sprite2D *sprite;
+static Texture *tex1;
+static Camera2D *camera;
+static Sprite2D *sprite;
 
 
 // Вызывается после создания окна:
@@ -36,6 +36,15 @@ void Main_start(Window *self) {
         0.0f, 0.0f, 100.0f, 100.0f,       // Позиция и размер (x, y, w, h).
         0.0f, (Vec4f){1, 1, 1, 1}, false  // Угол поворота, цвет и кастомный шейдер.
     );
+}
+
+
+// Вызывается при закрытии окна:
+void Main_destroy(Window *self) {
+    // Тут мы уничтожаем все объекты, что создали.
+    Camera2D_destroy(&camera);
+    Texture_destroy(&tex1);
+    Sprite2D_destroy(&sprite);
 }
 
 
@@ -90,26 +99,17 @@ void Main_hide(Window *self) {
 }
 
 
-// Вызывается при закрытии окна:
-void Main_destroy(Window *self) {
-    // Тут мы уничтожаем все объекты, что создали.
-    Camera2D_destroy(&camera);
-    Texture_destroy(&tex1);
-    Sprite2D_destroy(&sprite);
-}
-
-
 // Наша сцена:
 // Это просто структура с нашими функциями, которые будут вызываться нашим окном.
 // Можно указать NULL вместо функции, чтобы она не вызывалась, но лучше оставить.
 WindowScene MainScene = {
     .start   = Main_start,
+    .destroy = Main_destroy,
     .update  = Main_update,
     .render  = Main_render,
     .resize  = Main_resize,
     .show    = Main_show,
-    .hide    = Main_hide,
-    .destroy = Main_destroy
+    .hide    = Main_hide
 };
 
 

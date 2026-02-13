@@ -223,7 +223,7 @@ void Array_remove_swap(Array *arr, size_t index, void *out) {
     void *src = (char*)arr->data + index * arr->item_size;
     if (out) memcpy(out, src, arr->item_size);
 
-    // Если удаляем не последний элемент, заменяем его последним
+    // Если удаляем не последний элемент, заменяем его последним:
     if (index != arr->len - 1) {
         void *last = (char*)arr->data + (arr->len - 1) * arr->item_size;
         memcpy(src, last, arr->item_size);

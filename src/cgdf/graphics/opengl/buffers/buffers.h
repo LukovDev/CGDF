@@ -83,7 +83,7 @@ void BufferFBO_end(BufferFBO *self);
 // Очистить буфер:
 void BufferFBO_clear(BufferFBO *self, float r, float g, float b, float a);
 
-// Изменить размер текстур:
+// Изменить размер кадрового буфера:
 void BufferFBO_resize(BufferFBO *self, int width, int height);
 
 // Применить массив привязок для записи данных в них:

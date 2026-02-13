@@ -37,15 +37,15 @@ static Vertex* _get_verts_(Vec3f *points, uint32_t count) {
     return verts;  // Не забудьте освободить память!
 }
 
-static void _simpledraw_render_(SimpleDraw *draw, Vec4f color, Vertex *verts, uint32_t count, uint32_t mode) {
+static void _simpledraw_render_(SimpleDraw *self, Vec4f color, Vertex *verts, uint32_t count, uint32_t mode) {
     // Используем дефолтный шейдер и буферы:
     mat4 model;
     glm_mat4_identity(model);
-    Renderer *renderer = draw->renderer;
+    Renderer *renderer = self->renderer;
     Shader *shader = renderer->shader;
     Shader_begin(shader);
-    BufferVAO_begin(draw->vao);
-    BufferVBO_begin(draw->vbo);
+    BufferVAO_begin(self->vao);
+    BufferVBO_begin(self->vbo);
     if (mode == GL_POINTS) Shader_set_bool(renderer->shader, "u_use_points", true);
     Shader_set_bool(renderer->shader, "u_use_texture", false);
     Shader_set_bool(renderer->shader, "u_use_normals", false);
@@ -54,12 +54,12 @@ static void _simpledraw_render_(SimpleDraw *draw, Vec4f color, Vertex *verts, ui
     Shader_set_mat4(renderer->shader, "u_model", model);
 
     // Выделяем новую память в буфере, если число вершин больше прошлого:
-    if (count > draw->vertex_count) {
-        BufferVBO_set_data(draw->vbo, verts, count * sizeof(Vertex), GL_DYNAMIC_DRAW);
-        draw->vertex_count = count;
+    if (count > self->vertex_count) {
+        BufferVBO_set_data(self->vbo, verts, count * sizeof(Vertex), GL_DYNAMIC_DRAW);
+        self->vertex_count = count;
     } else {
         // Иначе просто обновляем данные в буфере:
-        BufferVBO_set_subdata(draw->vbo, verts, 0, count * sizeof(Vertex));
+        BufferVBO_set_subdata(self->vbo, verts, 0, count * sizeof(Vertex));
     }
 
     // Рисуем:
@@ -67,8 +67,8 @@ static void _simpledraw_render_(SimpleDraw *draw, Vec4f color, Vertex *verts, ui
 
     // Возвращаем буферы:
     if (mode == GL_POINTS) Shader_set_bool(renderer->shader, "u_use_points", false);
-    BufferVBO_end(draw->vbo);
-    BufferVAO_end(draw->vao);
+    BufferVBO_end(self->vbo);
+    BufferVAO_end(self->vao);
     Shader_end(shader);
 }
 
@@ -115,100 +115,100 @@ void SimpleDraw_destroy(SimpleDraw **draw) {
 
 
 // Нарисовать точку:
-void SimpleDraw_point(SimpleDraw *draw, Vec4f color, Vec3f point, float size) {
-    if (!draw) return;
+void SimpleDraw_point(SimpleDraw *self, Vec4f color, Vec3f point, float size) {
+    if (!self) return;
     glPointSize(size);
-    _simpledraw_render_(draw, color, &(Vertex){.px=point.x, .py=point.y, .pz=point.z}, 1, GL_POINTS);
+    _simpledraw_render_(self, color, &(Vertex){.px=point.x, .py=point.y, .pz=point.z}, 1, GL_POINTS);
 }
 
 // Нарисовать точки:
-void SimpleDraw_points(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float size) {
-    if (!draw || !points) return;
+void SimpleDraw_points(SimpleDraw *self, Vec4f color, Vec3f *points, uint32_t count, float size) {
+    if (!self || !points) return;
     glPointSize(size);
 
     // Создаём массив вершин:
     Vertex *verts = _get_verts_(points, count);
-    _simpledraw_render_(draw, color, verts, count, GL_POINTS);
+    _simpledraw_render_(self, color, verts, count, GL_POINTS);
     mm_free(verts);
 }
 
 // Нарисовать линию:
-void SimpleDraw_line(SimpleDraw *draw, Vec4f color, Vec3f start, Vec3f end, float width) {
-    if (!draw) return;
+void SimpleDraw_line(SimpleDraw *self, Vec4f color, Vec3f start, Vec3f end, float width) {
+    if (!self) return;
     glLineWidth(width);
-    _simpledraw_render_(draw, color, (Vertex[]){
+    _simpledraw_render_(self, color, (Vertex[]){
         {start.x, start.y, start.z, 0, 0, 0, 1, 1, 1, 1, 0, 0},
         {end.x,   end.y,   end.z,   0, 0, 0, 1, 1, 1, 1, 0, 0}
     }, 2, GL_LINES);
 }
 
 // Нарисовать линии:
-void SimpleDraw_lines(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float width) {
-    if (!draw || !points) return;
+void SimpleDraw_lines(SimpleDraw *self, Vec4f color, Vec3f *points, uint32_t count, float width) {
+    if (!self || !points) return;
     glLineWidth(width);
 
     // Создаём массив вершин:
     Vertex *verts = _get_verts_(points, count);
-    _simpledraw_render_(draw, color, verts, count, GL_LINES);
+    _simpledraw_render_(self, color, verts, count, GL_LINES);
     mm_free(verts);
 }
 
 // Нарисовать ломаную линию:
-void SimpleDraw_line_strip(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float width) {
-    if (!draw || !points) return;
+void SimpleDraw_line_strip(SimpleDraw *self, Vec4f color, Vec3f *points, uint32_t count, float width) {
+    if (!self || !points) return;
     glLineWidth(width);
 
     // Создаём массив вершин:
     Vertex *verts = _get_verts_(points, count);
-    _simpledraw_render_(draw, color, verts, count, GL_LINE_STRIP);
+    _simpledraw_render_(self, color, verts, count, GL_LINE_STRIP);
     mm_free(verts);
 }
 
 // Нарисовать замкнутую ломаную линию:
-void SimpleDraw_line_loop(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count, float width) {
-    if (!draw || !points) return;
+void SimpleDraw_line_loop(SimpleDraw *self, Vec4f color, Vec3f *points, uint32_t count, float width) {
+    if (!self || !points) return;
     glLineWidth(width);
 
     // Создаём массив вершин:
     Vertex *verts = _get_verts_(points, count);
-    _simpledraw_render_(draw, color, verts, count, GL_LINE_LOOP);
+    _simpledraw_render_(self, color, verts, count, GL_LINE_LOOP);
     mm_free(verts);
 }
 
 // Нарисовать треугольники:
-void SimpleDraw_triangles(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count) {
-    if (!draw || !points) return;
+void SimpleDraw_triangles(SimpleDraw *self, Vec4f color, Vec3f *points, uint32_t count) {
+    if (!self || !points) return;
 
     // Создаём массив вершин:
     Vertex *verts = _get_verts_(points, count);
-    _simpledraw_render_(draw, color, verts, count, GL_TRIANGLES);
+    _simpledraw_render_(self, color, verts, count, GL_TRIANGLES);
     mm_free(verts);
 }
 
 // Нарисовать треугольники с общей стороной:
-void SimpleDraw_triangle_strip(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count) {
-    if (!draw || !points) return;
+void SimpleDraw_triangle_strip(SimpleDraw *self, Vec4f color, Vec3f *points, uint32_t count) {
+    if (!self || !points) return;
 
     // Создаём массив вершин:
     Vertex *verts = _get_verts_(points, count);
-    _simpledraw_render_(draw, color, verts, count, GL_TRIANGLE_STRIP);
+    _simpledraw_render_(self, color, verts, count, GL_TRIANGLE_STRIP);
     mm_free(verts);
 }
 
 // Нарисовать треугольники последняя вершина которой будет соединена с первой:
-void SimpleDraw_triangle_fan(SimpleDraw *draw, Vec4f color, Vec3f *points, uint32_t count) {
-    if (!draw || !points) return;
+void SimpleDraw_triangle_fan(SimpleDraw *self, Vec4f color, Vec3f *points, uint32_t count) {
+    if (!self || !points) return;
 
     // Создаём массив вершин:
     Vertex *verts = _get_verts_(points, count);
-    _simpledraw_render_(draw, color, verts, count, GL_TRIANGLE_FAN);
+    _simpledraw_render_(self, color, verts, count, GL_TRIANGLE_FAN);
     mm_free(verts);
 }
 
 // Нарисовать квадрат:
-void SimpleDraw_quad(SimpleDraw *draw, Vec4f color, Vec3f point, Vec2f size, float width) {
-    if (!draw) return;
-    SimpleDraw_line_loop(draw, color, (Vec3f[]){
+void SimpleDraw_quad(SimpleDraw *self, Vec4f color, Vec3f point, Vec2f size, float width) {
+    if (!self) return;
+    SimpleDraw_line_loop(self, color, (Vec3f[]){
         {.x=point.x,        .y=point.y,        .z=point.z},
         {.x=point.x+size.x, .y=point.y,        .z=point.z},
         {.x=point.x+size.x, .y=point.y+size.y, .z=point.z},
@@ -217,9 +217,9 @@ void SimpleDraw_quad(SimpleDraw *draw, Vec4f color, Vec3f point, Vec2f size, flo
 }
 
 // Нарисовать квадрат с заливкой:
-void SimpleDraw_quad_fill(SimpleDraw *draw, Vec4f color, Vec3f point, Vec2f size) {
-    if (!draw) return;
-    SimpleDraw_triangles(draw, color, (Vec3f[]){
+void SimpleDraw_quad_fill(SimpleDraw *self, Vec4f color, Vec3f point, Vec2f size) {
+    if (!self) return;
+    SimpleDraw_triangles(self, color, (Vec3f[]){
         {.x=point.x,        .y=point.y,        .z=point.z},  // 1.
         {.x=point.x+size.x, .y=point.y,        .z=point.z},  // 2.
         {.x=point.x+size.x, .y=point.y+size.y, .z=point.z},  // 3.
@@ -230,8 +230,8 @@ void SimpleDraw_quad_fill(SimpleDraw *draw, Vec4f color, Vec3f point, Vec2f size
 }
 
 // Нарисовать круг:
-void SimpleDraw_circle(SimpleDraw *draw, Vec4f color, Vec3f center, float radius, uint32_t num_verts, float width) {
-    if (!draw) return;
+void SimpleDraw_circle(SimpleDraw *self, Vec4f color, Vec3f center, float radius, uint32_t num_verts, float width) {
+    if (!self) return;
     if (num_verts < 3) num_verts = 3;
 
     // Создаём массив вершин:
@@ -240,13 +240,13 @@ void SimpleDraw_circle(SimpleDraw *draw, Vec4f color, Vec3f center, float radius
         float rad_angle = radians((360.0f/num_verts) * i);
         verts[i] = (Vec3f){center.x + cos(rad_angle) * radius, center.y + sin(rad_angle) * radius, center.z};
     }
-    SimpleDraw_line_loop(draw, color, verts, num_verts, width);
+    SimpleDraw_line_loop(self, color, verts, num_verts, width);
     mm_free(verts);
 }
 
 // Нарисовать круг с заливкой:
-void SimpleDraw_circle_fill(SimpleDraw *draw, Vec4f color, Vec3f center, float radius, uint32_t num_verts) {
-    if (!draw) return;
+void SimpleDraw_circle_fill(SimpleDraw *self, Vec4f color, Vec3f center, float radius, uint32_t num_verts) {
+    if (!self) return;
     if (num_verts < 3) num_verts = 3;  // Вершины круга.
     uint32_t count = num_verts * 3;    // Всего вершин (в треугольниках).
     float angle_step = 2.0f * GLM_PIf / num_verts;
@@ -260,16 +260,16 @@ void SimpleDraw_circle_fill(SimpleDraw *draw, Vec4f color, Vec3f center, float r
         verts[i*3+1] = (Vec3f){center.x + cos(theta1) * radius, center.y + sin(theta1) * radius, center.z};
         verts[i*3+2] = (Vec3f){center.x + cos(theta2) * radius, center.y + sin(theta2) * radius, center.z};
     }
-    SimpleDraw_triangles(draw, color, verts, count);
+    SimpleDraw_triangles(self, color, verts, count);
     mm_free(verts);
 }
 
 // Нарисовать звезду:
 void SimpleDraw_star(
-    SimpleDraw *draw, Vec4f color, Vec3f center, float outradius,
+    SimpleDraw *self, Vec4f color, Vec3f center, float outradius,
     float inradius, uint32_t num_verts, float width
 ) {
-    if (!draw) return;
+    if (!self) return;
     if (num_verts < 2) num_verts = 2;  // Концы звезды.
 
     // Создаём массив вершин:
@@ -279,16 +279,16 @@ void SimpleDraw_star(
         float rad_angle = radians(i*180.0f/num_verts);
         verts[i] = (Vec3f){center.x + sin(rad_angle) * radius, center.y + cos(rad_angle) * radius, center.z};
     }
-    SimpleDraw_line_loop(draw, color, verts, num_verts*2, width);
+    SimpleDraw_line_loop(self, color, verts, num_verts*2, width);
     mm_free(verts);
 }
 
 // Нарисовать звезду с заливкой:
 void SimpleDraw_star_fill(
-    SimpleDraw *draw, Vec4f color, Vec3f center,
+    SimpleDraw *self, Vec4f color, Vec3f center,
     float outradius, float inradius, uint32_t num_verts
 ) {
-    if (!draw) return;
+    if (!self) return;
     if (num_verts < 2) num_verts = 2;    // Концы звезды.
     uint32_t count = num_verts * 2 * 3;  // Всего вершин (в треугольниках).
 
@@ -303,6 +303,6 @@ void SimpleDraw_star_fill(
         verts[i*3+1] = (Vec3f){center.x + sinf(a1)*r1, center.y + cosf(a1)*r1, center.z};
         verts[i*3+2] = (Vec3f){center.x, center.y, center.z};
     }
-    SimpleDraw_triangles(draw, color, verts, count);
+    SimpleDraw_triangles(self, color, verts, count);
     mm_free(verts);
 }

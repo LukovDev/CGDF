@@ -70,7 +70,7 @@ void Camera2D_destroy(Camera2D **camera);
 // Обновление камеры:
 void Camera2D_update(Camera2D *self);
 
-// Изменение размера камеры:
+// Изменить размер камеры:
 void Camera2D_resize(Camera2D *self, int width, int height);
 
 // Изменить масштаб единицы измерения:
@@ -98,7 +98,7 @@ void Camera3D_destroy(Camera3D **camera);
 // Обновление камеры:
 void Camera3D_update(Camera3D *self);
 
-// Изменение размера камеры:
+// Изменить размер камеры:
 void Camera3D_resize(Camera3D *self, int width, int height, bool ortho);
 
 // Посмотреть на указанную точку:

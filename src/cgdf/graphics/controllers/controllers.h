@@ -23,7 +23,7 @@ struct CameraController2D {
     Window *window;
     Camera2D *camera;
     Vec2i fixed_mouse_pos;
-    Vec2f target_pos;
+    Vec2d target_pos;
     float offset_scale;
     float min_zoom;
     float max_zoom;

@@ -30,6 +30,7 @@ struct Renderer {
     bool initialized;  // Флаг инициализации контекста OpenGL.
     Shader *shader;              // Дефолтная шейдерная программа.
     Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
+    Shader *shader_light2d;      // Шейдер 2D освещения.
 
     void *camera;  // Текущая активная камера.
     RendererCameraType camera_type;  // Тип камеры который используется (для корректировок).
@@ -65,3 +66,9 @@ void Renderer_get_proj(Renderer *self, mat4 proj);
 
 // Получить матрицу вида и проекции камеры:
 void Renderer_get_view_proj(Renderer *self, mat4 view, mat4 proj);
+
+// Получить ширину камеры:
+int Renderer_get_width(Renderer *self);
+
+// Получить высоту камеры:
+int Renderer_get_height(Renderer *self);

@@ -24,7 +24,7 @@ CameraController2D* CameraController2D_create(
     ctrl->window = window;
     ctrl->camera = camera;
     ctrl->fixed_mouse_pos = (Vec2i){0, 0};
-    ctrl->target_pos = (Vec2f){camera->position.x, camera->position.y};
+    ctrl->target_pos = camera->position;
     ctrl->offset_scale = offset_scale;
     ctrl->min_zoom = min_zoom;
     ctrl->max_zoom = max_zoom;
@@ -62,7 +62,7 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
         is_zooming = true;
         camera->position.x -= (mouse_rel.x * camera->zoom) * meter/100.0f;
         camera->position.y += (mouse_rel.y * camera->zoom) * meter/100.0f;
-        self->target_pos = (Vec2f){camera->position.x, self->camera->position.y};
+        self->target_pos = camera->position;
         _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
         self->fixed_mouse_pos = (Vec2i){mouse_pos.x, mouse_pos.y};
     } else {
