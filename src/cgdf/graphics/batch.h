@@ -32,8 +32,8 @@ extern uint32_t BATCH_SPRITES_SIZE;  // Глобальная переменна�
 
 
 // Объявление структур:
-typedef struct SpriteBatch SpriteBatch;    // Пакетная отрисовка спрайтов.
-typedef struct SpriteVertex SpriteVertex;  // Вершина спрайта.
+typedef struct SpriteBatch2D SpriteBatch2D;  // Пакетная отрисовка спрайтов.
+typedef struct SpriteVertex SpriteVertex;    // Вершина спрайта.
 
 
 // Пакетная отрисовка спрайтов:
@@ -55,31 +55,35 @@ struct SpriteVertex {
 
 
 // Создать пакетную отрисовку спрайтов:
-SpriteBatch* SpriteBatch_create(Renderer *renderer);
+SpriteBatch2D* SpriteBatch2D_create(Renderer *renderer);
 
 // Уничтожить пакетную отрисовку спрайтов:
-void SpriteBatch_destroy(SpriteBatch **batch);
+void SpriteBatch2D_destroy(SpriteBatch2D **batch);
 
 // Начать отрисовку:
-void SpriteBatch_begin(SpriteBatch *self);
+void SpriteBatch2D_begin(SpriteBatch2D *self);
 
 // Установить цвет следующим спрайтам:
-void SpriteBatch_set_color(SpriteBatch *self, Vec4f color);
+void SpriteBatch2D_set_color(SpriteBatch2D *self, Vec4f color);
 
 // Получить установленный цвет:
-Vec4f SpriteBatch_get_color(SpriteBatch *self);
+Vec4f SpriteBatch2D_get_color(SpriteBatch2D *self);
 
 // Установить текстурные координаты следующим спрайтам:
-void SpriteBatch_set_texcoord(SpriteBatch *self, Vec4f texcoord);
+void SpriteBatch2D_set_texcoord(SpriteBatch2D *self, Vec4f texcoord);
 
 // Сбросить текстурные координаты:
-void SpriteBatch_reset_texcoord(SpriteBatch *self);
+void SpriteBatch2D_reset_texcoord(SpriteBatch2D *self);
 
 // Получить текстурные координаты:
-Vec4f SpriteBatch_get_texcoord(SpriteBatch *self);
+Vec4f SpriteBatch2D_get_texcoord(SpriteBatch2D *self);
 
 // Добавить спрайт в пакет данных:
-void SpriteBatch_draw(SpriteBatch *self, Texture *texture, float x, float y, float width, float height, float angle);
+void SpriteBatch2D_draw(
+    SpriteBatch2D *self, Texture *texture,
+    float x, float y, float width, float height,
+    float angle
+);
 
 // Закончить отрисовку:
-void SpriteBatch_end(SpriteBatch *self);
+void SpriteBatch2D_end(SpriteBatch2D *self);

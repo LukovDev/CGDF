@@ -15,7 +15,7 @@
 
 
 // Пакетная отрисовка спрайтов:
-struct SpriteBatch {
+struct SpriteBatch2D {
     Renderer     *renderer;       // Рендерер.
     BufferVAO    *vao;            // Буфер атрибутов.
     BufferVBO    *vbo;            // Буфер вершин.
@@ -58,7 +58,7 @@ static uint32_t* _create_indices_buffer_(uint32_t size, uint32_t batch_size) {
 
 
 // Отрисовать буфер спрайтов:
-static void _batch_flush_(SpriteBatch *self) {
+static void _batch_flush_(SpriteBatch2D *self) {
     if (!self) return;
     if (!self->_is_begin_ || self->vertex_count == 0) {
         // Экономим вызовы отрисовки (ничего не рисуем) если в буфере нет вершин.
@@ -67,8 +67,8 @@ static void _batch_flush_(SpriteBatch *self) {
         return;
     }
 
-    // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch_begin):
-    Shader *shader = self->renderer->shader_spritebatch;
+    // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch2D_begin):
+    Shader *shader = self->renderer->shader_spritebatch2d;
     Shader_set_bool(shader, "u_use_texture", self->current_tex_id != 0 ? true : false);
     Shader_set_tex2d(shader, "u_texture", self->current_tex_id);
 
@@ -88,9 +88,9 @@ static void _batch_flush_(SpriteBatch *self) {
 
 
 // Создать пакетную отрисовку спрайтов:
-SpriteBatch* SpriteBatch_create(Renderer *renderer) {
+SpriteBatch2D* SpriteBatch2D_create(Renderer *renderer) {
     if (!renderer) return NULL;
-    SpriteBatch *batch = (SpriteBatch*)mm_alloc(sizeof(SpriteBatch));
+    SpriteBatch2D *batch = (SpriteBatch2D*)mm_alloc(sizeof(SpriteBatch2D));
 
     // Размер одной вершины в байтах (8 параметров * 4 байта по каждому = 32 байт):
     size_t stride = sizeof(SpriteVertex);
@@ -138,7 +138,7 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
 }
 
 // Уничтожить пакетную отрисовку спрайтов:
-void SpriteBatch_destroy(SpriteBatch **batch) {
+void SpriteBatch2D_destroy(SpriteBatch2D **batch) {
     if (!batch || !*batch) return;
 
     // Удаляем буферы:
@@ -152,7 +152,7 @@ void SpriteBatch_destroy(SpriteBatch **batch) {
 }
 
 // Начать отрисовку:
-void SpriteBatch_begin(SpriteBatch *self) {
+void SpriteBatch2D_begin(SpriteBatch2D *self) {
     if (!self || self->_is_begin_) return;
     self->sprite_count = 0;
     self->vertex_count = 0;
@@ -161,7 +161,7 @@ void SpriteBatch_begin(SpriteBatch *self) {
     // Обновляем данные в шейдере:
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
-    Shader *shader = self->renderer->shader_spritebatch;
+    Shader *shader = self->renderer->shader_spritebatch2d;
     Shader_begin(shader);
     BufferVAO_begin(self->vao);
     BufferEBO_begin(self->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
@@ -172,37 +172,41 @@ void SpriteBatch_begin(SpriteBatch *self) {
 }
 
 // Установить цвет следующим спрайтам:
-void SpriteBatch_set_color(SpriteBatch *self, Vec4f color) {
+void SpriteBatch2D_set_color(SpriteBatch2D *self, Vec4f color) {
     if (!self) return;
     self->color = color;
 }
 
 // Получить установленный цвет:
-Vec4f SpriteBatch_get_color(SpriteBatch *self) {
+Vec4f SpriteBatch2D_get_color(SpriteBatch2D *self) {
     if (!self) return (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
     return self->color;
 }
 
 // Установить текстурные координаты следующим спрайтам:
-void SpriteBatch_set_texcoord(SpriteBatch *self, Vec4f texcoord) {
+void SpriteBatch2D_set_texcoord(SpriteBatch2D *self, Vec4f texcoord) {
     if (!self) return;
     self->texcoord = texcoord;
 }
 
 // Сбросить текстурные координаты:
-void SpriteBatch_reset_texcoord(SpriteBatch *self) {
+void SpriteBatch2D_reset_texcoord(SpriteBatch2D *self) {
     if (!self) return;
     self->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
 }
 
 // Получить текстурные координаты:
-Vec4f SpriteBatch_get_texcoord(SpriteBatch *self) {
+Vec4f SpriteBatch2D_get_texcoord(SpriteBatch2D *self) {
     if (!self) return (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
     return self->texcoord;
 }
 
 // Добавить спрайт в пакет данных:
-void SpriteBatch_draw(SpriteBatch *self, Texture *texture, float x, float y, float width, float height, float angle) {
+void SpriteBatch2D_draw(
+    SpriteBatch2D *self, Texture *texture,
+    float x, float y, float width, float height,
+    float angle
+) {
     if (!self || !self->_is_begin_) return;
     uint32_t tex_id = texture ? texture->id : 0;
 
@@ -281,11 +285,11 @@ void SpriteBatch_draw(SpriteBatch *self, Texture *texture, float x, float y, flo
 }
 
 // Закончить отрисовку:
-void SpriteBatch_end(SpriteBatch *self) {
+void SpriteBatch2D_end(SpriteBatch2D *self) {
     if (!self || !self->_is_begin_) return;
     _batch_flush_(self);
     BufferVBO_end(self->vbo);
     BufferVAO_end(self->vao);
-    Shader_end(self->renderer->shader_spritebatch);
+    Shader_end(self->renderer->shader_spritebatch2d);
     self->_is_begin_ = false;
 }

@@ -19,7 +19,7 @@ static CameraController3D *ctrl3d;
 static Camera2D *camera;
 static Camera3D *camera3d;
 static Sprite2D *sprite;
-static SpriteBatch *batch;
+static SpriteBatch2D *batch;
 static SimpleDraw *draw;
 static Texture *anim[18];
 static Texture *animation;
@@ -73,6 +73,7 @@ void start(Window *self) {
     Camera3D_set_depth_test(camera3d, false);
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
 
+    printf("Loading data...\n");
     for (int i=0; i < 18; i++) {
         anim[i] = Texture_create(self->renderer);
         char path[256];
@@ -95,17 +96,18 @@ void start(Window *self) {
 
     sprite = Sprite2D_create(self->renderer, tex2, -10.0f, -10.0f, 10.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
-    batch = SpriteBatch_create(self->renderer);
+    batch = SpriteBatch2D_create(self->renderer);
 
     draw = SimpleDraw_create(self->renderer);
 
-    light2d = Light2D_create(self->renderer, (Vec3f){0.1, 0.1, 0.1}, 1.0f);
+    light2d = Light2D_create(self->renderer, (Vec3f){0.0, 0.0, 0.0}, 1.0f);
 
     light = Texture_create(self->renderer);
     Texture_load(light, "data/textures/light.png", true);
 
     flash_light = Texture_create(self->renderer);
     Texture_load(flash_light, "data/textures/flash-light.png", true);
+    printf("data loaded\n");
 }
 
 
@@ -119,7 +121,7 @@ void destroy(Window *self) {
     Texture_destroy(&light);
     Texture_destroy(&flash_light);
     Sprite2D_destroy(&sprite);
-    SpriteBatch_destroy(&batch);
+    SpriteBatch2D_destroy(&batch);
     SimpleDraw_destroy(&draw);
 
     Camera3D_destroy(&camera3d);
@@ -163,7 +165,10 @@ void update(Window *self, float dtime) {
         ctrl->target_pos.y = ctrl3d->target_pos.y;
         camera->position = ctrl->target_pos;
     }
-    // Light2D_set_intensity(light2d, sinf(Window_get_time(self)) * 0.5f + 0.5f);
+    float itensity = sinf(Window_get_time(self)/2.0f) * 0.5f + 0.5f;
+    float ambient = 1.0 - itensity;
+    Light2D_set_intensity(light2d, itensity);
+    Light2D_set_ambient(light2d, (Vec3f){ambient, ambient, ambient});
 }
 
 
@@ -189,20 +194,20 @@ void render(Window *self, float dtime) {
     static bool enable = true;
     if (Input_get_key_down(self)[K_1]) enable = !enable;
     if (enable) {
-        SpriteBatch_begin(batch);
+        SpriteBatch2D_begin(batch);
         int size = 32;
         for (int y=-size/2; y < size/2; y++) {
             for (int x=-size/2; x < size/2; x++) {
                 // float delta = FrameAnimator2D_get_frame(anim2d) / 18.0f;
-                // SpriteBatch_set_texcoord(batch, (Vec4f){
+                // SpriteBatch2D_set_texcoord(batch, (Vec4f){
                 //     delta, 0.0f,
                 //     delta+1.0f/18.0f, 1.0f
                 // });
-                SpriteBatch_draw(batch, tex1, x, y, 1.0f, 1.0f, 0.0f);
+                SpriteBatch2D_draw(batch, tex1, x, y, 1.0f, 1.0f, 0.0f);
             }
         }
-        SpriteBatch_reset_texcoord(batch);
-        SpriteBatch_end(batch);
+        SpriteBatch2D_reset_texcoord(batch);
+        SpriteBatch2D_end(batch);
     }
 
     FrameAnimator2D_update(anim2d, dtime);
@@ -211,11 +216,35 @@ void render(Window *self, float dtime) {
     Light2D_scene_end(light2d);
 
     Light2D_light_begin(light2d);
+    for (int i=0; i < 10; i++) {
+        float t = (float)i / 10.0f; // 0..1 по всем 10 спрайтам
+
+        float r, g, b;
+        if (t < 0.5f) {
+            float k = t * 2.0f;    // 0..1
+            r = 1.0f - k;          // red -> 0
+            g = k;                 // 0 -> green
+            b = 0.0f;
+        } else {
+            float k = (t - 0.5f) * 2.0f; // 0..1
+            r = 0.0f;
+            g = 1.0f - k;                // green -> 0
+            b = k;                       // 0 -> blue
+        }
+
+        Vec4f color = (Vec4f){ r, g, b, 2.0f };
+        Vec2f pos = (Vec2f){ 
+            sinf(i*2.0f*GLM_PI/10.0f) * 10.0f - 5,
+            cosf(i*2.0f*GLM_PI/10.0f) * 10.0f - 5
+        };
+        Sprite2D_render(self->renderer, light, pos.x, pos.y, 10.0f, 10.0f, t*360.0f, color, false);
+    }
+
     sprite->render(sprite);
-    float intensity = 1.0f;
-    Sprite2D_render(self->renderer, light, globpos.x-5, globpos.y-5, 10.0f, 10.0f, 0.0f, (Vec4f){0, 1, 0, intensity}, false);
-    Sprite2D_render(self->renderer, light, -10, -5, 10.0f, 10.0f, 0.0f, (Vec4f){0, 0, 1, intensity}, false);
-    Sprite2D_render(self->renderer, light, -5, -5, 10.0f, 10.0f, 0.0f, (Vec4f){1, 0, 0, intensity}, false);
+    float intensity = 2.0f;
+    Sprite2D_render(self->renderer, light, globpos.x-5, globpos.y-5, 10.0f, 10.0f, 0.0f, (Vec4f){1, 1, 1, intensity}, false);
+    // Sprite2D_render(self->renderer, light, -10, -5, 10.0f, 10.0f, 0.0f, (Vec4f){0, 0, 1, intensity}, false);
+    // Sprite2D_render(self->renderer, light, -5, -5, 10.0f, 10.0f, 0.0f, (Vec4f){1, 0, 0, intensity}, false);
 
     // Нарисовать точку:
     SimpleDraw_point(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 2, 0}, 16.0f);

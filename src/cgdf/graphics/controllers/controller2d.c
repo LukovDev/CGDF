@@ -25,6 +25,7 @@ CameraController2D* CameraController2D_create(
     ctrl->camera = camera;
     ctrl->fixed_mouse_pos = (Vec2i){0, 0};
     ctrl->target_pos = camera->position;
+    ctrl->target_zoom = camera->zoom;
     ctrl->offset_scale = offset_scale;
     ctrl->min_zoom = min_zoom;
     ctrl->max_zoom = max_zoom;
@@ -69,13 +70,15 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
         self->fixed_mouse_pos = (Vec2i){mouse_pos.x, mouse_pos.y};
     }
 
+    float fr = 1.0f - self->friction;
+
     // Масштабирование камеры:
-    if (is_zooming) camera->zoom -= mouse_scroll * camera->zoom * 0.1f;
-    if (camera->zoom*meter < self->min_zoom) camera->zoom = self->min_zoom*1.0f/meter;
-    if (camera->zoom       > self->max_zoom) camera->zoom = self->max_zoom;
+    if (is_zooming) self->target_zoom -= mouse_scroll * self->target_zoom * 0.1f;
+    if (self->target_zoom*meter < self->min_zoom) self->target_zoom = self->min_zoom*1.0f/meter;
+    if (self->target_zoom > self->max_zoom) self->target_zoom = self->max_zoom;
+    camera->zoom += ((self->target_zoom - camera->zoom) * 1.0f/fr) * dtime;
 
     // Плавное перемещение камеры:
-    float fr = 1.0f - self->friction;
     if (fr > 0.0f) {
         camera->position.x += ((self->target_pos.x - camera->position.x) * 1.0f/fr) * dtime;
         camera->position.y += ((self->target_pos.y - camera->position.y) * 1.0f/fr) * dtime;

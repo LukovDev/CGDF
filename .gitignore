@@ -7,6 +7,7 @@ Thumbs.db
 ._*
 .smbdeleteAAA159
 
+data/minigame/
 data/textures/snow.png
 data/animation/
 __pycache__

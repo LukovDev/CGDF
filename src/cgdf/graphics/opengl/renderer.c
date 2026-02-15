@@ -166,7 +166,7 @@ Renderer* Renderer_create() {
     // Заполняем поля:
     rnd->initialized = false;
     rnd->shader = NULL;
-    rnd->shader_spritebatch = NULL;
+    rnd->shader_spritebatch2d = NULL;
     rnd->shader_light2d = NULL;
     rnd->camera = NULL;
     rnd->camera_type = RENDERER_CAMERA_2D;
@@ -174,7 +174,7 @@ Renderer* Renderer_create() {
 
     // Создаём шейдеры:
     rnd->shader = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
-    rnd->shader_spritebatch = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
+    rnd->shader_spritebatch2d = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
     rnd->shader_light2d = create_shader(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
     return rnd;
 }
@@ -192,7 +192,7 @@ void Renderer_destroy(Renderer **rnd) {
 
     // Освобождаем память шейдеров:
     if ((*rnd)->shader) { Shader_destroy(&(*rnd)->shader); }
-    if ((*rnd)->shader_spritebatch) { Shader_destroy(&(*rnd)->shader_spritebatch); }
+    if ((*rnd)->shader_spritebatch2d) { Shader_destroy(&(*rnd)->shader_spritebatch2d); }
     if ((*rnd)->shader_light2d) { Shader_destroy(&(*rnd)->shader_light2d); }
 
     // Удаляем сетку спрайта:
@@ -232,7 +232,7 @@ void Renderer_init(Renderer *self) {
 
     // Компилируем шейдеры:
     if (self->shader) Shader_compile(self->shader);
-    if (self->shader_spritebatch) Shader_compile(self->shader_spritebatch);
+    if (self->shader_spritebatch2d) Shader_compile(self->shader_spritebatch2d);
     if (self->shader_light2d) Shader_compile(self->shader_light2d);
 
     // Квадрат с текстурой для спрайта:
@@ -277,7 +277,7 @@ void Renderer_clear_caches(Renderer *self) {
 
     // Освобождаем кэши в шейдерах:
     Shader_clear_caches(self->shader);
-    Shader_clear_caches(self->shader_spritebatch);
+    Shader_clear_caches(self->shader_spritebatch2d);
     Shader_clear_caches(self->shader_light2d);
 }
 

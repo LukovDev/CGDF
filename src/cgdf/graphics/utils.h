@@ -13,7 +13,7 @@
 
 
 // Переводит координаты точки на экране, в мировые координаты в 2D пространстве:
-static inline Vec2d local_to_global_2d(Camera2D *camera, Vec2i point) {
+static inline Vec2d local_to_global_2d(Camera2D *camera, Vec2d point) {
     /*
         Сначала получаем позицию левого нижнего угла камеры в мировых координатах:
         - Позиция камеры минус половина видимой области (width/height), с учётом масштаба метра и зума.
