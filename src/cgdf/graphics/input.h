@@ -241,11 +241,20 @@ void Input_set_mouse_visible(Window *self, bool visible);
 // Получить видимость мыши:
 bool Input_get_mouse_visible(Window *self);
 
+// Проверить, зажата ли какая-либо кнопка мыши:
+bool Input_any_mouse_pressed(Window *self);
+
+// Проверить, нажата ли какая-либо кнопка мыши:
+bool Input_any_mouse_down(Window *self);
+
+// Проверить, отжата ли какая-либо кнопка мыши:
+bool Input_any_mouse_up(Window *self);
+
 
 // -------- Клавиатура: --------
 
 
-// Получить нажатые клавиши клавиатуры:
+// Получить зажатые клавиши клавиатуры:
 bool* Input_get_key_pressed(Window *self);
 
 // Получить нажатие клавиши клавиатуры:
@@ -253,3 +262,12 @@ bool* Input_get_key_down(Window *self);
 
 // Получить отжатие клавиши клавиатуры:
 bool* Input_get_key_up(Window *self);
+
+// Проверить, зажата ли какая-либо клавиша клавиатуры:
+bool Input_any_key_pressed(Window *self);
+
+// Проверить, нажата ли какая-либо клавиша клавиатуры:
+bool Input_any_key_down(Window *self);
+
+// Проверить, отжата ли какая-либо клавиша клавиатуры:
+bool Input_any_key_up(Window *self);

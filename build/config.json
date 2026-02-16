@@ -2,7 +2,7 @@
     "program-name":  "CGDF Program",
     "program-icon":  "data/icons/icon.ico",
     "source-dirs":   [
-        "src/main/",
+        "src/test/",
         "src/cgdf/core/",
         "src/cgdf/graphics/",
         "src/cgdf/graphics/opengl/"

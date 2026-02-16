@@ -168,11 +168,44 @@ bool Input_get_mouse_visible(Window *self) {
     return self->input->mouse->visible;
 }
 
+// Проверить, зажата ли какая-либо кнопка мыши:
+bool Input_any_mouse_pressed(Window *self) {
+    if (!self || !self->input || !self->input->mouse) return false;
+    bool *md = Input_get_mouse_pressed(self);
+    if (!md) return false;
+    for (int i = 0; i < 8; i++) {
+        if (md[i]) return true;
+    }
+    return false;
+}
+
+// Проверить, нажата ли какая-либо кнопка мыши:
+bool Input_any_mouse_down(Window *self) {
+    if (!self || !self->input || !self->input->mouse) return false;
+    bool *md = Input_get_mouse_down(self);
+    if (!md) return false;
+    for (int i = 0; i < 8; i++) {
+        if (md[i]) return true;
+    }
+    return false;
+}
+
+// Проверить, отжата ли какая-либо кнопка мыши:
+bool Input_any_mouse_up(Window *self) {
+    if (!self || !self->input || !self->input->mouse) return false;
+    bool *md = Input_get_mouse_up(self);
+    if (!md) return false;
+    for (int i = 0; i < 8; i++) {
+        if (md[i]) return true;
+    }
+    return false;
+}
+
 
 // -------- Клавиатура: --------
 
 
-// Получить нажатые клавиши клавиатуры:
+// Получить зажатые клавиши клавиатуры:
 bool* Input_get_key_pressed(Window *self) {
     if (!self || !self->input || !self->input->keyboard) return NULL;
     return self->input->keyboard->pressed;
@@ -188,4 +221,37 @@ bool* Input_get_key_down(Window *self) {
 bool* Input_get_key_up(Window *self) {
     if (!self || !self->input || !self->input->keyboard) return NULL;
     return self->input->keyboard->up;
+}
+
+// Проверить, зажата ли какая-либо клавиша клавиатуры:
+bool Input_any_key_pressed(Window *self) {
+    if (!self || !self->input || !self->input->keyboard) return false;
+    bool *kd = Input_get_key_pressed(self);
+    if (!kd) return false;
+    for (int i = 0; i < INPUT_SCANCODE_COUNT; i++) {
+        if (kd[i]) return true;
+    }
+    return false;
+}
+
+// Проверить, нажата ли какая-либо клавиша клавиатуры:
+bool Input_any_key_down(Window *self) {
+    if (!self || !self->input || !self->input->keyboard) return false;
+    bool *kd = Input_get_key_down(self);
+    if (!kd) return false;
+    for (int i = 0; i < INPUT_SCANCODE_COUNT; i++) {
+        if (kd[i]) return true;
+    }
+    return false;
+}
+
+// Проверить, отжата ли какая-либо клавиша клавиатуры:
+bool Input_any_key_up(Window *self) {
+    if (!self || !self->input || !self->input->keyboard) return false;
+    bool *kd = Input_get_key_up(self);
+    if (!kd) return false;
+    for (int i = 0; i < INPUT_SCANCODE_COUNT; i++) {
+        if (kd[i]) return true;
+    }
+    return false;
 }
