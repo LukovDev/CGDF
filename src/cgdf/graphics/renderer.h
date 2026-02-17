@@ -12,6 +12,7 @@
 #include <cgdf/core/math.h>
 #include "mesh.h"
 #include "shader.h"
+#include "texture.h"
 
 
 // Объявление структур:
@@ -37,6 +38,7 @@ struct Renderer {
 
     // Другое:
     Mesh *sprite_mesh;  // Сетка спрайта.
+    Texture *fallback_texture;  // Пустая текстура как заглушка для шейдеров.
 };
 
 

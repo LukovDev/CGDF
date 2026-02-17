@@ -17,3 +17,4 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <errno.h>
+#include <limits.h>

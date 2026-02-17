@@ -10,6 +10,7 @@
 #include <cgdf/core/array.h>
 #include <cgdf/core/logger.h>
 #include "../texture.h"
+#include "../renderer.h"
 #include "../shader.h"
 #include "texunit.h"
 #include "gl.h"
@@ -165,6 +166,11 @@ static void _set_sampler_(Shader *self, const char* name, uint32_t tex_id, Textu
         Если вы всё равно укажете нулевой юнит для шейдера, то скорее всего, шейдер может
         получить другую текстуру, из за возможных вызовов привязки других текстур к этому юниту.
     */
+
+    // Если передали нулевую текстуру, используем текстуру-загрушку:
+    if (tex_id == 0 && self->renderer && self->renderer->fallback_texture) {
+        tex_id = self->renderer->fallback_texture->id;
+    }
 
     // Ищем сэмплер в кэше:
     ShaderCacheSampler *smp = _find_cached_sampler_(self, loc);
@@ -600,13 +606,13 @@ void Shader_set_mat4x3(Shader *self, const char* name, mat4x3 value) {
 
 // Установить 2D текстуру:
 void Shader_set_tex2d(Shader *self, const char* name, uint32_t tex_id) {
-    if (!self || !self->_is_begin_ || !name) return;
+    if (!self || !self->renderer || !self->_is_begin_ || !name) return;
     _set_sampler_(self, name, tex_id, TEX_TYPE_2D);
 }
 
 // Установить 3D текстуру:
 void Shader_set_tex3d(Shader *self, const char* name, uint32_t tex_id) {
-    if (!self || !self->_is_begin_ || !name) return;
+    if (!self || !self->renderer || !self->_is_begin_ || !name) return;
     _set_sampler_(self, name, tex_id, TEX_TYPE_3D);
 }
 

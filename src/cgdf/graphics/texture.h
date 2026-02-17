@@ -8,7 +8,6 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/pixmap.h>
-#include "renderer.h"
 
 
 // Типы формата данных текстуры и исходников:
@@ -44,6 +43,7 @@ typedef enum TextureType {
 
 // Объявление структур:
 typedef struct Texture Texture;  // Текстура 2D.
+typedef struct Renderer Renderer;
 
 
 // Структура текстуры:

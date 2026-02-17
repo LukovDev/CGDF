@@ -32,6 +32,11 @@ extern "C" {
 static inline bool core_init(void) {
     Time_init();
     logger_init();
+
+    // Настраиваем пути для OS X:
+    #ifdef __APPLE__
+        Files_fix_apple_path();
+    #endif
     return true;
 }
 

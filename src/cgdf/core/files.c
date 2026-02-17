@@ -6,7 +6,106 @@
 // Подключаем:
 #include "std.h"
 #include "mm.h"
+#include "logger.h"
 #include "files.h"
+#ifdef _WIN32
+    #include <direct.h>
+#else
+    #include <unistd.h>
+#endif
+
+
+// Код для исправления путей для OS X:
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+static bool set_cwd_to_prog_dir() {
+    uint32_t size = PATH_MAX;
+    char path[PATH_MAX];
+    char *buf = path;
+
+    if (_NSGetExecutablePath(buf, &size) != 0) {
+        buf = (char*)mm_alloc(size);
+        if (!buf) return false;
+        if (_NSGetExecutablePath(buf, &size) != 0) {
+            mm_free(buf);
+            return false;
+        }
+    }
+
+    char resolved[PATH_MAX];
+    const char *use_path = buf;
+    if (realpath(buf, resolved)) {
+        use_path = resolved;
+    }
+
+    char *slash = strrchr((char*)use_path, '/');
+    if (!slash) {
+        if (buf != path) mm_free(buf);
+        return false;
+    }
+
+    if (slash == use_path) {
+        slash[1] = '\0';
+    } else {
+        *slash = '\0';
+    }
+
+    bool ok = (chdir(use_path) == 0);
+    if (buf != path) mm_free(buf);
+    return ok;
+}
+
+void Files_fix_apple_path() {
+    char cwd[PATH_MAX];
+    const char *home = Files_get_home();
+    if (Files_get_cwd(cwd, sizeof(cwd))) {
+        bool is_home = (home && strcmp(cwd, home) == 0);
+        bool is_root = (strcmp(cwd, "/") == 0);
+        if (is_home || is_root) {
+            if (!set_cwd_to_prog_dir()) {
+                log_msg("[W] Failed to set CWD to executable directory.\n");
+            }
+        }
+    }
+}
+#endif
+
+
+// Получить текущую директорию:
+char *Files_get_cwd(char *buf, size_t size) {
+    #ifdef _WIN32
+        return _getcwd(buf, size);
+    #else
+        return getcwd(buf, size);
+    #endif
+}
+
+
+// Переход к каталогу:
+bool Files_chdir(const char *path) {
+    #ifdef _WIN32
+        return _chdir(path) == 0;
+    #else
+        return chdir(path) == 0;
+    #endif
+}
+
+
+// Получить путь домашнего каталога:
+char *Files_get_home() {
+    char *dir = getenv("HOME");
+
+    // Если HOME не задан (Windows), пробуем USERPROFILE:
+    if (dir == NULL) {
+        dir = getenv("USERPROFILE");
+    }
+    return dir;
+}
 
 
 // Загружаем файл в строку:

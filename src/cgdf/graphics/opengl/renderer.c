@@ -11,6 +11,7 @@
 #include "../mesh.h"
 #include "../camera.h"
 #include "../renderer.h"
+#include "../texture.h"
 #include "buffer_gc.h"
 #include "texunit.h"
 #include "gl.h"
@@ -171,6 +172,7 @@ Renderer* Renderer_create() {
     rnd->camera = NULL;
     rnd->camera_type = RENDERER_CAMERA_2D;
     rnd->sprite_mesh = NULL;
+    rnd->fallback_texture = NULL;
 
     // Создаём шейдеры:
     rnd->shader = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
@@ -183,13 +185,6 @@ Renderer* Renderer_create() {
 void Renderer_destroy(Renderer **rnd) {
     if (!rnd || !*rnd) return;
 
-    // Уничтожение стеков буферов:
-    BufferGC_GL_flush();
-    BufferGC_GL_destroy();
-
-    // Уничтожение текстурных юнитов:
-    TextureUnits_destroy();
-
     // Освобождаем память шейдеров:
     if ((*rnd)->shader) { Shader_destroy(&(*rnd)->shader); }
     if ((*rnd)->shader_spritebatch2d) { Shader_destroy(&(*rnd)->shader_spritebatch2d); }
@@ -197,6 +192,16 @@ void Renderer_destroy(Renderer **rnd) {
 
     // Удаляем сетку спрайта:
     Mesh_destroy(&(*rnd)->sprite_mesh);
+
+    // Удаляем текстуру заглушку:
+    Texture_destroy(&(*rnd)->fallback_texture);
+
+    // Уничтожение стеков буферов:
+    BufferGC_GL_flush();
+    BufferGC_GL_destroy();
+
+    // Уничтожение текстурных юнитов:
+    TextureUnits_destroy();
 
     // Освобождаем память рендерера:
     mm_free(*rnd);
@@ -255,6 +260,10 @@ void Renderer_init(Renderer *self) {
         sprite_indices, sizeof(sprite_indices)/sizeof(uint32_t),
         false
     );
+
+    // Текстура-заглушка:
+    self->fallback_texture = Texture_create(self);
+    Texture_empty(self->fallback_texture, 1, 1, false, TEX_RGBA8, TEX_DATA_UBYTE);
 
     // На всякий случай, насильно отправляем инструкции видеокарте и ждём ответа:
     glFinish();
