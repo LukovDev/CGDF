@@ -1,7 +1,0 @@
-* text=auto eol=lf
-*.c linguist-language=C
-*.h linguist-language=C
-
-src/include/** linguist-vendored
-src/cgdf/core/libs/** linguist-vendored
-src/cgdf/graphics-gl/glad/** linguist-vendored
