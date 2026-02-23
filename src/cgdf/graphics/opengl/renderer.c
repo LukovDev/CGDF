@@ -261,7 +261,7 @@ void Renderer_init(Renderer *self) {
         false
     );
 
-    // Текстура-заглушка:
+    // Текстура заглушка:
     self->fallback_texture = Texture_create(self);
     Texture_empty(self->fallback_texture, 1, 1, false, TEX_RGBA8, TEX_DATA_UBYTE);
 

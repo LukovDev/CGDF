@@ -3,6 +3,7 @@
 //
 
 
+
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/math.h>
