@@ -14,6 +14,7 @@
 typedef enum BufferFBO_Type {
     BUFFER_FBO_COLOR,
     BUFFER_FBO_DEPTH,
+    BUFFER_FBO_DEPTH_STENCIL,
     // ...
 } BufferFBO_Type;
 
@@ -100,6 +101,9 @@ void BufferFBO_blit_color(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, i
 
 // Скопировать только глубину в другой кадровый буфер:
 void BufferFBO_blit_depth(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height);
+
+// Скопировать только маску в другой кадровый буфер:
+void BufferFBO_blit_stencil(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height);
 
 // Привязать 2D текстуру:
 void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment, uint32_t tex_id);

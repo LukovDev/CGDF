@@ -378,12 +378,13 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
     // Флаги окна:
     SDL_WindowFlags flags = SDL_WINDOW_HIDDEN;
 
-    // Настраиваем профиль OpenGL:
+    // Настраиваем профиль OpenGL, и устанавливаем атрибуты окна:
     uint32_t profile = SDL_GL_CONTEXT_PROFILE_CORE;  // По умолчанию.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);  // Включаем двойную буферизацию.
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);  // Включаем режим отладки.
     flags |= SDL_WINDOW_OPENGL;
 
     // Инициализируем окно:

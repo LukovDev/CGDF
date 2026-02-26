@@ -7,6 +7,7 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/array.h>
+#include <cgdf/core/logger.h>
 #include "../gl.h"
 #include "../buffer_gc.h"
 #include "buffers.h"
@@ -100,6 +101,27 @@ static void fbo_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int wi
 }
 
 
+static bool fbo_has_stencil(uint32_t fbo_id) {
+    int prev = 0, type = GL_NONE;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prev);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
+    glGetFramebufferAttachmentParameteriv(
+        GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type
+    );
+    glBindFramebuffer(GL_FRAMEBUFFER, (uint32_t)prev);
+    return type != GL_NONE;
+}
+
+
+static void fbo_check_complete(const char *tag) {
+    GLenum st = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (st != GL_FRAMEBUFFER_COMPLETE) {
+        log_msg("[E] FBO incomplete (%s): 0x%X\n", tag, st);
+    }
+}
+
+
 // -------- Реализация API: --------
 
 
@@ -129,7 +151,9 @@ void BufferFBO_clear(BufferFBO *self, float r, float g, float b, float a) {
     if (!self || !self->_is_begin_) return;
     glClearDepth(1.0f);
     glClearColor(r, g, b, a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    uint32_t clear_mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+    if (fbo_has_stencil(self->id)) clear_mask |= GL_STENCIL_BUFFER_BIT;
+    glClear(clear_mask);
 }
 
 // Изменить размер кадрового буфера:
@@ -151,18 +175,29 @@ void BufferFBO_resize(BufferFBO *self, int width, int height) {
 void BufferFBO_active(BufferFBO *self, uint32_t attachment) {
     if (!self || !self->_is_begin_) return;
     glDrawBuffer(GL_COLOR_ATTACHMENT0+attachment);
+    fbo_check_complete("active");
 }
 
 // Применить массив привязок для записи данных в них:
 void BufferFBO_apply(BufferFBO *self) {
     if (!self || !self->_is_begin_) return;
-    glDrawBuffers(Array_len(self->attachments), (const uint32_t*)self->attachments->data);
+    size_t len = Array_len(self->attachments);
+    if (len == 0) {
+        glDrawBuffer(GL_NONE); glReadBuffer(GL_NONE);
+        return; // Нечего проверять: FBO ещё не сконфигурирован.
+    }
+    glDrawBuffers(len, (const uint32_t*)self->attachments->data);
+    fbo_check_complete("apply");
 }
 
 // Скопировать цвет и глубину в другой кадровый буфер:
 void BufferFBO_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height) {
     if (!self || !self->_is_begin_) return;
-    fbo_blit(self, dest_fbo_id, x, y, width, height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    GLbitfield mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+    if (fbo_has_stencil(self->id) && fbo_has_stencil(dest_fbo_id)) {
+        mask |= GL_STENCIL_BUFFER_BIT;
+    }
+    fbo_blit(self, dest_fbo_id, x, y, width, height, mask);
 }
 
 // Скопировать только цвет в другой кадровый буфер:
@@ -177,6 +212,14 @@ void BufferFBO_blit_depth(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, i
     fbo_blit(self, dest_fbo_id, x, y, width, height, GL_DEPTH_BUFFER_BIT);
 }
 
+// Скопировать только маску в другой кадровый буфер:
+void BufferFBO_blit_stencil(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height) {
+    if (!self || !self->_is_begin_) return;
+    if (fbo_has_stencil(self->id) && fbo_has_stencil(dest_fbo_id)) {
+        fbo_blit(self, dest_fbo_id, x, y, width, height, GL_STENCIL_BUFFER_BIT);
+    }
+}
+
 // Привязать 2D текстуру:
 void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment, uint32_t tex_id) {
     if (!self || !self->_is_begin_) return;
@@ -185,23 +228,18 @@ void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment,
         // Привязываем глубину:
         case BUFFER_FBO_DEPTH: {
             glEnable(GL_DEPTH_TEST);  // Включаем тест глубины.
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex_id, 0);
+            fbo_check_complete("attach depth");
+        } break;
 
-            // Если текстура глубины не задана, используем рендербуфер:
+        // Привязываем глубину и маску:
+        case BUFFER_FBO_DEPTH_STENCIL: {
             if (tex_id == 0) {
-                glFramebufferRenderbuffer(
-                    GL_FRAMEBUFFER,
-                    GL_DEPTH_STENCIL_ATTACHMENT,
-                    GL_RENDERBUFFER,
-                    self->rbo_id
-                );
-            } else {  // Иначе используем текстуру:
-                glFramebufferTexture2D(
-                    GL_FRAMEBUFFER,
-                    GL_DEPTH_ATTACHMENT,
-                    GL_TEXTURE_2D,
-                    tex_id, 0
-                );
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, self->rbo_id);
+            } else {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, tex_id, 0);
             }
+            fbo_check_complete("attach depth_stencil");
         } break;
 
         // Привязываем цвет:
@@ -214,6 +252,7 @@ void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment,
                 tex_id, 0
             );
             attach_handle_array(self, attachment, tex_id);
+            fbo_check_complete("attach color");
         } break;
     }
 }

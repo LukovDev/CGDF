@@ -14,10 +14,12 @@
 // Объявление структур:
 typedef struct TextureUnits TextureUnits;
 typedef struct TexUnit TexUnit;
+typedef struct Renderer Renderer;
 
 
 // Текстурные юниты:
 struct TextureUnits {
+    Renderer *renderer;
     Array *stack;  // Стек юнитов и привязок.
     size_t total;  // Всего юнитов.
     size_t used;   // Использовано юнитов.
@@ -39,7 +41,7 @@ extern TextureUnits texunits_gl;
 
 
 // Инициализировать текстурные юниты (вызывается автоматически):
-void TextureUnits_init();
+void TextureUnits_init(Renderer *renderer);
 
 // Уничтожить текстурные юниты (вызывается автоматически):
 void TextureUnits_destroy();

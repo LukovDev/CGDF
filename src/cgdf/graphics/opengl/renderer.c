@@ -4,6 +4,7 @@
 
 
 // Подключаем:
+#include <SDL3/SDL.h>
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/logger.h>
@@ -23,9 +24,9 @@
 static const char* DEFAULT_SHADER_VERT = "\
 #version 330 core\n\
 \n\
-uniform mat4 u_model = mat4(1.0);\n\
-uniform mat4 u_view = mat4(1.0);\n\
-uniform mat4 u_proj = mat4(1.0);\n\
+uniform mat4 u_model;\n\
+uniform mat4 u_view;\n\
+uniform mat4 u_proj;\n\
 layout (location = 0) in vec3 a_position;\n\
 layout (location = 1) in vec3 a_normal;\n\
 layout (location = 2) in vec4 a_color;\n\
@@ -157,6 +158,48 @@ static inline Shader* create_shader(Renderer *rnd, const char *vert, const char 
 }
 
 
+// Debug callback:
+static void APIENTRY gl_debug_cb(
+    GLenum source, GLenum type, GLuint id,
+    GLenum severity, GLsizei length,
+    const GLchar* message, const void* userParam
+) {
+    (void)source; (void)type; (void)id; (void)length; (void)userParam;
+    log_msg("[GL][sev=0x%X][id=%u] %s\n", severity, id, message ? message : "(null).");
+}
+
+
+static void gl_setup_debug_output(bool synchronous, bool notification, bool low, bool medium, bool high) {
+    // Core 4.3+ (современнее и стабильнее):
+    if (GLAD_GL_VERSION_4_3) {
+        glEnable(GL_DEBUG_OUTPUT);
+        if (synchronous) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        else glDisable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(gl_debug_cb, NULL);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, NULL, high);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notification);
+        log_msg("[I] OpenGL debug output enabled (CORE 4.3+).\n");
+        return;
+    }
+
+    // Для старых драйверов:
+    if (GLAD_GL_ARB_debug_output) {
+        if (synchronous) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+        else glDisable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+        glDebugMessageCallbackARB((GLDEBUGPROCARB)gl_debug_cb, NULL);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, NULL, high);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notification);
+        log_msg("[I] OpenGL debug output enabled (ARB DEBUG).\n");
+    }
+}
+
+
 // -------- API рендерера: --------
 
 
@@ -212,7 +255,25 @@ void Renderer_destroy(Renderer **rnd) {
 void Renderer_init(Renderer *self) {
     if (!self || self->initialized) return;
 
-    gl_init();  // Инициализируем OpenGL.
+    // Инициализируем OpenGL:
+    if (gl_init()) {
+        log_msg("[E] Error (from Renderer_init): Initializing OpenGL failed: %s\n", SDL_GetError());
+        return;
+    }
+
+    const char* vendor   = (const char*)glGetString(GL_VENDOR);
+    const char* renderer = (const char*)glGetString(GL_RENDERER);
+    const char* version  = (const char*)glGetString(GL_VERSION);
+    const char* glsl     = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+
+    log_msg("[GL] GL_VENDOR: %s\n", vendor ? vendor : "null");
+    log_msg("[GL] GL_RENDERER: %s\n", renderer ? renderer : "null");
+    log_msg("[GL] GL_VERSION: %s\n", version ? version : "null");
+    log_msg("[GL] GLSL: %s\n", glsl ? glsl : "null");
+
+    // Инициализируем логирование OpenGL:
+    gl_setup_debug_output(false, false, true, true, true);
+
     glEnable(GL_BLEND);  // Включаем смешивание цветов.
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Устанавливаем режим смешивания.
     glEnable(GL_PROGRAM_POINT_SIZE);  // Разрешаем установку размера точки через шейдер.
@@ -225,15 +286,8 @@ void Renderer_init(Renderer *self) {
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Просим использовать максимально качественное сглаживание.
     }
 
-    // Делаем нулевой текстурный юнит привязанным к нулевой текстуре:
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
     // Инициализация стеков буферов:
     BufferGC_GL_init();
-
-    // Инициализация текстурных юнитов:
-    TextureUnits_init();
 
     // Компилируем шейдеры:
     if (self->shader) Shader_compile(self->shader);
@@ -261,12 +315,12 @@ void Renderer_init(Renderer *self) {
         false
     );
 
-    // Текстура заглушка:
+    // Текстура-заглушка:
     self->fallback_texture = Texture_create(self);
-    Texture_empty(self->fallback_texture, 1, 1, false, TEX_RGBA8, TEX_DATA_UBYTE);
+    Texture_empty(self->fallback_texture, 1, 1, false, TEX_RGBA8, TEX_DATA_UBYTE);  // 1x1 пустая текстура.
 
-    // На всякий случай, насильно отправляем инструкции видеокарте и ждём ответа:
-    glFinish();
+    // Инициализация текстурных юнитов:
+    TextureUnits_init(self);
 
     // Поднимаем флаг инициализации:
     self->initialized = true;

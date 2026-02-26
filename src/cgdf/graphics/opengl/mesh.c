@@ -55,9 +55,9 @@ Mesh* Mesh_create(
     // Текстурные координаты:
     BufferVAO_attrib_pointer(mesh->vao, 3, 2, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, u));
     // Готово, можем отвязать буферы:
-    BufferEBO_begin(mesh->ebo);
-    BufferVBO_begin(mesh->vbo);
+    BufferVBO_end(mesh->vbo);
     BufferVAO_end(mesh->vao);
+    BufferEBO_end(mesh->ebo);
 
     // Возвращаем сетку:
     return mesh;

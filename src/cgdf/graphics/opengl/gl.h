@@ -7,7 +7,7 @@
 // Подключаем:
 #include "glad/glad.h"
 
-// Инициализация OpenGL:
-static inline bool gl_init(void) {
+// Инициализация OpenGL (true = ошибка, false = успех):
+static inline bool gl_init() {
     return !gladLoadGL();
 }

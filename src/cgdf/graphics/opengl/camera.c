@@ -75,6 +75,7 @@ void Camera2D_update(Camera2D *self) {
     Shader_begin(shader);
     Shader_set_mat4(shader, "u_view", self->view);
     Shader_set_mat4(shader, "u_proj", self->proj);
+    Shader_end(shader);
 }
 
 // Изменить размер камеры:
@@ -222,6 +223,7 @@ void Camera3D_update(Camera3D *self) {
     Shader_begin(shader);
     Shader_set_mat4(shader, "u_view", self->view);
     Shader_set_mat4(shader, "u_proj", self->proj);
+    Shader_end(shader);
 }
 
 // Изменить размер камеры:
