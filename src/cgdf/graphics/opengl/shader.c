@@ -82,7 +82,7 @@ static void _shader_set_error_(Shader *self, const char *fmt, ...) {
     vsnprintf(self->error, needed + 1, fmt, ap);
     va_end(ap);
 
-    log_msg("%s", self->error);
+    log_msg("[E] %s", self->error);
 }
 
 static void _clear_caches_(Shader *shader, bool destroy_arrays) {
@@ -180,7 +180,7 @@ static void _set_sampler_(Shader *self, const char* name, uint32_t tex_id, Textu
         // Выделяем юнит:
         int unit = TexUnits_reserve(self->id, loc);
         if (unit < 0) {
-            log_msg("[!] Error (from _set_sampler_): no free texture units for %s\n", name);
+            log_msg("[E] _set_sampler_: no free texture units for %s\n", name);
             return;
         }
 

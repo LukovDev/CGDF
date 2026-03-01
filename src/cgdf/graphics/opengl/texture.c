@@ -125,7 +125,7 @@ void Texture_set_data(
     // Если текстура еще не создана, то создаем ее:
     if (self->id == 0) glGenTextures(1, &self->id);
     if (self->id == 0) {  // Если она так и не создалась, то выходим:
-        log_msg("[!] Warning (from Texture->set_data): The texture could not be created.\n");
+        log_msg("[E] Texture_set_data: The texture could not be created.\n");
         return;
     }
     Texture_begin(self);

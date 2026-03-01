@@ -56,7 +56,7 @@ void TextureUnits_init(Renderer *renderer) {
 
     // Если значение нулевое, значит что-то пошло не так:
     if (max_units <= 0) {
-        log_msg("[!] Warning (from TextureUnits_init): GL_MAX_TEXTURE_IMAGE_UNITS returned 0. Using fallback = 16.\n");
+        log_msg("[W] TextureUnits_init: GL_MAX_TEXTURE_IMAGE_UNITS returned 0. Using fallback = 16.\n");
         max_units = 16;  // Аварийно используем минимальное количество.
     }
 

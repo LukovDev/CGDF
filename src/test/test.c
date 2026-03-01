@@ -28,17 +28,17 @@ static Light2D *light2d;
 
 
 static void print_before_free() {
-    log_msg("(Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
+    log_msg("[I] (Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
             mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
             mm_get_block_header_size());
 }
 
 
 static void print_after_free() {
-    log_msg("(After free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
+    log_msg("[I] (After free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
             mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
             mm_get_block_header_size());
-    if (mm_get_used_size() > 0) log_msg("Memory leak!\n");
+    if (mm_get_used_size() > 0) log_msg("[W] Memory leak!\n");
 }
 
 
@@ -353,9 +353,11 @@ int main(int argc, char *argv[]) {
     log_msg("[I] CGDF version: %s\n", cgdf_version);
 
     WinConfig *config = Window_create_config(TestScene);
+    config->gl_major = 4;
+    config->gl_minor = 6;
     Window *window = Window_create(config);
-    if (!Window_open(window, 3, 3)) {
-        log_msg("Window creation failed.\n");
+    if (!Window_open(window, true)) {
+        log_msg("[E] Window creation failed.\n");
     }
 
     print_before_free();

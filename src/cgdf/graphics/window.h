@@ -42,6 +42,10 @@ struct WinConfig {
     bool always_top;    // Всегда на переднем плане.
     WindowScene scene;  // Сцена окна.
 
+    // Версия рендерера:
+    int gl_major;
+    int gl_minor;
+
     union {
         int size[2];  // Размер окна.
         struct {
@@ -93,7 +97,7 @@ void Window_destroy(Window **window);
 
 
 // Вызовите для открытия окна:
-bool Window_open(Window *self, int gl_major, int gl_minor);
+bool Window_open(Window *self, bool renderer_debug);
 
 // Вызовите для закрытия окна:
 bool Window_close(Window *self);

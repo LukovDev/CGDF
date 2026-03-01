@@ -16,7 +16,8 @@
 
 
 // Объявление структур:
-typedef struct Renderer Renderer;  // Рендерер.
+typedef struct Renderer Renderer;          // Рендерер.
+typedef struct RendererInfo RendererInfo;  // Информация рендерера.
 
 
 // Тип используемой камеры:
@@ -26,9 +27,20 @@ typedef enum {
 } RendererCameraType;
 
 
+// Информация рендерера:
+struct RendererInfo {
+    char *vendor;    // Производитель видеокарты.
+    char *renderer;  // Название видеокарты.
+    char *version;   // Версия драйвера.
+    char *glsl;      // Версия шейдерного языка.
+    int max_texture_size;  // Максимальный размер текстуры.
+};
+
+
 // Рендерер:
 struct Renderer {
-    bool initialized;  // Флаг инициализации контекста OpenGL.
+    bool initialized;   // Флаг инициализации контекста OpenGL.
+    RendererInfo info;  // Информация рендерера.
     Shader *shader;                // Дефолтная шейдерная программа.
     Shader *shader_spritebatch2d;  // Шейдер пакетной отрисовки спрайтов.
     Shader *shader_light2d;        // Шейдер 2D освещения.
@@ -52,7 +64,7 @@ Renderer* Renderer_create(void);
 void Renderer_destroy(Renderer **rnd);
 
 // Инициализация рендерера:
-void Renderer_init(Renderer *self);
+void Renderer_init(Renderer *self, bool renderer_debug);
 
 // Освобождение буферов:
 void Renderer_buffers_flush(Renderer *self);
@@ -74,3 +86,27 @@ int Renderer_get_width(Renderer *self);
 
 // Получить высоту камеры:
 int Renderer_get_height(Renderer *self);
+
+// Получить производителя видеокарты:
+const char* Renderer_get_vendor(Renderer *self);
+
+// Получить название видеокарты:
+const char* Renderer_get_renderer(Renderer *self);
+
+// Получить версию драйвера:
+const char* Renderer_get_version(Renderer *self);
+
+// Получить версию шейдерного языка:
+const char* Renderer_get_glsl(Renderer *self);
+
+// Получить максимальный размер текстуры:
+int Renderer_get_max_texture_size(Renderer *self);
+
+// Получить сколько всего видеопамяти есть (в килобайтах):
+int Renderer_get_total_memory(Renderer *self);
+
+// Сколько используется видеопамяти (в килобайтах):
+int Renderer_get_used_memory(Renderer *self);
+
+// Сколько свободно видеопамяти (в килобайтах):
+int Renderer_get_free_memory(Renderer *self);

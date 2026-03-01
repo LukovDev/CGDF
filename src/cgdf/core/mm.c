@@ -154,7 +154,7 @@ void mm_free(void *ptr) {
 // Вызовите если получите проблему при выделении памяти:
 void mm_alloc_error() {
     log_msg("----------------\n");
-    log_msg("Memory Allocation Error!\n");
+    log_msg("[E] Memory Allocation Error!\n");
     log_msg("Memory used: %g kb (%zu b).\n", mm_get_used_size_kb(), mm_get_used_size());
     log_msg("Allocated blocks: %zu.\n", mm_get_allocated_blocks());
     log_msg("Absolute memory used: %zu b.\n", mm_get_absolute_used_size());

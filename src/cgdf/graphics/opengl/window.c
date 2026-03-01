@@ -68,6 +68,10 @@ WinConfig* Window_create_config(WindowScene scene) {
     config->max_width = 0;
     config->max_height = 0;
     config->scene = scene;
+
+    // Версия рендерера по умолчанию:
+    config->gl_major = 3;
+    config->gl_minor = 3;
     return config;
 }
 
@@ -358,19 +362,19 @@ static void ClosingStage(Window *self) {
 
 
 // Вызовите для открытия окна:
-bool Window_open(Window *self, int gl_major, int gl_minor) {
+bool Window_open(Window *self, bool renderer_debug) {
     if (!self || !self->config) return false;
     WinConfig *cfg = self->config;
     WinVars *vars = self->vars;
     if (!vars) return false;
 
     // Минимальная версия OpenGL:
-    if (gl_major < 3) gl_major = 3;
-    if (gl_minor < 3) gl_minor = 3;
+    if (cfg->gl_major < 3) cfg->gl_major = 3;
+    if (cfg->gl_minor < 3) cfg->gl_minor = 3;
 
     // Инициализируем SDL:
     if (SDL_Init(SDL_INIT_VIDEO) == false) {
-        log_msg("SDL_Init Error: %s\n", SDL_GetError());
+        log_msg("[E] SDL_Init: %s\n", SDL_GetError());
         vars->create_failed = true;
         return false;
     }
@@ -380,8 +384,8 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
 
     // Настраиваем профиль OpenGL, и устанавливаем атрибуты окна:
     uint32_t profile = SDL_GL_CONTEXT_PROFILE_CORE;  // По умолчанию.
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, cfg->gl_major);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, cfg->gl_minor);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);  // Включаем двойную буферизацию.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);  // Включаем режим отладки.
@@ -390,7 +394,7 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
     // Инициализируем окно:
     SDL_Window *window = SDL_CreateWindow(cfg->title, cfg->width, cfg->height, flags);
     if (!window) {
-        log_msg("SDL_CreateWindow Error: %s\n", SDL_GetError());
+        log_msg("[E] SDL_CreateWindow: %s\n", SDL_GetError());
         vars->create_failed = true;
         SDL_Quit();
         return false;
@@ -399,7 +403,7 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
     // Создаём контекст:
     vars->context = SDL_GL_CreateContext(window);
     if (!vars->context) {
-        log_msg("SDL_GL_CreateContext Error: %s\n", SDL_GetError());
+        log_msg("[E] SDL_GL_CreateContext: %s\n", SDL_GetError());
         vars->create_failed = true;
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -413,7 +417,7 @@ bool Window_open(Window *self, int gl_major, int gl_minor) {
     self->renderer = rnd;  // Указываем рендерер в окне.
 
     // Инициализируем рендерер:
-    Renderer_init(rnd);
+    Renderer_init(rnd, renderer_debug);
 
     // Устанавливаем значения в глобальные переменные:
     vars->window = window;

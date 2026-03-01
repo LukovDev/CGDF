@@ -18,6 +18,14 @@
 #include "gl.h"
 
 
+// Константы для NVIDIA (NVX_gpu_memory_info):
+#define GL_GPU_MEM_INFO_TOTAL_AVAILABLE_NVX 0x9048
+#define GL_GPU_MEM_INFO_CURRENT_AVAILABLE_NVX 0x9049
+
+// Константы для AMD (ATI_meminfo):
+#define GL_VBO_FREE_MEMORY_ATI 0x87FB
+
+
 // -------- Стандартные шейдеры рендеринга: --------
 
 
@@ -152,24 +160,70 @@ void main(void) {\n\
 static inline Shader* create_shader(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
     Shader *shader = Shader_create(rnd, vert, frag, geom);
     if (!shader || Shader_get_error(shader)) {
-        log_msg("[!] Error (from Renderer_create): Creating shader failed: %s\n", shader->error);
+        log_msg("[E] Renderer_create: Creating shader failed: %s\n", shader->error);
     }
     return shader;
 }
 
+static void get_memory_info(int *total, int *used, int *free) {
+    int total_kb = 0;
+    int free_kb = 0;
+
+    // Пытаемся через расширение NVIDIA:
+    if (GLAD_GL_NVX_gpu_memory_info) {
+        glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_NVX, &total_kb);
+        glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_NVX, &free_kb);
+    } 
+    // Если первое не сработало, пробуем AMD:
+    else if (GLAD_GL_ATI_meminfo) {
+        int info[4]; 
+        glGetIntegerv(GL_VBO_FREE_MEMORY_ATI, info);
+        free_kb = info[0];
+        // Примечание: Расширение ATI не даёт узнать сколько всего видеопамяти и не даёт необходимой информации.
+    }
+    if (total) *total = total_kb;
+    if (used) *used = total_kb < free_kb ? 0 : total_kb - free_kb;
+    if (free) *free = free_kb;
+}
+
+static const char* dbg_severity(GLenum s) {
+    switch (s) {
+        case GL_DEBUG_SEVERITY_HIGH:   return "HIGH";
+        case GL_DEBUG_SEVERITY_MEDIUM: return "MEDIUM";
+        case GL_DEBUG_SEVERITY_LOW:    return "LOW";
+        #ifdef GL_DEBUG_SEVERITY_NOTIFICATION
+            case GL_DEBUG_SEVERITY_NOTIFICATION: return "NOTIFY";
+        #endif
+        default: return "UNKNOWN_SEVERITY";
+    }
+}
+
+static const char* dbg_type(GLenum t) {
+    switch (t) {
+        case GL_DEBUG_TYPE_ERROR:               return "ERROR";
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "DEPRECATED";
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  return "UNDEFINED";
+        case GL_DEBUG_TYPE_PORTABILITY:         return "PORTABILITY";
+        case GL_DEBUG_TYPE_PERFORMANCE:         return "PERFORMANCE";
+        case GL_DEBUG_TYPE_MARKER:              return "MARKER";
+        default: return "OTHER";
+    }
+}
 
 // Debug callback:
 static void APIENTRY gl_debug_cb(
-    GLenum source, GLenum type, GLuint id,
-    GLenum severity, GLsizei length,
-    const GLchar* message, const void* userParam
+    GLenum source, GLenum type, GLuint id, GLenum severity,
+    GLsizei length, const GLchar* message, const void* userParam
 ) {
     (void)source; (void)type; (void)id; (void)length; (void)userParam;
-    log_msg("[GL][sev=0x%X][id=%u] %s\n", severity, id, message ? message : "(null).");
+    log_msg("[GL][%s][%s<id=%u>] %s\n", dbg_severity(severity), dbg_type(type), id, message ? message : "(null).");
 }
 
-
 static void gl_setup_debug_output(bool synchronous, bool notification, bool low, bool medium, bool high) {
+    log_msg("[GL] OpenGL debug log level: [NOTIFY=%s, LOW=%s, MEDIUM=%s, HIGH=%s]\n",
+        notification ? "ON" : "OFF", low ? "ON" : "OFF", medium ? "ON" : "OFF", high ? "ON" : "OFF"
+    );
+
     // Core 4.3+ (современнее и стабильнее):
     if (GLAD_GL_VERSION_4_3) {
         glEnable(GL_DEBUG_OUTPUT);
@@ -181,12 +235,11 @@ static void gl_setup_debug_output(bool synchronous, bool notification, bool low,
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notification);
-        log_msg("[I] OpenGL debug output enabled (CORE 4.3+).\n");
-        return;
+        log_msg("[GL] OpenGL debug output enabled (CORE 4.3+).\n");
     }
 
     // Для старых драйверов:
-    if (GLAD_GL_ARB_debug_output) {
+    else if (GLAD_GL_ARB_debug_output) {
         if (synchronous) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         else glDisable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         glDebugMessageCallbackARB((GLDEBUGPROCARB)gl_debug_cb, NULL);
@@ -195,7 +248,7 @@ static void gl_setup_debug_output(bool synchronous, bool notification, bool low,
         glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
         glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
         glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notification);
-        log_msg("[I] OpenGL debug output enabled (ARB DEBUG).\n");
+        log_msg("[GL] OpenGL debug output enabled (ARB DEBUG).\n");
     }
 }
 
@@ -209,6 +262,7 @@ Renderer* Renderer_create() {
 
     // Заполняем поля:
     rnd->initialized = false;
+    rnd->info = (RendererInfo){ NULL };
     rnd->shader = NULL;
     rnd->shader_spritebatch2d = NULL;
     rnd->shader_light2d = NULL;
@@ -252,27 +306,45 @@ void Renderer_destroy(Renderer **rnd) {
 }
 
 // Инициализация рендерера:
-void Renderer_init(Renderer *self) {
+void Renderer_init(Renderer *self, bool renderer_debug) {
     if (!self || self->initialized) return;
 
     // Инициализируем OpenGL:
     if (gl_init()) {
-        log_msg("[E] Error (from Renderer_init): Initializing OpenGL failed: %s\n", SDL_GetError());
+        log_msg("[E] Renderer_init: Initializing OpenGL failed: %s\n", SDL_GetError());
         return;
     }
 
-    const char* vendor   = (const char*)glGetString(GL_VENDOR);
-    const char* renderer = (const char*)glGetString(GL_RENDERER);
-    const char* version  = (const char*)glGetString(GL_VERSION);
-    const char* glsl     = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
-
-    log_msg("[GL] GL_VENDOR: %s\n", vendor ? vendor : "null");
-    log_msg("[GL] GL_RENDERER: %s\n", renderer ? renderer : "null");
-    log_msg("[GL] GL_VERSION: %s\n", version ? version : "null");
-    log_msg("[GL] GLSL: %s\n", glsl ? glsl : "null");
+    // Получаем базовые данные рендеринга:
+    int max_texture_size;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+    self->info = (RendererInfo){
+        .vendor   = (char*)glGetString(GL_VENDOR),
+        .renderer = (char*)glGetString(GL_RENDERER),
+        .version  = (char*)glGetString(GL_VERSION),
+        .glsl     = (char*)glGetString(GL_SHADING_LANGUAGE_VERSION),
+        .max_texture_size = max_texture_size
+    };
 
     // Инициализируем логирование OpenGL:
-    gl_setup_debug_output(false, false, true, true, true);
+    if (renderer_debug) {
+        gl_setup_debug_output(false, false, false, true, true);
+
+        // Логируем как мы получаем данные о памяти:
+        if (GLAD_GL_NVX_gpu_memory_info) log_msg("[GL] Used memory info: GL_NVX_gpu_memory_info\n");
+        else if (GLAD_GL_ATI_meminfo)    log_msg("[GL] Used memory info: GL_ATI_meminfo\n");
+        else log_msg("[GL] Memory info not supported.\n");
+
+        // Логируем служебную информацию:
+        log_msg("[GL] VENDOR: %s\n", Renderer_get_vendor(self));
+        log_msg("[GL] RENDERER: %s\n", Renderer_get_renderer(self));
+        log_msg("[GL] VERSION: %s\n", Renderer_get_version(self));
+        log_msg("[GL] GLSL: %s\n", Renderer_get_glsl(self));
+        log_msg("[GL] MAX TEXTURE SIZE: w%d x h%d px.\n", max_texture_size, max_texture_size);
+        log_msg("[GL] TOTAL MEMORY: %d MB\n", Renderer_get_total_memory(self)/1024);
+        log_msg("[GL] USED MEMORY: %d MB\n", Renderer_get_used_memory(self)/1024);
+        log_msg("[GL] FREE MEMORY: %d MB\n", Renderer_get_free_memory(self)/1024);
+    }
 
     glEnable(GL_BLEND);  // Включаем смешивание цветов.
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Устанавливаем режим смешивания.
@@ -324,6 +396,7 @@ void Renderer_init(Renderer *self) {
 
     // Поднимаем флаг инициализации:
     self->initialized = true;
+    log_msg("[I] OpenGL initialized.\n");
 }
 
 // Освобождение буферов:
@@ -392,4 +465,58 @@ int Renderer_get_height(Renderer *self) {
         return ((Camera3D*)self->camera)->height;
     }
     return 0;
+}
+
+// Получить производителя видеокарты:
+const char* Renderer_get_vendor(Renderer *self) {
+    if (!self) return "null";
+    return self->info.vendor;
+}
+
+// Получить название видеокарты:
+const char* Renderer_get_renderer(Renderer *self) {
+    if (!self) return "null";
+    return self->info.renderer;
+}
+
+// Получить версию драйвера:
+const char* Renderer_get_version(Renderer *self) {
+    if (!self) return "null";
+    return self->info.version;
+}
+
+// Получить версию шейдерного языка:
+const char* Renderer_get_glsl(Renderer *self) {
+    if (!self) return "null";
+    return self->info.glsl;
+}
+
+// Получить максимальный размер текстуры:
+int Renderer_get_max_texture_size(Renderer *self) {
+    if (!self) return 0;
+    return self->info.max_texture_size;
+}
+
+// Получить сколько всего видеопамяти есть (в килобайтах):
+int Renderer_get_total_memory(Renderer *self) {
+    if (!self) return 0;
+    int total;
+    get_memory_info(&total, NULL, NULL);
+    return total;
+}
+
+// Сколько используется видеопамяти (в килобайтах):
+int Renderer_get_used_memory(Renderer *self) {
+    if (!self) return 0;
+    int used;
+    get_memory_info(NULL, &used, NULL);
+    return used;
+}
+
+// Сколько свободно видеопамяти (в килобайтах):
+int Renderer_get_free_memory(Renderer *self) {
+    if (!self) return 0;
+    int free;
+    get_memory_info(NULL, NULL, &free);
+    return free;
 }

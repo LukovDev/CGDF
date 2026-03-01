@@ -51,7 +51,7 @@ Pixmap* Pixmap_load(const char *filepath, int format) {
     pixmap->data = stbi_load(filepath, &pixmap->width, &pixmap->height, NULL, format);
     pixmap->channels = format;
     if (pixmap->data == NULL) {
-        log_msg("[!] Error (from Pixmap_load): file \"%s\" not found.\n", filepath);
+        log_msg("[E] Pixmap_load: file \"%s\" not found.\n", filepath);
         mm_free(pixmap);
         return Pixmap_create_default();
     }

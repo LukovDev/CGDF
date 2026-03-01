@@ -117,7 +117,7 @@ static bool fbo_has_stencil(uint32_t fbo_id) {
 static void fbo_check_complete(const char *tag) {
     GLenum st = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (st != GL_FRAMEBUFFER_COMPLETE) {
-        log_msg("[E] FBO incomplete (%s): 0x%X\n", tag, st);
+        log_msg("[W] FBO incomplete (%s): 0x%X\n", tag, st);
     }
 }
 
@@ -229,7 +229,6 @@ void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment,
         case BUFFER_FBO_DEPTH: {
             glEnable(GL_DEPTH_TEST);  // Включаем тест глубины.
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex_id, 0);
-            fbo_check_complete("attach depth");
         } break;
 
         // Привязываем глубину и маску:
@@ -239,7 +238,6 @@ void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment,
             } else {
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, tex_id, 0);
             }
-            fbo_check_complete("attach depth_stencil");
         } break;
 
         // Привязываем цвет:
@@ -252,7 +250,6 @@ void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment,
                 tex_id, 0
             );
             attach_handle_array(self, attachment, tex_id);
-            fbo_check_complete("attach color");
         } break;
     }
 }
