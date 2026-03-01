@@ -15,7 +15,7 @@
 // Создать орбитальный 3D контроллер:
 CameraOrbitController3D* CameraOrbitController3D_create(
     Window *window, Camera3D *camera, Vec3d target_pos, float mouse_sensitivity,
-    float distance, float friction, bool up_is_forward, bool up_is_fixed
+    float distance, float friction, bool up_is_forward
 ) {
     if (!window || !camera) return NULL;
     CameraOrbitController3D *ctrl = (CameraOrbitController3D*)mm_alloc(sizeof(CameraOrbitController3D));
@@ -27,7 +27,6 @@ CameraOrbitController3D* CameraOrbitController3D_create(
     ctrl->distance = distance;
     ctrl->friction = friction;
     ctrl->up_is_forward = up_is_forward;
-    ctrl->up_is_fixed = up_is_fixed;
 
     ctrl->rotation = (Vec3d){camera->rotation.x, camera->rotation.y, camera->rotation.z};
     ctrl->target_pos = target_pos;
@@ -94,19 +93,12 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
             float cam_dy = sinf(roll) * (float)mouse_rel.x + cosf(roll) * (float)mouse_rel.y;
 
             // По горизонтали:
-            if (self->rotation.x < -89.9f || self->rotation.x > +89.9f) {
+            float rot_x = wrap_float(self->rotation.x, -180.0f, 180.0f);
+            if (rot_x < -89.9f || rot_x > 89.9f) {
                 self->rotation.y -= cam_dx * self->mouse_sensitivity;  // Противоположный диапазон.
             } else self->rotation.y += cam_dx * self->mouse_sensitivity;  // Обычный диапазон.
             self->rotation.x += cam_dy * self->mouse_sensitivity;  // По вертикали.
             _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
-
-            // Ограничиваем вращение камеры до -180/180 градусов:
-            if (self->rotation.x > +180.0f) { self->rotation.x = -180.0f; self->target_rot.x = -180.0f; }
-            if (self->rotation.x < -180.0f) { self->rotation.x = +180.0f; self->target_rot.x = +180.0f; }
-            if (self->rotation.y > +180.0f) { self->rotation.y = -180.0f; self->target_rot.y = -180.0f; }
-            if (self->rotation.y < -180.0f) { self->rotation.y = +180.0f; self->target_rot.y = +180.0f; }
-            if (self->rotation.z > +180.0f) { self->rotation.z = -180.0f; self->target_rot.z = -180.0f; }
-            if (self->rotation.z < -180.0f) { self->rotation.z = +180.0f; self->target_rot.z = +180.0f; }
 
             // Ограничиваем вращение камеры вверх-вниз до -89/89 градусов:
             // (Если установить 90 градусов, могут быть проблемы в рассчетах вектора направления).
@@ -162,6 +154,11 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     camera->position.y = self->target_pos.y + forward[1] * self->distance;
     camera->position.z = self->target_pos.z + forward[2] * self->distance;
     camera->rotation = self->target_rot;
+
+    // Ограничиваем вращение камеры:
+    camera->rotation.x = wrap_float(camera->rotation.x, -180.0f, 180.0f);
+    camera->rotation.y = wrap_float(camera->rotation.y, -180.0f, 180.0f);
+    camera->rotation.z = wrap_float(camera->rotation.z, -180.0f, 180.0f);
 
     // Проверяем перемещается камера или нет:
     vec3 diff;

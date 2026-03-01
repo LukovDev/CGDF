@@ -61,7 +61,6 @@ struct CameraOrbitController3D {
     float distance;
     float friction;
     bool up_is_forward;
-    bool up_is_fixed;
 
     Vec3d rotation;
     Vec3d target_pos;
@@ -126,7 +125,7 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
 // Создать орбитальный 3D контроллер:
 CameraOrbitController3D* CameraOrbitController3D_create(
     Window *window, Camera3D *camera, Vec3d target_pos, float mouse_sensitivity,
-    float distance, float friction, bool up_is_forward, bool up_is_fixed
+    float distance, float friction, bool up_is_forward
 );
 
 // Уничтожить орбитальный 3D контроллер:

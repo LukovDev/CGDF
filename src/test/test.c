@@ -12,10 +12,9 @@
 
 static Texture *tex1;
 static Texture *tex2;
-static Texture *light;
-static Texture *flash_light;
 static CameraController2D *ctrl;
 static CameraController3D *ctrl3d;
+static CameraOrbitController3D *ctrl_orbit;
 static Camera2D *camera;
 static Camera3D *camera3d;
 static Sprite2D *sprite;
@@ -24,7 +23,6 @@ static SimpleDraw *draw;
 static Texture *anim[18];
 static Texture *animation;
 static FrameAnimator2D *anim2d;
-static Light2D *light2d;
 
 
 static void print_before_free() {
@@ -72,6 +70,7 @@ void start(Window *self) {
     Camera3D_set_cull_faces(camera3d, false);
     Camera3D_set_depth_test(camera3d, false);
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
+    ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.95f, true);
 
     printf("Loading data...\n");
     for (int i=0; i < 18; i++) {
@@ -87,9 +86,8 @@ void start(Window *self) {
     anim2d = FrameAnimator2D_create(18, 1.0f/18.0f);
 
     tex1 = Texture_create(self->renderer);
-    // Texture_load(tex1, "data/logo/CGDF2x2.png", true);
-    Texture_load(tex1, "data/textures/snow.png", true);
-    Texture_set_pixelized(tex1);
+    Texture_load(tex1, "data/logo/CGDF2x2.png", true);
+    // Texture_set_pixelized(tex1);
 
     tex2 = Texture_create(self->renderer);
     Texture_load(tex2, "data/textures/gradient_uv_checker.png", true);
@@ -99,14 +97,6 @@ void start(Window *self) {
     batch = SpriteBatch2D_create(self->renderer);
 
     draw = SimpleDraw_create(self->renderer);
-
-    light2d = Light2D_create(self->renderer, (Vec3f){0.0, 0.0, 0.0}, 1.0f);
-
-    light = Texture_create(self->renderer);
-    Texture_load(light, "data/textures/light.png", true);
-
-    flash_light = Texture_create(self->renderer);
-    Texture_load(flash_light, "data/textures/flash-light.png", true);
     printf("data loaded\n");
 }
 
@@ -116,10 +106,9 @@ void destroy(Window *self) {
     printf("Destroy called.\n");
     Camera2D_destroy(&camera);
     CameraController2D_destroy(&ctrl);
+    CameraOrbitController3D_destroy(&ctrl_orbit);
     Texture_destroy(&tex1);
     Texture_destroy(&tex2);
-    Texture_destroy(&light);
-    Texture_destroy(&flash_light);
     Sprite2D_destroy(&sprite);
     SpriteBatch2D_destroy(&batch);
     SimpleDraw_destroy(&draw);
@@ -131,8 +120,6 @@ void destroy(Window *self) {
         Texture_destroy(&anim[i]);
     }
     Texture_destroy(&animation);
-
-    Light2D_destroy(&light2d);
 }
 
 
@@ -160,15 +147,12 @@ void update(Window *self, float dtime) {
         camera3d->position = ctrl3d->target_pos;
     } else {
         CameraController3D_update(ctrl3d, dtime, false);
+        // CameraOrbitController3D_update(ctrl_orbit, dtime, false);
         Camera3D_update(camera3d);
         ctrl->target_pos.x = ctrl3d->target_pos.x;
         ctrl->target_pos.y = ctrl3d->target_pos.y;
         camera->position = ctrl->target_pos;
     }
-    float itensity = sinf(Window_get_time(self)/2.0f) * 0.5f + 0.5f;
-    float ambient = 1.0 - itensity;
-    Light2D_set_intensity(light2d, itensity);
-    Light2D_set_ambient(light2d, (Vec3f){ambient, ambient, ambient});
 }
 
 
@@ -176,7 +160,6 @@ void update(Window *self, float dtime) {
 void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
-    Light2D_scene_begin(light2d);
     Vec2i mouse_pos = Input_get_mouse_pos(self);
     Vec2d globpos = {0};
 
@@ -211,40 +194,7 @@ void render(Window *self, float dtime) {
     }
 
     FrameAnimator2D_update(anim2d, dtime);
-    Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
-
-    Light2D_scene_end(light2d);
-
-    Light2D_light_begin(light2d);
-    for (int i=0; i < 10; i++) {
-        float t = (float)i / 10.0f; // 0..1 по всем 10 спрайтам
-
-        float r, g, b;
-        if (t < 0.5f) {
-            float k = t * 2.0f;    // 0..1
-            r = 1.0f - k;          // red -> 0
-            g = k;                 // 0 -> green
-            b = 0.0f;
-        } else {
-            float k = (t - 0.5f) * 2.0f; // 0..1
-            r = 0.0f;
-            g = 1.0f - k;                // green -> 0
-            b = k;                       // 0 -> blue
-        }
-
-        Vec4f color = (Vec4f){ r, g, b, 2.0f };
-        Vec2f pos = (Vec2f){ 
-            sinf(i*2.0f*GLM_PI/10.0f) * 10.0f - 5,
-            cosf(i*2.0f*GLM_PI/10.0f) * 10.0f - 5
-        };
-        Sprite2D_render(self->renderer, light, pos.x, pos.y, 10.0f, 10.0f, t*360.0f, color, false);
-    }
-
-    sprite->render(sprite);
-    float intensity = 2.0f;
-    Sprite2D_render(self->renderer, light, globpos.x-5, globpos.y-5, 10.0f, 10.0f, 0.0f, (Vec4f){1, 1, 1, intensity}, false);
-    // Sprite2D_render(self->renderer, light, -10, -5, 10.0f, 10.0f, 0.0f, (Vec4f){0, 0, 1, intensity}, false);
-    // Sprite2D_render(self->renderer, light, -5, -5, 10.0f, 10.0f, 0.0f, (Vec4f){1, 0, 0, intensity}, false);
+    // Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
     // Нарисовать точку:
     SimpleDraw_point(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 2, 0}, 16.0f);
@@ -300,14 +250,7 @@ void render(Window *self, float dtime) {
     // Нарисовать звезду с заливкой:
     SimpleDraw_star_fill(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){-4, 0, 0}, 2.0f, 1.0f, 5);
 
-    Light2D_light_end(light2d);
-
-    Light2D_scene_begin(light2d);
     Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], -1, 10, 2.0f, 2.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
-    Light2D_scene_end(light2d);
-
-    // Рисуем освещение:
-    Light2D_render(light2d);
 
     Window_display(self);
 }
@@ -318,7 +261,6 @@ void resize(Window *self, int width, int height) {
     printf("Resize called.\n");
     Camera2D_resize(camera, width, height);
     Camera3D_resize(camera3d, width, height, false);
-    Light2D_resize(light2d, width, height);
 }
 
 

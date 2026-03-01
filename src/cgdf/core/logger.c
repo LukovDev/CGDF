@@ -8,7 +8,7 @@
 // [W] - Warning.
 // [E] - Error.
 // [GL] - OpenGL.
-// [Тег от] - Message.
+// [Тег отсутствует] - Message.
 //
 
 

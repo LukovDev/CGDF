@@ -350,6 +350,7 @@ void Renderer_init(Renderer *self, bool renderer_debug) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Устанавливаем режим смешивания.
     glEnable(GL_PROGRAM_POINT_SIZE);  // Разрешаем установку размера точки через шейдер.
 
+    /* ВЫРЕЗАНО:
     // Включаем сглаживание линий только если драйвер сообщает поддержку:
     float smooth_line_range[2] = {0.0f, 0.0f};
     glGetFloatv(GL_SMOOTH_LINE_WIDTH_RANGE, smooth_line_range);
@@ -357,6 +358,7 @@ void Renderer_init(Renderer *self, bool renderer_debug) {
         glEnable(GL_LINE_SMOOTH);
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Просим использовать максимально качественное сглаживание.
     }
+    */
 
     // Инициализация стеков буферов:
     BufferGC_GL_init();
