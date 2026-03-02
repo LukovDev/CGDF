@@ -119,8 +119,17 @@ void Texture_set_data(
 ) {
     if (!self) return;
 
-    self->width = width <= 0 ? 1 : width;
-    self->height = height <= 0 ? 1 : height;
+    // Ограничиваем размер текстуры до максимального возможного и минимального:
+    int max_tex_size = Renderer_get_max_texture_size(self->renderer);
+    if (width > max_tex_size || height > max_tex_size) {
+        log_msg(
+            "[W] Texture_set_data: The texture (id=%d) is too large. "
+            "Requested: [w%d x h%d]. Max texture size: [w%d x h%d].\n",
+            self->id, width, height, max_tex_size, max_tex_size
+        );
+    }
+    self->width  = width  <= 0 ? 1 : (width  > max_tex_size ? max_tex_size : width);
+    self->height = height <= 0 ? 1 : (height > max_tex_size ? max_tex_size : height);
 
     // Если текстура еще не создана, то создаем ее:
     if (self->id == 0) glGenTextures(1, &self->id);

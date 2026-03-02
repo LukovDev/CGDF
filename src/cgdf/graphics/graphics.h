@@ -10,13 +10,13 @@
 extern "C" {
 #endif
 
-
 // Подключаем:
 #include "controllers/controllers.h"
 #include "animator.h"
 #include "batch.h"
 #include "camera.h"
 #include "draw.h"
+#include "font.h"
 #include "input.h"
 #include "light.h"
 #include "mesh.h"
@@ -28,7 +28,6 @@ extern "C" {
 #include "utils.h"
 #include "vertex.h"
 #include "window.h"
-
 
 #ifdef __cplusplus
 }

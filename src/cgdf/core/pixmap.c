@@ -7,8 +7,7 @@
 #include "std.h"
 #include "mm.h"
 #include "logger.h"
-#include "libs/stb_image.h"
-#include "libs/stb_image_write.h"
+#include "libs.h"
 #include "pixmap.h"
 
 

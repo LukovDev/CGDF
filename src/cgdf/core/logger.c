@@ -1,7 +1,7 @@
 //
 // logger.c - Реализация кода обработки ошибок вылета программы и логирования.
 //
-// define CGDF_NO_LOG_FILE - Чтобы отключить запись в лог-файл.
+// define CGDF_DISABLE_LOG_FILE - Чтобы отключить запись в лог-файл.
 //
 // Теги логирования:
 // [I] - Info.
@@ -64,7 +64,7 @@ static inline void crash_handler(int sig) {
 // Инициализация логгера:
 void logger_init() {
     // Инициализируем лог-файл:
-    #ifndef CGDF_NO_LOG_FILE
+    #ifndef CGDF_DISABLE_LOG_FILE
     TimeCurrent tc = Time_get_current(true);
     int y = tc.year, m = tc.month, d = tc.day, h = tc.hour, mi = tc.min, s = tc.sec, ms = tc.ms;
     FILE *f = fopen(LOG_FILE_PATH, "w");
@@ -102,7 +102,7 @@ void log_msg(const char *fmt, ...) {
     vprintf(fmt, args);
 
     // В файл:
-    #ifndef CGDF_NO_LOG_FILE
+    #ifndef CGDF_DISABLE_LOG_FILE
     FILE *f = fopen(LOG_FILE_PATH, "a");
     if (f) {
         fprintf(f, "[%02d:%02d:%02d.%03d]: ", h, mi, s, ms);

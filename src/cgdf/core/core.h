@@ -14,7 +14,7 @@ extern "C" {
 
 // Подключаем:
 #include "std.h"
-#include "libs/tinycthread.h"
+#include "libs.h"
 #include "array.h"
 #include "constants.h"
 #include "logger.h"
