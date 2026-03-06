@@ -91,14 +91,14 @@ static const char* SPRITEBATCH_SHADER_VERT = "\
 \n\
 uniform mat4 u_view;\n\
 uniform mat4 u_proj;\n\
-layout (location = 0) in vec2 a_position;\n\
+layout (location = 0) in vec3 a_position;\n\
 layout (location = 1) in vec2 a_texcoord;\n\
 layout (location = 2) in vec4 a_color;\n\
 out vec2 v_texcoord;\n\
 out vec4 v_color;\n\
 \n\
 void main() {\n\
-    gl_Position = u_proj * u_view * vec4(a_position, 0.0f, 1.0f);\n\
+    gl_Position = u_proj * u_view * vec4(a_position, 1.0f);\n\
     v_texcoord = a_texcoord;\n\
     v_color = a_color;\n\
 }";
@@ -264,7 +264,7 @@ Renderer* Renderer_create() {
     rnd->initialized = false;
     rnd->info = (RendererInfo){ NULL };
     rnd->shader = NULL;
-    rnd->shader_spritebatch2d = NULL;
+    rnd->shader_spritebatch = NULL;
     rnd->shader_light2d = NULL;
     rnd->camera = NULL;
     rnd->camera_type = RENDERER_CAMERA_2D;
@@ -273,7 +273,7 @@ Renderer* Renderer_create() {
 
     // Создаём шейдеры:
     rnd->shader = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
-    rnd->shader_spritebatch2d = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
+    rnd->shader_spritebatch = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
     rnd->shader_light2d = create_shader(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
     return rnd;
 }
@@ -284,7 +284,7 @@ void Renderer_destroy(Renderer **rnd) {
 
     // Освобождаем память шейдеров:
     if ((*rnd)->shader) { Shader_destroy(&(*rnd)->shader); }
-    if ((*rnd)->shader_spritebatch2d) { Shader_destroy(&(*rnd)->shader_spritebatch2d); }
+    if ((*rnd)->shader_spritebatch) { Shader_destroy(&(*rnd)->shader_spritebatch); }
     if ((*rnd)->shader_light2d) { Shader_destroy(&(*rnd)->shader_light2d); }
 
     // Удаляем сетку спрайта:
@@ -365,7 +365,7 @@ void Renderer_init(Renderer *self, bool renderer_debug) {
 
     // Компилируем шейдеры:
     if (self->shader) Shader_compile(self->shader);
-    if (self->shader_spritebatch2d) Shader_compile(self->shader_spritebatch2d);
+    if (self->shader_spritebatch) Shader_compile(self->shader_spritebatch);
     if (self->shader_light2d) Shader_compile(self->shader_light2d);
 
     // Квадрат с текстурой для спрайта:
@@ -415,7 +415,7 @@ void Renderer_clear_caches(Renderer *self) {
 
     // Освобождаем кэши в шейдерах:
     Shader_clear_caches(self->shader);
-    Shader_clear_caches(self->shader_spritebatch2d);
+    Shader_clear_caches(self->shader_spritebatch);
     Shader_clear_caches(self->shader_light2d);
 }
 

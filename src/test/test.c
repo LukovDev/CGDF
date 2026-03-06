@@ -18,11 +18,13 @@ static CameraOrbitController3D *ctrl_orbit;
 static Camera2D *camera;
 static Camera3D *camera3d;
 static Sprite2D *sprite;
-static SpriteBatch2D *batch;
+static Sprite3D *sprite3d;
+static SpriteBatch *batch;
 static SimpleDraw *draw;
 static Texture *anim[18];
 static Texture *animation;
 static FrameAnimator2D *anim2d;
+static Shader *grid;
 
 
 static void print_before_free() {
@@ -93,10 +95,18 @@ void start(Window *self) {
     Texture_load(tex2, "data/textures/gradient_uv_checker.png", true);
 
     sprite = Sprite2D_create(self->renderer, tex2, -10.0f, -10.0f, 10.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+    sprite3d = Sprite3D_create(self->renderer, tex2, (Vec3f){0.0f, 0.0f, 0.0f}, (Vec3f){0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, (Vec4f){1, 1, 1, 1}, false);
 
-    batch = SpriteBatch2D_create(self->renderer);
+    batch = SpriteBatch_create(self->renderer);
 
     draw = SimpleDraw_create(self->renderer);
+
+    char *grid_vert = Files_load("data/shaders/grid.vert", "r");
+    char *grid_frag = Files_load("data/shaders/grid.frag", "r");
+    grid = Shader_create(self->renderer, grid_vert, grid_frag, NULL);
+    Shader_compile(grid);
+    mm_free(grid_vert);
+    mm_free(grid_frag);
     printf("data loaded\n");
 }
 
@@ -110,8 +120,10 @@ void destroy(Window *self) {
     Texture_destroy(&tex1);
     Texture_destroy(&tex2);
     Sprite2D_destroy(&sprite);
-    SpriteBatch2D_destroy(&batch);
+    Sprite3D_destroy(&sprite3d);
+    SpriteBatch_destroy(&batch);
     SimpleDraw_destroy(&draw);
+    Shader_destroy(&grid);
 
     Camera3D_destroy(&camera3d);
     CameraController3D_destroy(&ctrl3d);
@@ -146,6 +158,7 @@ void update(Window *self, float dtime) {
         ctrl3d->target_pos.y = ctrl->target_pos.y;
         camera3d->position = ctrl3d->target_pos;
     } else {
+        Camera3D_set_depth_test(camera3d, true);
         CameraController3D_update(ctrl3d, dtime, false);
         // CameraOrbitController3D_update(ctrl_orbit, dtime, false);
         Camera3D_update(camera3d);
@@ -160,6 +173,7 @@ void update(Window *self, float dtime) {
 void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
+    double time = Window_get_time(self);
     Vec2i mouse_pos = Input_get_mouse_pos(self);
     Vec2d globpos = {0};
 
@@ -174,27 +188,61 @@ void render(Window *self, float dtime) {
         globpos.y = hit_pos.y;
     }
 
+    // Camera3D_set_depth_test(camera3d, false);
     static bool enable = true;
     if (Input_get_key_down(self)[K_1]) enable = !enable;
     if (enable) {
-        SpriteBatch2D_begin(batch);
-        int size = 32;
+        SpriteBatch_begin(batch);
+        int size = 64;
         for (int y=-size/2; y < size/2; y++) {
             for (int x=-size/2; x < size/2; x++) {
-                // float delta = FrameAnimator2D_get_frame(anim2d) / 18.0f;
-                // SpriteBatch2D_set_texcoord(batch, (Vec4f){
-                //     delta, 0.0f,
-                //     delta+1.0f/18.0f, 1.0f
-                // });
-                SpriteBatch2D_draw(batch, tex1, x, y, 1.0f, 1.0f, 0.0f);
+                float delta = FrameAnimator2D_get_frame(anim2d) / 18.0f;
+                SpriteBatch_set_texcoord(batch, (Vec4f){
+                    delta, 0.0f,
+                    delta+1.0f/18.0f, 1.0f
+                });
+                Vec3f spos = (Vec3f){x, sinf(x+time)+cosf(y+time), y};
+                Vec3f to_cam = (Vec3f){
+                    camera3d->position.x - spos.x,
+                    camera3d->position.y - spos.y,
+                    camera3d->position.z - spos.z
+                };
+                float len_xz = sqrtf(to_cam.x * to_cam.x + to_cam.z * to_cam.z);
+                // rotation.x = pitch, rotation.y = yaw, rotation.z = roll
+                Vec3f rot = (Vec3f){
+                    -atan2f(to_cam.y, len_xz) * (180.0f / GLM_PIf), // X
+                    atan2f(to_cam.x, to_cam.z) * (180.0f / GLM_PIf), // Y
+                };
+                // SpriteBatch_set_color(batch, (Vec4f){fabs(sinf(time+spos.x)), fabs((sinf(time+spos.y)+cosf(time+spos.y))/2), fabs(cosf(time+spos.z)), 1});
+                SpriteBatch_draw3d(batch, animation, spos, rot, 1.0f, 1.0f);
+                // SpriteBatch_draw(batch, tex1, x, y, 1.0f, 1.0f, 0.0f);
             }
         }
-        SpriteBatch2D_reset_texcoord(batch);
-        SpriteBatch2D_end(batch);
+        SpriteBatch_reset_texcoord(batch);
+        SpriteBatch_set_color(batch, (Vec4f){1, 1, 1, 1});
+        SpriteBatch_end(batch);
     }
+    // Camera3D_set_depth_test(camera3d, true);
 
     FrameAnimator2D_update(anim2d, dtime);
     // Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], globpos.x-0.5f, globpos.y-0.5f, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    sprite3d->position.x = -50.0f;
+    // sprite3d->position.y = cosf(time)*3.0f;
+    sprite3d->position.z = 10;
+    Vec3f to_cam = (Vec3f){
+        camera3d->position.x - sprite3d->position.x,
+        camera3d->position.y - sprite3d->position.y,
+        camera3d->position.z - sprite3d->position.z
+    };
+    float len_xz = sqrtf(to_cam.x * to_cam.x + to_cam.z * to_cam.z);
+    // rotation.x = pitch, rotation.y = yaw, rotation.z = roll
+    Vec3f rot = (Vec3f){
+        -atan2f(to_cam.y, len_xz) * (180.0f / GLM_PIf), // X
+        atan2f(to_cam.x, to_cam.z) * (180.0f / GLM_PIf), // Y
+    };
+    sprite3d->rotation = rot;
+    sprite3d->render(sprite3d);
 
     // Нарисовать точку:
     SimpleDraw_point(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 2, 0}, 16.0f);
@@ -251,6 +299,26 @@ void render(Window *self, float dtime) {
     SimpleDraw_star_fill(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){-4, 0, 0}, 2.0f, 1.0f, 5);
 
     Sprite2D_render(self->renderer, anim[FrameAnimator2D_get_frame(anim2d)], -1, 10, 2.0f, 2.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    if (true) {
+        Shader_begin(grid);
+        mat4 gridmodel;
+        glm_mat4_identity(gridmodel);
+        float grid_size = 100.0f;
+        glm_scale(gridmodel, (vec3){grid_size, grid_size, grid_size});
+        // glm_translate(gridmodel, (vec3){camera3d->position.x, camera3d->position.y, camera3d->position.z});
+        Shader_set_mat4(grid, "u_model", gridmodel);
+        Shader_set_mat4(grid, "u_view", view);
+        Shader_set_mat4(grid, "u_proj", proj);
+        Shader_set_float(grid, "u_grid_size", 1.0f);
+        Shader_set_float(grid, "u_line_width", 1.0f);
+        Shader_set_float(grid, "u_fade_radius", grid_size*0.25f);
+        Shader_set_float(grid, "u_fade_softness", grid_size*0.75f);
+        Shader_set_vec3(grid, "u_grid_color", (Vec3f){0.5f, 0.5f, 0.5f});
+        Shader_set_vec3(grid, "u_camera_pos", (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z});
+        Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
+        Shader_end(grid);
+    }
 
     Window_display(self);
 }

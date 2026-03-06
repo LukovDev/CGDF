@@ -15,7 +15,7 @@
 
 
 // Пакетная отрисовка спрайтов:
-struct SpriteBatch2D {
+struct SpriteBatch {
     Renderer     *renderer;       // Рендерер.
     BufferVAO    *vao;            // Буфер атрибутов.
     BufferVBO    *vbo;            // Буфер вершин.
@@ -58,7 +58,7 @@ static uint32_t* _create_indices_buffer_(uint32_t size, uint32_t batch_size) {
 
 
 // Отрисовать буфер спрайтов:
-static void _batch_flush_(SpriteBatch2D *self) {
+static void _batch_flush_(SpriteBatch *self) {
     if (!self) return;
     if (!self->_is_begin_ || self->vertex_count == 0) {
         // Экономим вызовы отрисовки (ничего не рисуем) если в буфере нет вершин.
@@ -67,8 +67,8 @@ static void _batch_flush_(SpriteBatch2D *self) {
         return;
     }
 
-    // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch2D_begin):
-    Shader *shader = self->renderer->shader_spritebatch2d;
+    // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch_begin):
+    Shader *shader = self->renderer->shader_spritebatch;
     Shader_set_bool(shader, "u_use_texture", self->current_tex_id != 0 ? true : false);
     Shader_set_tex2d(shader, "u_texture", self->current_tex_id);
 
@@ -88,9 +88,9 @@ static void _batch_flush_(SpriteBatch2D *self) {
 
 
 // Создать пакетную отрисовку спрайтов:
-SpriteBatch2D* SpriteBatch2D_create(Renderer *renderer) {
+SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     if (!renderer) return NULL;
-    SpriteBatch2D *batch = (SpriteBatch2D*)mm_alloc(sizeof(SpriteBatch2D));
+    SpriteBatch *batch = (SpriteBatch*)mm_alloc(sizeof(SpriteBatch));
 
     // Размер одной вершины в байтах (8 параметров * 4 байта по каждому = 32 байт):
     size_t stride = sizeof(SpriteVertex);
@@ -128,7 +128,7 @@ SpriteBatch2D* SpriteBatch2D_create(Renderer *renderer) {
     BufferVAO_begin(batch->vao);
     BufferEBO_begin(batch->ebo);  // Подключаем к VAO наш буфер индексов.
     BufferVBO_begin(batch->vbo);
-    BufferVAO_attrib_pointer(batch->vao, 0, 2, GL_FLOAT, false, stride, offsetof(SpriteVertex, x));  // Позиция.
+    BufferVAO_attrib_pointer(batch->vao, 0, 3, GL_FLOAT, false, stride, offsetof(SpriteVertex, x));  // Позиция.
     BufferVAO_attrib_pointer(batch->vao, 1, 2, GL_FLOAT, false, stride, offsetof(SpriteVertex, u));  // UV.
     BufferVAO_attrib_pointer(batch->vao, 2, 4, GL_FLOAT, false, stride, offsetof(SpriteVertex, r));  // Цвет.
     BufferVBO_end(batch->vbo);
@@ -138,7 +138,7 @@ SpriteBatch2D* SpriteBatch2D_create(Renderer *renderer) {
 }
 
 // Уничтожить пакетную отрисовку спрайтов:
-void SpriteBatch2D_destroy(SpriteBatch2D **batch) {
+void SpriteBatch_destroy(SpriteBatch **batch) {
     if (!batch || !*batch) return;
 
     // Удаляем буферы:
@@ -152,7 +152,7 @@ void SpriteBatch2D_destroy(SpriteBatch2D **batch) {
 }
 
 // Начать отрисовку:
-void SpriteBatch2D_begin(SpriteBatch2D *self) {
+void SpriteBatch_begin(SpriteBatch *self) {
     if (!self || self->_is_begin_) return;
     self->sprite_count = 0;
     self->vertex_count = 0;
@@ -161,7 +161,7 @@ void SpriteBatch2D_begin(SpriteBatch2D *self) {
     // Обновляем данные в шейдере:
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
-    Shader *shader = self->renderer->shader_spritebatch2d;
+    Shader *shader = self->renderer->shader_spritebatch;
     Shader_begin(shader);
     BufferVAO_begin(self->vao);
     BufferEBO_begin(self->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
@@ -172,38 +172,38 @@ void SpriteBatch2D_begin(SpriteBatch2D *self) {
 }
 
 // Установить цвет следующим спрайтам:
-void SpriteBatch2D_set_color(SpriteBatch2D *self, Vec4f color) {
+void SpriteBatch_set_color(SpriteBatch *self, Vec4f color) {
     if (!self) return;
     self->color = color;
 }
 
 // Получить установленный цвет:
-Vec4f SpriteBatch2D_get_color(SpriteBatch2D *self) {
+Vec4f SpriteBatch_get_color(SpriteBatch *self) {
     if (!self) return (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
     return self->color;
 }
 
 // Установить текстурные координаты следующим спрайтам:
-void SpriteBatch2D_set_texcoord(SpriteBatch2D *self, Vec4f texcoord) {
+void SpriteBatch_set_texcoord(SpriteBatch *self, Vec4f texcoord) {
     if (!self) return;
     self->texcoord = texcoord;
 }
 
 // Сбросить текстурные координаты:
-void SpriteBatch2D_reset_texcoord(SpriteBatch2D *self) {
+void SpriteBatch_reset_texcoord(SpriteBatch *self) {
     if (!self) return;
     self->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
 }
 
 // Получить текстурные координаты:
-Vec4f SpriteBatch2D_get_texcoord(SpriteBatch2D *self) {
+Vec4f SpriteBatch_get_texcoord(SpriteBatch *self) {
     if (!self) return (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
     return self->texcoord;
 }
 
-// Добавить спрайт в пакет данных:
-void SpriteBatch2D_draw(
-    SpriteBatch2D *self, Texture *texture,
+// Добавить 2D спрайт в пакет данных:
+void SpriteBatch_draw(
+    SpriteBatch *self, Texture *texture,
     float x, float y, float width, float height,
     float angle
 ) {
@@ -227,35 +227,35 @@ void SpriteBatch2D_draw(
     // Если вращаем спрайт:
     if (angle != 0.0f) {
         // Подготовка значений:
-        float center_x      = x + (width  / 2.0f);
-        float center_y      = y + (height / 2.0f);
+        float cx = x + width  * 0.5f;
+        float cy = y + height * 0.5f;
         float angle_rad     = -(angle * (GLM_PIf / 180.0f));
         float angle_rad_sin = sinf(angle_rad);
         float angle_rad_cos = cosf(angle_rad);
 
         // Предварительные смещения:
-        float dx1 = x - center_x;
-        float dy1 = y - center_y;
-        float dx2 = x + width - center_x;
-        float dy2 = y - center_y;
-        float dx3 = x + width - center_x;
-        float dy3 = y + height - center_y;
-        float dx4 = x - center_x;
-        float dy4 = y + height - center_y;
+        float dx1 = x - cx;
+        float dy1 = y - cy;
+        float dx2 = x + width - cx;
+        float dy2 = y - cy;
+        float dx3 = x + width - cx;
+        float dy3 = y + height - cy;
+        float dx4 = x - cx;
+        float dy4 = y + height - cy;
 
         // Возвращаем 4 вершины спрайта:
         // Нижний левый угол:
-        v[0] = dx1 * angle_rad_cos - dy1 * angle_rad_sin + center_x;
-        v[1] = dx1 * angle_rad_sin + dy1 * angle_rad_cos + center_y;
+        v[0] = dx1 * angle_rad_cos - dy1 * angle_rad_sin + cx;
+        v[1] = dx1 * angle_rad_sin + dy1 * angle_rad_cos + cy;
         // Нижний правый угол:
-        v[2] = dx2 * angle_rad_cos - dy2 * angle_rad_sin + center_x;
-        v[3] = dx2 * angle_rad_sin + dy2 * angle_rad_cos + center_y;
+        v[2] = dx2 * angle_rad_cos - dy2 * angle_rad_sin + cx;
+        v[3] = dx2 * angle_rad_sin + dy2 * angle_rad_cos + cy;
         // Верхний правый угол:
-        v[4] = dx3 * angle_rad_cos - dy3 * angle_rad_sin + center_x;
-        v[5] = dx3 * angle_rad_sin + dy3 * angle_rad_cos + center_y;
+        v[4] = dx3 * angle_rad_cos - dy3 * angle_rad_sin + cx;
+        v[5] = dx3 * angle_rad_sin + dy3 * angle_rad_cos + cy;
         // Верхний левый угол:
-        v[6] = dx4 * angle_rad_cos - dy4 * angle_rad_sin + center_x;
-        v[7] = dx4 * angle_rad_sin + dy4 * angle_rad_cos + center_y;
+        v[6] = dx4 * angle_rad_cos - dy4 * angle_rad_sin + cx;
+        v[7] = dx4 * angle_rad_sin + dy4 * angle_rad_cos + cy;
     } else {
         // Нижний левый угол:
         v[0] = x;
@@ -274,10 +274,114 @@ void SpriteBatch2D_draw(
     // Добавляем сетку в буфер:
     Vec4f tc = self->texcoord;
     uint32_t base = self->vertex_count;  // Смещение в массиве вершин.
-    self->array[base+0] = (SpriteVertex){v[0], v[1], tc.x, tc.w, .color=self->color};  // 1.
-    self->array[base+1] = (SpriteVertex){v[2], v[3], tc.z, tc.w, .color=self->color};  // 2.
-    self->array[base+2] = (SpriteVertex){v[4], v[5], tc.z, tc.y, .color=self->color};  // 3.
-    self->array[base+3] = (SpriteVertex){v[6], v[7], tc.x, tc.y, .color=self->color};  // 4.
+    self->array[base+0] = (SpriteVertex){v[0], v[1], 0, tc.x, tc.w, .color=self->color};  // 1.
+    self->array[base+1] = (SpriteVertex){v[2], v[3], 0, tc.z, tc.w, .color=self->color};  // 2.
+    self->array[base+2] = (SpriteVertex){v[4], v[5], 0, tc.z, tc.y, .color=self->color};  // 3.
+    self->array[base+3] = (SpriteVertex){v[6], v[7], 0, tc.x, tc.y, .color=self->color};  // 4.
+
+    // Обновляем счётчики:
+    self->vertex_count += 4;  // Записали 4 вершины.
+    self->sprite_count += 1;  // Записали 1 спрайт.
+}
+
+// Добавить 3D спрайт в пакет данных:
+void SpriteBatch_draw3d(
+    SpriteBatch *self, Texture *texture,
+    Vec3f position, Vec3f rotation,
+    float width, float height
+) {
+    if (!self || !self->_is_begin_) return;
+    uint32_t tex_id = texture ? texture->id : 0;
+
+    // Если текущая текстура не совпадает с предыдущей, то отрисовываем всё что накопили:
+    if (tex_id != self->current_tex_id) {
+        _batch_flush_(self);
+        self->current_tex_id = tex_id;
+    }
+
+    // Если превышен лимит спрайтов, то отрисовываем все что накопили:
+    if (self->sprite_count >= BATCH_SPRITES_SIZE) {
+        _batch_flush_(self);
+    };
+
+    // Позиция в мире:
+    float px = position.x, py = position.y, pz = position.z;
+    float hw = width  * 0.5f, hh = height * 0.5f;
+
+    // 4 вершины квадрата в локальных координатах (BL, BR, TR, TL):
+    float x1 = -hw, y1 = -hh, z1 = 0.0f;
+    float x2 =  hw, y2 = -hh, z2 = 0.0f;
+    float x3 =  hw, y3 =  hh, z3 = 0.0f;
+    float x4 = -hw, y4 =  hh, z4 = 0.0f;
+
+    // Вращаем вершины по осям Z->X->Y:
+    // Z axis:
+    if (rotation.z != 0.0f) {
+        float rz = rotation.z * (GLM_PIf / 180.0f);
+        float sz = sinf(rz);
+        float czr = cosf(rz);
+        float tx, ty;
+        tx = x1; ty = y1;
+        x1 = tx * czr - ty * sz;
+        y1 = tx * sz  + ty * czr;
+        tx = x2; ty = y2;
+        x2 = tx * czr - ty * sz;
+        y2 = tx * sz  + ty * czr;
+        tx = x3; ty = y3;
+        x3 = tx * czr - ty * sz;
+        y3 = tx * sz  + ty * czr;
+        tx = x4; ty = y4;
+        x4 = tx * czr - ty * sz;
+        y4 = tx * sz  + ty * czr;
+    }
+
+    // X axis:
+    if (rotation.x != 0.0f) {
+        float rx = rotation.x * (GLM_PIf / 180.0f);
+        float sx = sinf(rx);
+        float cxr = cosf(rx);
+        float ty, tz;
+        ty = y1; tz = z1;
+        y1 = ty * cxr - tz * sx;
+        z1 = ty * sx  + tz * cxr;
+        ty = y2; tz = z2;
+        y2 = ty * cxr - tz * sx;
+        z2 = ty * sx  + tz * cxr;
+        ty = y3; tz = z3;
+        y3 = ty * cxr - tz * sx;
+        z3 = ty * sx  + tz * cxr;
+        ty = y4; tz = z4;
+        y4 = ty * cxr - tz * sx;
+        z4 = ty * sx  + tz * cxr;
+    }
+
+    // Y axis:
+    if (rotation.y != 0.0f) {
+        float ry = rotation.y * (GLM_PIf / 180.0f);
+        float sy = sinf(ry);
+        float cyr = cosf(ry);
+        float tx, tz;
+        tx = x1; tz = z1;
+        x1 = tx * cyr + tz * sy;
+        z1 = -tx * sy + tz * cyr;
+        tx = x2; tz = z2;
+        x2 = tx * cyr + tz * sy;
+        z2 = -tx * sy + tz * cyr;
+        tx = x3; tz = z3;
+        x3 = tx * cyr + tz * sy;
+        z3 = -tx * sy + tz * cyr;
+        tx = x4; tz = z4;
+        x4 = tx * cyr + tz * sy;
+        z4 = -tx * sy + tz * cyr;
+    }
+
+    // Добавляем сетку в буфер:
+    Vec4f tc = self->texcoord;
+    uint32_t base = self->vertex_count;  // Смещение в массиве вершин.
+    self->array[base+0] = (SpriteVertex){px + x1, py + y1, pz + z1, tc.x, tc.w, .color=self->color};  // 1.
+    self->array[base+1] = (SpriteVertex){px + x2, py + y2, pz + z2, tc.z, tc.w, .color=self->color};  // 2.
+    self->array[base+2] = (SpriteVertex){px + x3, py + y3, pz + z3, tc.z, tc.y, .color=self->color};  // 3.
+    self->array[base+3] = (SpriteVertex){px + x4, py + y4, pz + z4, tc.x, tc.y, .color=self->color};  // 4.
 
     // Обновляем счётчики:
     self->vertex_count += 4;  // Записали 4 вершины.
@@ -285,11 +389,11 @@ void SpriteBatch2D_draw(
 }
 
 // Закончить отрисовку:
-void SpriteBatch2D_end(SpriteBatch2D *self) {
+void SpriteBatch_end(SpriteBatch *self) {
     if (!self || !self->_is_begin_) return;
     _batch_flush_(self);
     BufferVBO_end(self->vbo);
     BufferVAO_end(self->vao);
-    Shader_end(self->renderer->shader_spritebatch2d);
+    Shader_end(self->renderer->shader_spritebatch);
     self->_is_begin_ = false;
 }

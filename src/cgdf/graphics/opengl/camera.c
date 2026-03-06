@@ -87,8 +87,8 @@ void Camera2D_resize(Camera2D *self, int width, int height) {
     glViewport(0, 0, width, height);
 
     glm_mat4_identity(self->proj);
-    float wdth = ((float)self->width)/2.0f * self->meter/100.0f;
-    float hght = ((float)self->height)/2.0f * self->meter/100.0f;
+    float wdth = ((float)self->width)*0.5f * self->meter/100.0f;
+    float hght = ((float)self->height)*0.5f * self->meter/100.0f;
     glm_ortho(-wdth, wdth, -hght, hght, -1.0f, 1.0f, self->proj);
 }
 
@@ -237,10 +237,10 @@ void Camera3D_resize(Camera3D *self, int width, int height, bool ortho) {
     float aspect = (float)self->width / (float)self->height;
 
     if (ortho) {
-        float l = -(self->size.x / 2.0f + 4.0f);
-        float r =  (self->size.x / 2.0f + 4.0f);
-        float b = -(self->size.y / 2.0f + 4.0f);
-        float t =  (self->size.y / 2.0f + 4.0f);
+        float l = -(self->size.x * 0.5f + 4.0f);
+        float r =  (self->size.x * 0.5f + 4.0f);
+        float b = -(self->size.y * 0.5f + 4.0f);
+        float t =  (self->size.y * 0.5f + 4.0f);
         glm_ortho(l*aspect, r*aspect, b, t, self->z_near, self->z_far, self->proj);
     } else {
         glm_perspective(radians(self->fov), aspect, self->z_near, self->z_far, self->proj);

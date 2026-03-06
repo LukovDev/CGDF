@@ -15,21 +15,6 @@ static Camera2D *camera;
 static Sprite2D *sprite;
 
 
-static void print_before_free() {
-    printf("(Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
-            mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
-            mm_get_block_header_size());
-}
-
-
-static void print_after_free() {
-    printf("(After free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
-            mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
-            mm_get_block_header_size());
-    if (mm_get_used_size() > 0) printf("Memory leak!\n");
-}
-
-
 // Вызывается после создания окна:
 void Game_start(Window *self) {
     // Загружаем и устанавливаем иконку:

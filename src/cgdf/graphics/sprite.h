@@ -13,6 +13,7 @@
 
 // Объявление структур:
 typedef struct Sprite2D Sprite2D;  // Двумерный спрайт.
+typedef struct Sprite3D Sprite3D;  // Трёхмерный спрайт.
 
 
 // Двумерный спрайт:
@@ -28,7 +29,20 @@ struct Sprite2D {
 };
 
 
-// -------- API спрайта: --------
+// Трёхмерный спрайт:
+struct Sprite3D {
+    Renderer *renderer;   // Рендерер (для доступа к графическому апи и шейдеру).
+    Texture *texture;     // Текстура спрайта.
+    Vec3f position;       // Координаты.
+    Vec3f rotation;       // Углы вращения.
+    float width, height;  // Размеры.
+    Vec4f color;          // Вектор цвета (значения от 0.0 до 1.0).
+    bool custom_shader;   // Использовать пользовательский шейдер (true) или встроенный (false).
+    void (*render) (Sprite3D *self);  // Отрисовать спрайт, на основе данных в структуре.
+};
+
+
+// -------- API 2D спрайта: --------
 
 
 // Создать спрайт:
@@ -46,4 +60,27 @@ void Sprite2D_render(
     Renderer *renderer, Texture *texture,
     float x, float y, float width, float height,
     float angle, Vec4f color, bool custom_shader
+);
+
+
+// -------- API 3D спрайта: --------
+
+
+// Создать спрайт:
+Sprite3D* Sprite3D_create(
+    Renderer *renderer, Texture *texture,
+    Vec3f position, Vec3f rotation,
+    float width, float height,
+    Vec4f color, bool custom_shader
+);
+
+// Уничтожить спрайт:
+void Sprite3D_destroy(Sprite3D **sprite);
+
+// Отрисовать 3D спрайт (без создания экземпляра):
+void Sprite3D_render(
+    Renderer *renderer, Texture *texture,
+    Vec3f position, Vec3f rotation,
+    float width, float height,
+    Vec4f color, bool custom_shader
 );
