@@ -60,6 +60,7 @@ void Sprite2D_render(
     // Настраиваем матрицу модели:
     mat4 model;
     glm_mat4_identity(model);
+    // Порядок применения трансформации должен применяться на матрицу наоборот:
     glm_translate(model, (vec3){x+width*0.5f, y+height*0.5f, 0.0f});
     if (angle != 0.0f) glm_rotate(model, radians(angle), (vec3){0.0f, 0.0f, 1.0f});
     glm_scale(model, (vec3){width*0.5f, height*0.5f, 0.0f});

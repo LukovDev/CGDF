@@ -1,5 +1,5 @@
 * text=auto eol=lf
 *.c linguist-language=C
 *.h linguist-language=C
-cgdf/core/libs/** linguist-vendored
-cgdf/graphics/opengl/glad/** linguist-vendored
+core/libs/** linguist-vendored
+graphics/opengl/glad/** linguist-vendored
