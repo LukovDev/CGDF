@@ -336,21 +336,25 @@ void render(Window *self, float dtime) {
     Camera2D_ui_begin(camera);
     Sprite2D_render(self->renderer, font->atlas, 0, 0, 256.0f, 256.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
-    Vec2f text_pos = {32.0f, 192.0f};
+    Vec2f text_pos = {256.0f, 256.0f};
+    font->align = FONT_ALIGN_CENTER_CENTER;
     FontPixmap_render(font, text_pos.x, text_pos.y, 0, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
+
+    FontPixmap_render3d(font, (Vec3f){0, 5, 0}, rot, "This is 3D text!\nRendering3D!\nEXAMPLE!\nFPS: %g", Window_get_current_fps(self));
+
     SimpleDraw_point(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){text_pos.x, text_pos.y, 0}, 4.0f);
 
-    // FontTextBlock block = FontPixmap_get_text_block(font, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
-    // float min_x = block.min_x + 32.0f;
-    // float max_x = block.max_x + 32.0f;
-    // float min_y = block.min_y + 128+32+32.0f;
-    // float max_y = block.max_y + 128+32+32.0f;
-    // SimpleDraw_line_loop(draw, (Vec4f){1, 0, 0, 1}, (Vec3f[]){
-    //     {min_x, min_y, 0},
-    //     {min_x, max_y, 0},
-    //     {max_x, max_y, 0},
-    //     {max_x, min_y, 0},
-    // }, 4, 1.0f);
+    FontTextBlock block = FontPixmap_get_text_block(font, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
+    float min_x = text_pos.x;
+    float min_y = text_pos.y;
+    float max_x = text_pos.x + block.size.x;
+    float max_y = text_pos.y + block.size.y;
+    SimpleDraw_line_loop(draw, (Vec4f){1, 0, 0, 1}, (Vec3f[]){
+        {min_x, min_y, 0},
+        {min_x, max_y, 0},
+        {max_x, max_y, 0},
+        {max_x, min_y, 0},
+    }, 4, 1.0f);
     // FontPixmap_render(font, "ABOLTUZ!!!$@#@#:", 32.0f, 128+64+32.0f, 0.0f, (Vec4f){0.0f, 1.0f, 1.0f, 1.0f}, true);
     Camera2D_ui_end(camera);
 

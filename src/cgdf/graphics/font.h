@@ -23,9 +23,26 @@
 #define FONT_FALLBACK_SUMB '?'   // Замена нераспознанных символов.
 
 
+// Перечисление точек центрирования:
+typedef enum FontAlign {
+    FONT_ALIGN_BOTTOM_LEFT = 0,
+    FONT_ALIGN_BOTTOM_CENTER,
+    FONT_ALIGN_BOTTOM_RIGHT,
+
+    FONT_ALIGN_CENTER_LEFT,
+    FONT_ALIGN_CENTER_CENTER,
+    FONT_ALIGN_CENTER_RIGHT,
+
+    FONT_ALIGN_TOP_LEFT,
+    FONT_ALIGN_TOP_CENTER,
+    FONT_ALIGN_TOP_RIGHT,
+} FontAlign;
+
+
 // Объявление структур:
-typedef struct FontPixmap FontPixmap;  // Растровый шрифт.
-typedef struct FontGlyph FontGlyph;    // Глиф.
+typedef struct FontPixmap FontPixmap;        // Растровый шрифт.
+typedef struct FontGlyph FontGlyph;          // Глиф.
+typedef struct FontTextBlock FontTextBlock;  // Блок текста (размеры).
 
 
 // Растровый шрифт:
@@ -39,7 +56,8 @@ struct FontPixmap {
     Vec4f          color;          // Цвет текста.
     bool           pixelized;      // Пикселизированный шрифт.
     int added_glyphs_count;        // Сколько глифов было добавлено в атлас. Нужен для авто-расширения атласа.
-    unsigned char *ttf_buffer;     // Буфер данных файла шрифта.
+    unsigned char  *ttf_buffer;    // Буфер данных файла шрифта.
+    FontAlign      align;          // Выравнивание текста.
 
     // Метрики которые нельзя редактировать:
     int   font_size;     // [don't edit] Размер шрифта (по высоте в пикселях).
@@ -69,6 +87,15 @@ struct FontGlyph {
 };
 
 
+// Блок текста (размеры):
+struct FontTextBlock {
+    Vec2f start;  // Левый нижний угол прямоугольника.
+    Vec2f end;    // Правый верхний угол прямоугольника.
+    Vec2f size;   // Размер прямоугольника (ширина и высота).
+    int   lines;  // Количество строк в блоке.
+};
+
+
 // -------- API шрифта: --------
 
 
@@ -93,5 +120,11 @@ void FontPixmap_set_pixelized(FontPixmap *self, bool pixelized);
 // Получить пикселизацию текста:
 bool FontPixmap_get_pixelized(FontPixmap *self);
 
+// Получить блок текста:
+FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...);
+
 // Отрисовать текст:
 void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const char *text, ...);
+
+// Отрисовать 3D текст:
+void FontPixmap_render3d(FontPixmap *self, Vec3f position, Vec3f rotation, const char *text, ...);

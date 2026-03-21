@@ -273,6 +273,7 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     font->color = (Vec4f){1.0f, 1.0f, 1.0f, 1.0f};
     font->pixelized = false;  // Чисто технически, нужен как флаг-кэш для включения/отключения пикселизации один раз.
     font->added_glyphs_count = 0;
+    font->align = FONT_ALIGN_BOTTOM_LEFT;
 
     // Метрики которые нельзя редактировать:
     font->font_size = font_size;
@@ -373,12 +374,140 @@ bool FontPixmap_get_pixelized(FontPixmap *self) {
     return self->pixelized;
 }
 
+// Получить блок текста:
+FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...) {
+    FontTextBlock out = {0};
+    if (!self || !text) return out;
+
+    // Форматируем текст (также как в render функции):
+    char stack_text[1024];
+    char *heap_text = NULL;
+    const char *render_text = text;
+
+    va_list args;
+    va_start(args, text);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int needed = vsnprintf(stack_text, sizeof(stack_text), text, args);
+    va_end(args);
+    if (needed < 0) { va_end(args_copy); return out; }
+
+    // Если текст умещается в стек, то используем стек:
+    if ((size_t)needed < sizeof(stack_text)) {
+        render_text = stack_text;
+    } else {  // Иначе используем кучу:
+        size_t heap_size = (size_t)needed + 1;
+        heap_text = (char*)mm_alloc(heap_size);
+        if (!heap_text) {
+            va_end(args_copy);
+            return out;
+        }
+        vsnprintf(heap_text, heap_size, text, args_copy);
+        render_text = heap_text;
+    }
+    va_end(args_copy);
+
+    // Стартовые состояния:
+    float pen_x = 0.0f;
+    float baseline = self->ascent * self->scale;
+    uint32_t prev_cp = 0;   // Кодпоинт предыдущего символа.
+    bool has_prev = false;  // Есть ли предыдущий символ.
+    int lines = 1;
+    bool has_bounds = false;
+    float min_x = 0, min_y = 0, max_x = 0, max_y = 0;
+
+    // Перебираем байты текста:
+    int i = 0;
+    while (render_text[i] != '\0') {
+        int adv_bytes = 1;
+        uint32_t cp = utf8_decode(&render_text[i], &adv_bytes);
+
+        if (cp == '\r') { i += adv_bytes; continue; }
+
+        if (cp == '\n') {
+            pen_x = 0.0f;
+            baseline -= self->line_advance + self->line_height;
+            has_prev = false;
+            lines++;
+            i += adv_bytes;
+            continue;
+        }
+
+        if (cp == '\t') {
+            pen_x += (self->space_advance + self->letter_spacing) * (float)self->tab_size;
+            has_prev = false;
+            i += adv_bytes;
+            continue;
+        }
+
+        if (cp == ' ') {
+            if (has_prev) {
+                int kern = stbtt_GetCodepointKernAdvance(&self->info, prev_cp, cp);
+                pen_x += (float)kern * self->scale;
+            }
+            pen_x += self->space_advance + self->letter_spacing;
+            prev_cp = cp;
+            has_prev = true;
+            i += adv_bytes;
+            continue;
+        }
+
+        FontGlyph *g = FontPixmap_get_glyph(self, cp);
+        if (!g) { i += adv_bytes; continue; }
+
+        if (has_prev) {
+            int kern = stbtt_GetCodepointKernAdvance(&self->info, prev_cp, cp);
+            pen_x += (float)kern * self->scale;
+        }
+
+        float drawX = pen_x + g->offset_x;
+        float drawY = baseline - g->offset_y - g->height;
+
+        if (g->width > 0 && g->height > 0) {
+            float gx0 = drawX;
+            float gy0 = drawY;
+            float gx1 = drawX + (float)g->width;
+            float gy1 = drawY + (float)g->height;
+
+            if (!has_bounds) {
+                min_x = gx0; min_y = gy0;
+                max_x = gx1; max_y = gy1;
+                has_bounds = true;
+            } else {
+                if (gx0 < min_x) min_x = gx0;
+                if (gy0 < min_y) min_y = gy0;
+                if (gx1 > max_x) max_x = gx1;
+                if (gy1 > max_y) max_y = gy1;
+            }
+        }
+
+        pen_x += g->advance + self->letter_spacing;
+        prev_cp = cp;
+        has_prev = true;
+        i += adv_bytes;
+    }
+
+    out.lines = lines;
+    if (has_bounds) {
+        out.start = (Vec2f){min_x, min_y};
+        out.end   = (Vec2f){max_x, max_y};
+        out.size  = (Vec2f){max_x - min_x, max_y - min_y};
+    } else {
+        out.start = (Vec2f){0.0f, 0.0f};
+        out.end   = (Vec2f){0.0f, 0.0f};
+        out.size  = (Vec2f){0.0f, 0.0f};
+    }
+
+    if (heap_text) mm_free(heap_text);
+    return out;
+}
+
 // Отрисовать текст:
 void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const char *text, ...) {
     if (!self || !text) return;
 
     // Форматируем text как f-строку:
-    char stack_text[1024];
+    char stack_text[1024];   // 1024 байт-символов текста в стеке для быстроты.
     char *heap_text = NULL;  // Нужен в случае если символов текста больше чем 1024 байта символов.
     const char *render_text = text;
 
@@ -410,15 +539,29 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     bool has_prev = false;  // Есть ли предыдущий символ.
 
     // Центрирование:
-    float pen_x = x;
-    float baseline = y + self->ascent * self->scale;
-    float pivot_x = x;
-    float pivot_y = baseline;
+    FontTextBlock block = FontPixmap_get_text_block(self, "%s", render_text);
+    float pen_x = 0.0f;
+    float baseline = self->ascent * self->scale;
 
     // Для вращения:
     float angle_rad = -radians(angle);
     float s = sinf(angle_rad);
     float c = cosf(angle_rad);
+    float pivot_x = x;
+    float pivot_y = y;
+
+    // Точка вращения текста:
+    switch (self->align) {
+        case FONT_ALIGN_BOTTOM_LEFT:   { break; }
+        case FONT_ALIGN_BOTTOM_CENTER: { pivot_x = x + block.size.x * 0.5f; pivot_y = y; break; }
+        case FONT_ALIGN_BOTTOM_RIGHT:  { pivot_x = x + block.size.x; pivot_y = y; break; }
+        case FONT_ALIGN_CENTER_LEFT:   { pivot_x = x; pivot_y = y + block.size.y * 0.5f; break; }
+        case FONT_ALIGN_CENTER_CENTER: { pivot_x = x + block.size.x * 0.5f; pivot_y = y + block.size.y * 0.5f; break; }
+        case FONT_ALIGN_CENTER_RIGHT:  { pivot_x = x + block.size.x; pivot_y = y + block.size.y * 0.5f; break; }
+        case FONT_ALIGN_TOP_LEFT:      { pivot_x = x; pivot_y = y + block.size.y; break; }
+        case FONT_ALIGN_TOP_CENTER:    { pivot_x = x + block.size.x * 0.5f; pivot_y = y + block.size.y; break; }
+        case FONT_ALIGN_TOP_RIGHT:     { pivot_x = x + block.size.x; pivot_y = y + block.size.y; break; }
+    }
 
     // Рисуем текст:
     SpriteBatch_begin(self->batch);
@@ -429,24 +572,16 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
         int adv_bytes = 1;  // Количество байтов символа. Нужен для перехода к следующему символу.
         uint32_t cp = utf8_decode(&render_text[i], &adv_bytes);  // Декодируем символ.
 
-        // (игнорируем):
-        if (cp == '\r') {
-            i += adv_bytes;
-            continue;
-        }
+        if (cp == '\r') { i += adv_bytes; continue; }
 
-        // Перенос строки:
         if (cp == '\n') {
-            // Перо (курсор) в начало строки.
-            // Базовая линия опускается на высоту строки + смещение.
-            pen_x = x;
-            baseline -= (self->line_advance + self->line_height);
+            pen_x = 0.0f;
+            baseline -= self->line_advance + self->line_height;
             has_prev = false;
             i += adv_bytes;
             continue;
         }
 
-        // Табуляция (просто добавляем ширину пробелов):
         if (cp == '\t') {
             pen_x += (self->space_advance + self->letter_spacing) * (float)self->tab_size;
             has_prev = false;
@@ -454,7 +589,6 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
             continue;
         }
 
-        // Пробел:
         if (cp == ' ') {
             if (has_prev) {
                 int kern = stbtt_GetCodepointKernAdvance(&self->info, prev_cp, cp);
@@ -481,8 +615,21 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
         }
 
         // Точки отрисовки символов:
-        float drawX = pen_x + g->offset_x;
-        float drawY = baseline - g->offset_y - g->height;
+        float drawX = (pen_x + g->offset_x) - block.start.x;
+        float drawY = (baseline - g->offset_y - g->height) - block.start.y;
+
+        // Смещение текста:
+        switch (self->align) {
+            case FONT_ALIGN_BOTTOM_LEFT:   { break; }
+            case FONT_ALIGN_BOTTOM_CENTER: { drawX += x - block.size.x*0.5f; drawY += y; break; }
+            case FONT_ALIGN_BOTTOM_RIGHT:  { drawX += x - block.size.x; drawY += y; break; }
+            case FONT_ALIGN_CENTER_LEFT:   { drawX += x; drawY += y - block.size.y*0.5f; break; }
+            case FONT_ALIGN_CENTER_CENTER: { drawX += x - block.size.x*0.5f; drawY += y - block.size.y*0.5f; break; }
+            case FONT_ALIGN_CENTER_RIGHT:  { drawX += x - block.size.x; drawY += y - block.size.y*0.5f; break; }
+            case FONT_ALIGN_TOP_LEFT:      { drawX += x; drawY += y - block.size.y; break; }
+            case FONT_ALIGN_TOP_CENTER:    { drawX += x - block.size.x*0.5f; drawY += y - block.size.y; break; }
+            case FONT_ALIGN_TOP_RIGHT:     { drawX += x - block.size.x; drawY += y - block.size.y; break; }
+        }
 
         // Если размер глифа больше нуля, то рисуем его:
         if (g->width > 0 && g->height > 0) {
@@ -514,4 +661,9 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
 
     SpriteBatch_end(self->batch);
     if (heap_text) mm_free(heap_text);
+}
+
+// Отрисовать 3D текст:
+void FontPixmap_render3d(FontPixmap *self, Vec3f position, Vec3f rotation, const char *text, ...) {
+    if (!self || !text) return;
 }
