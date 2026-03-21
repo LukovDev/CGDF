@@ -323,6 +323,7 @@ void Renderer_init(Renderer *self) {
     // Инициализируем OpenGL:
     if (gl_init()) {
         log_msg("[E] Renderer_init: Initializing OpenGL failed: %s\n", SDL_GetError());
+        self->initialized = false;
         return;
     }
 

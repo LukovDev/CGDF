@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/logger.h>
 #include "../gl.h"
 #include "../buffer_gc.h"
 #include "buffers.h"
@@ -20,6 +21,13 @@ BufferEBO* BufferEBO_create(const void* data, const size_t size, int mode) {
     ebo->_is_begin_ = false;
     ebo->_id_before_begin_ = 0;
     glGenBuffers(1, &ebo->id);
+
+    // Проверка генерации буфера:
+    if (ebo->id == 0) {
+        log_msg("[E] BufferEBO_create: Creating EBO failed.\n");
+        mm_free(ebo);
+        return NULL;
+    }
 
     // Заполняем буфер:
     BufferEBO_begin(ebo);

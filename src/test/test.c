@@ -182,19 +182,19 @@ void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
     double time = Window_get_time(self);
-    Vec2i mouse_pos = Input_get_mouse_pos(self);
-    Vec2d globpos = {0};
+    // Vec2i mouse_pos = Input_get_mouse_pos(self);
+    // Vec2d globpos = {0};
 
-    static Vec3f hit_pos;
-    Vec3f plane_point  = {0.0f, 0.0f, 0.0f};
-    Vec3f plane_normal = {0.0f, 0.0f, 1.0f};
+    // static Vec3f hit_pos;
+    // Vec3f plane_point  = {0.0f, 0.0f, 0.0f};
+    // Vec3f plane_normal = {0.0f, 0.0f, 1.0f};
 
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
-    if (camera_screen_to_plane(self, view, proj, mouse_pos, plane_point, plane_normal, &hit_pos)) {
-        globpos.x = hit_pos.x;
-        globpos.y = hit_pos.y;
-    }
+    // if (camera_screen_to_plane(self, view, proj, mouse_pos, plane_point, plane_normal, &hit_pos)) {
+    //     globpos.x = hit_pos.x;
+    //     globpos.y = hit_pos.y;
+    // }
 
     // Camera3D_set_depth_test(camera3d, false);
     static bool enable = true;
@@ -329,33 +329,17 @@ void render(Window *self, float dtime) {
     }
     Sprite2D_render(self->renderer, font->atlas, 0, 20, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
-    font->line_height = sinf(time)*15.0f;
-    font->letter_spacing = cosf(time)*5.0f;
-
     Camera2D_update(camera);
     Camera2D_ui_begin(camera);
-    Sprite2D_render(self->renderer, font->atlas, 0, 0, 256.0f, 256.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+    int width, height;
+    Window_get_size(self, &width, &height);
 
-    Vec2f text_pos = {64.0f, 64.0f};
-    // font->align = FONT_ALIGN_CENTER_CENTER;
+    Vec2f text_pos = {16.0f, height - 16.0f};
+    font->align = FONT_ALIGN_TOP_LEFT;
     font->bg_color = (Vec4f){0.0f, 0.0f, 0.0f, 0.75f};
-    font->bg_padding = (Vec4f){32.0f, 24.0f, 8.0f, 0.0f};
-    FontPixmap_render(font, text_pos.x, text_pos.y, sinf(time)*90.0f, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
+    font->bg_padding = (Vec4f){8.0f, 8.0f, 8.0f, 8.0f};
+    FontPixmap_render(font, text_pos.x, text_pos.y, 0, "FPS: %g", Window_get_current_fps(self));
 
-    SimpleDraw_point(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){text_pos.x, text_pos.y, 0}, 4.0f);
-
-    FontTextBlock block = FontPixmap_get_text_block(font, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
-    float min_x = text_pos.x;
-    float min_y = text_pos.y;
-    float max_x = text_pos.x + block.size.x;
-    float max_y = text_pos.y + block.size.y;
-    SimpleDraw_line_loop(draw, (Vec4f){1, 0, 0, 1}, (Vec3f[]){
-        {min_x, min_y, 0},
-        {min_x, max_y, 0},
-        {max_x, max_y, 0},
-        {max_x, min_y, 0},
-    }, 4, 1.0f);
-    // FontPixmap_render(font, "ABOLTUZ!!!$@#@#:", 32.0f, 128+64+32.0f, 0.0f, (Vec4f){0.0f, 1.0f, 1.0f, 1.0f}, true);
     Camera2D_ui_end(camera);
 
     Window_display(self);

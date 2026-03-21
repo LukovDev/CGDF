@@ -141,9 +141,9 @@ void Texture_empty(Texture *self, int width, int height, bool use_mipmap, Textur
 // Загрузить текстуру (из файла):
 void Texture_load(Texture *self, const char *filepath, bool use_mipmap) {
     Pixmap *img = Pixmap_load(filepath, PIXMAP_RGBA);
-    if (!self || !img) return;
+    if (!self || !img) { if (img) { Pixmap_destroy(&img); } return; }
     Texture_set_data(self, img->width, img->height, img->data, use_mipmap, TEX_RGBA, TEX_RGBA, TEX_DATA_UBYTE);
-    Pixmap_destroy(&img);
+    if (img) { Pixmap_destroy(&img); }
 }
 
 // Активация текстуры:

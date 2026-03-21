@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/logger.h>
 #include "../gl.h"
 #include "../buffer_gc.h"
 #include "buffers.h"
@@ -19,6 +20,14 @@ BufferQBO* BufferQBO_create() {
     qbo->id = 0;
     qbo->_is_begin_ = false;
     glGenQueries(1, &qbo->id);
+
+    // Проверка генерации буфера:
+    if (qbo->id == 0) {
+        log_msg("[E] BufferQBO_create: Creating QBO failed.\n");
+        mm_free(qbo);
+        return NULL;
+    }
+
     return qbo;
 }
 

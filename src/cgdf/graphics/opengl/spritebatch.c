@@ -7,6 +7,7 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/math.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/logger.h>
 #include "../camera.h"
 #include "../shader.h"
 #include "../spritebatch.h"
@@ -89,7 +90,10 @@ static void _batch_flush_(SpriteBatch *self) {
 
 // Создать пакетную отрисовку спрайтов:
 SpriteBatch* SpriteBatch_create(Renderer *renderer) {
-    if (!renderer) return NULL;
+    if (!renderer) {
+        log_msg("[E] SpriteBatch_create: Renderer is NULL.\n");
+        return NULL;
+    }
     SpriteBatch *batch = (SpriteBatch*)mm_alloc(sizeof(SpriteBatch));
 
     // Размер одной вершины в байтах (8 параметров * 4 байта по каждому = 32 байт):

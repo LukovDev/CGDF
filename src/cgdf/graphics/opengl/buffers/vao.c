@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/logger.h>
 #include "../gl.h"
 #include "../buffer_gc.h"
 #include "buffers.h"
@@ -19,6 +20,14 @@ BufferVAO* BufferVAO_create() {
     vao->id = 0;
     vao->_is_begin_ = false;
     glGenVertexArrays(1, &vao->id);
+
+    // Проверка генерации буфера:
+    if (vao->id == 0) {
+        log_msg("[E] BufferVAO_create: Creating VAO failed.\n");
+        mm_free(vao);
+        return NULL;
+    }
+
     return vao;
 }
 

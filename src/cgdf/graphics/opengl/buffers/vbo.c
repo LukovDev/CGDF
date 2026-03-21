@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/logger.h>
 #include "../gl.h"
 #include "../buffer_gc.h"
 #include "buffers.h"
@@ -20,6 +21,13 @@ BufferVBO* BufferVBO_create(const void* data, const size_t size, int mode) {
     vbo->_is_begin_ = false;
     vbo->_id_before_begin_ = 0;
     glGenBuffers(1, &vbo->id);
+
+    // Проверка генерации буфера:
+    if (vbo->id == 0) {
+        log_msg("[E] BufferVBO_create: Creating VBO failed.\n");
+        mm_free(vbo);
+        return NULL;
+    }
 
     // Заполняем буфер:
     BufferVBO_begin(vbo);

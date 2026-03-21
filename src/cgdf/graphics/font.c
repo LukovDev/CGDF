@@ -478,7 +478,7 @@ float FontPixmap_get_letter_spacing(FontPixmap *self) {
 // Установить размер табуляции:
 void FontPixmap_set_tab_size(FontPixmap *self, int tab_size) {
     if (!self) return;
-    self->tab_size = tab_size;
+    self->tab_size = tab_size >= 0 ? tab_size : 4;
 }
 
 // Получить размер табуляции:
@@ -497,6 +497,18 @@ void FontPixmap_set_space_advance(FontPixmap *self, float space_advance) {
 float FontPixmap_get_space_advance(FontPixmap *self) {
     if (!self) return 0.0f;
     return self->space_advance;
+}
+
+// Установить выравнивание блока текста:
+void FontPixmap_set_align(FontPixmap *self, FontAlign align) {
+    if (!self) return;
+    self->align = align >= 0 && align < FONT_ALIGN_COUNT ? align : FONT_ALIGN_BOTTOM_LEFT;
+}
+
+// Получить выравнивание блока текста:
+FontAlign FontPixmap_get_align(FontPixmap *self) {
+    if (!self) return FONT_ALIGN_BOTTOM_LEFT;
+    return self->align;
 }
 
 // Получить блок текста:
@@ -676,10 +688,11 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     float pivot_x = x;
     float pivot_y = y;
 
-    // Точка вращения текста:
+    // Точка центрирования текста:
     float align_x = 0.0f;
     float align_y = 0.0f;
     switch (self->align) {
+        case FONT_ALIGN_COUNT:
         case FONT_ALIGN_BOTTOM_LEFT:   { align_x = 0.0f;                 align_y = 0.0f;                 break; }
         case FONT_ALIGN_BOTTOM_CENTER: { align_x = -block.size.x * 0.5f; align_y = 0.0f;                 break; }
         case FONT_ALIGN_BOTTOM_RIGHT:  { align_x = -block.size.x;        align_y = 0.0f;                 break; }

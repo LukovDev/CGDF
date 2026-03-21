@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/logger.h>
 #include "../renderer.h"
 #include "../texture.h"
 #include "../shader.h"
@@ -27,7 +28,10 @@ Sprite2D* Sprite2D_create(
     float x, float y, float width, float height,
     float angle, Vec4f color, bool custom_shader
 ) {
-    if (!renderer) return NULL;
+    if (!renderer) {
+        log_msg("[E] Sprite2D_create: Renderer is NULL.\n");
+        return NULL;
+    }
     Sprite2D *sprite = (Sprite2D*)mm_alloc(sizeof(Sprite2D));
 
     // Заполняем поля:
@@ -109,7 +113,10 @@ Sprite3D* Sprite3D_create(
     float width, float height,
     Vec4f color, bool custom_shader
 ) {
-    if (!renderer) return NULL;
+    if (!renderer) {
+        log_msg("[E] Sprite3D_create: Renderer is NULL.\n");
+        return NULL;
+    }
     Sprite3D *sprite = (Sprite3D*)mm_alloc(sizeof(Sprite3D));
 
     // Заполняем поля:

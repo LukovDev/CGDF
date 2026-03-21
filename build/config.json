@@ -37,7 +37,7 @@
     "compiler-cpp":  "g++",
     "linker":        "g++",
     "ld-file":       "",
-    "warnings":      ["-Wall"],
+    "warnings":      ["-Wall", "-Werror"],
     "compile-flags-s": [],
     "compile-flags-c": [],
     "compile-flags-cpp": [],

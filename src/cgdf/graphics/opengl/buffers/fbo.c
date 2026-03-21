@@ -32,6 +32,17 @@ BufferFBO* BufferFBO_create(int width, int height) {
     // Создаём фреймбуфер и буфер рендера:
     glGenFramebuffers(1, &fbo->id);
     glGenRenderbuffers(1, &fbo->rbo_id);
+
+    // Проверка генерации буферов:
+    if (fbo->id == 0 || fbo->rbo_id == 0) {
+        log_msg("[E] BufferFBO_create: Creating FBO failed (or RBO inside).\n");
+        if (fbo->id != 0) BufferGC_GL_push(BGC_GL_FBO, fbo->id);
+        if (fbo->rbo_id != 0) BufferGC_GL_push(BGC_GL_RBO, fbo->rbo_id);
+        Array_destroy(&fbo->attachments);
+        mm_free(fbo);
+        return NULL;
+    }
+
     glGetIntegerv(GL_RENDERBUFFER_BINDING, &fbo->_rbo_id_before_begin_);
     glBindRenderbuffer(GL_RENDERBUFFER, fbo->rbo_id);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, fbo->width, fbo->height);

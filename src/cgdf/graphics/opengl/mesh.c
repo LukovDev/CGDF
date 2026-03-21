@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/logger.h>
 #include "../vertex.h"
 #include "../mesh.h"
 #include "buffers/buffers.h"
@@ -30,7 +31,10 @@ Mesh* Mesh_create(
     uint32_t index_count,
     bool is_dynamic
 ) {
-    if (!vertices || !indices) return NULL;
+    if (!vertices || !indices) {
+        log_msg("[E] Mesh_create: \"vertices\" or \"indices\" is NULL.\n");
+        return NULL;
+    }
     Mesh *mesh = (Mesh*)mm_alloc(sizeof(Mesh));
 
     int mode = is_dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;

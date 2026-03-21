@@ -363,10 +363,16 @@ static void ClosingStage(Window *self) {
 
 // Вызовите для открытия окна:
 bool Window_open(Window *self) {
-    if (!self || !self->config) return false;
+    if (!self || !self->config) {
+        log_msg("[E] Window_open: \"self\" or \"config\" is NULL.\n");
+        return false;
+    }
     WinConfig *cfg = self->config;
     WinVars *vars = self->vars;
-    if (!vars) return false;
+    if (!vars) {
+        log_msg("[E] Window_open: \"vars\" is NULL.\n");
+        return false;
+    }
 
     // Минимальная версия OpenGL:
     if (cfg->gl_major < 3) cfg->gl_major = 3;
@@ -418,6 +424,17 @@ bool Window_open(Window *self) {
 
     // Инициализируем рендерер:
     Renderer_init(rnd);
+
+    // Если не удалось создать рендерер:
+    if (!rnd->initialized) {
+        log_msg("[E] Renderer_init: Initializing renderer failed.\n");
+        vars->create_failed = true;
+        Renderer_destroy(&rnd);
+        SDL_GL_DestroyContext(vars->context);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return false;
+    }
 
     // Устанавливаем значения в глобальные переменные:
     vars->window = window;

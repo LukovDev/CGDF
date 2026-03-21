@@ -36,6 +36,8 @@ typedef enum FontAlign {
     FONT_ALIGN_TOP_LEFT,
     FONT_ALIGN_TOP_CENTER,
     FONT_ALIGN_TOP_RIGHT,
+
+    FONT_ALIGN_COUNT,
 } FontAlign;
 
 
@@ -157,6 +159,12 @@ void FontPixmap_set_space_advance(FontPixmap *self, float space_advance);
 
 // Получить ширину пробела:
 float FontPixmap_get_space_advance(FontPixmap *self);
+
+// Установить выравнивание блока текста:
+void FontPixmap_set_align(FontPixmap *self, FontAlign align);
+
+// Получить выравнивание блока текста:
+FontAlign FontPixmap_get_align(FontPixmap *self);
 
 // Получить блок текста:
 FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...);
