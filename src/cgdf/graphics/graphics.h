@@ -13,7 +13,6 @@ extern "C" {
 // Подключаем:
 #include "controllers/controllers.h"
 #include "animator.h"
-#include "batch.h"
 #include "camera.h"
 #include "draw.h"
 #include "font.h"
@@ -24,6 +23,7 @@ extern "C" {
 #include "scene.h"
 #include "shader.h"
 #include "sprite.h"
+#include "spritebatch.h"
 #include "texture.h"
 #include "utils.h"
 #include "vertex.h"

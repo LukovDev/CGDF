@@ -20,6 +20,8 @@ typedef struct Camera3D Camera3D;  // 3D Камера.
 struct Camera2D {
     mat4 view;        // Матрица вида.
     mat4 proj;        // Матрица проекции.
+    mat4 old_view;    // Старая матрица вида (используется при ui_begin/end).
+    mat4 old_proj;    // Старая матрица проекции (используется при ui_begin/end).
     Window *window;   // Указатель на окно.
     Vec2d position;   // Позиция камеры.
     float angle;      // Угол наклона камеры.

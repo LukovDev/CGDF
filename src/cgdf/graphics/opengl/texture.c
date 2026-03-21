@@ -15,6 +15,82 @@
 #include "gl.h"
 
 
+// -------- Вспомогательные функции: --------
+
+
+// Подбираем формат текстуры (internalformat):
+static int get_tex_format(TextureFormat format) {
+    int gl_tex_format = GL_RGBA;
+    switch (format) {
+        case TEX_RED:      { gl_tex_format = GL_RED; break; }
+        case TEX_RG:       { gl_tex_format = GL_RG; break; }
+        case TEX_RGB:      { gl_tex_format = GL_RGB; break; }
+        case TEX_RGBA:     { gl_tex_format = GL_RGBA; break; }
+        case TEX_RGB16F:   { gl_tex_format = GL_RGB16F; break; }
+        case TEX_RGBA16F:  { gl_tex_format = GL_RGBA16F; break; }
+        case TEX_RGB32F:   { gl_tex_format = GL_RGB32F; break; }
+        case TEX_RGBA32F:  { gl_tex_format = GL_RGBA32F; break; }
+        case TEX_R16F:     { gl_tex_format = GL_R16F; break; }
+        case TEX_SRGB:     { gl_tex_format = GL_SRGB8; break; }
+        case TEX_SRGBA:    { gl_tex_format = GL_SRGB8_ALPHA8; break; }
+        case TEX_BGR:      { gl_tex_format = GL_RGB; break; }
+        case TEX_BGRA:     { gl_tex_format = GL_RGBA; break; }
+        case TEX_RGBA8:    { gl_tex_format = GL_RGBA8; break; }
+        case TEX_DEPTH16:  { gl_tex_format = GL_DEPTH_COMPONENT16; break; }
+        case TEX_DEPTH24:  { gl_tex_format = GL_DEPTH_COMPONENT24; break; }
+        case TEX_DEPTH32:  { gl_tex_format = GL_DEPTH_COMPONENT32; break; }
+        case TEX_DEPTH32F: { gl_tex_format = GL_DEPTH_COMPONENT32F; break; }
+        case TEX_DEPTH_COMPONENT: { gl_tex_format = GL_DEPTH_COMPONENT16; break; }
+        case TEX_DEPTH_STENCIL:   { gl_tex_format = GL_DEPTH24_STENCIL8; break; }
+    }
+    return gl_tex_format;
+}
+
+// Подбираем формат внешних данных:
+static int get_data_format(TextureFormat format) {
+    int gl_data_format = GL_RGBA;
+    switch (format) {
+        case TEX_RED:     { gl_data_format = GL_RED; break; }
+        case TEX_RG:      { gl_data_format = GL_RG; break; }
+        case TEX_RGB:     { gl_data_format = GL_RGB; break; }
+        case TEX_RGBA:    { gl_data_format = GL_RGBA; break; }
+        case TEX_RGB16F:
+        case TEX_RGB32F:
+        case TEX_SRGB:    { gl_data_format = GL_RGB; break; }
+        case TEX_RGBA8:
+        case TEX_RGBA16F:
+        case TEX_RGBA32F:
+        case TEX_SRGBA:   { gl_data_format = GL_RGBA; break; }
+        case TEX_BGR:     { gl_data_format = GL_BGR; break; }
+        case TEX_BGRA:    { gl_data_format = GL_BGRA; break; }
+        case TEX_R16F:    { gl_data_format = GL_RED; break; }
+        case TEX_DEPTH16:
+        case TEX_DEPTH24:
+        case TEX_DEPTH32:
+        case TEX_DEPTH32F:
+        case TEX_DEPTH_COMPONENT: { gl_data_format = GL_DEPTH_COMPONENT; break; }
+        case TEX_DEPTH_STENCIL:   { gl_data_format = GL_DEPTH_STENCIL; break; }
+    }
+    return gl_data_format;
+}
+
+// Подбираем тип данных:
+static int get_data_type(TextureDataType dtype) {
+    int gl_data_type;
+    switch (dtype) {
+        case TEX_DATA_UBYTE:  { gl_data_type = GL_UNSIGNED_BYTE; break; }
+        case TEX_DATA_BYTE:   { gl_data_type = GL_BYTE; break; }
+        case TEX_DATA_USHORT: { gl_data_type = GL_UNSIGNED_SHORT; break; }
+        case TEX_DATA_SHORT:  { gl_data_type = GL_SHORT; break; }
+        case TEX_DATA_UINT:   { gl_data_type = GL_UNSIGNED_INT; break; }
+        case TEX_DATA_INT:    { gl_data_type = GL_INT; break; }
+        case TEX_DATA_FLOAT:  { gl_data_type = GL_FLOAT; break; }
+        default:              { gl_data_type = GL_UNSIGNED_BYTE; break; }
+    }
+    return gl_data_type;
+}
+
+
 // -------- API текстуры: --------
 
 
@@ -55,8 +131,11 @@ void Texture_destroy(Texture **texture) {
 void Texture_empty(Texture *self, int width, int height, bool use_mipmap, TextureFormat format, TextureDataType dtype) {
     if (!self) return;
 
-    // NULL data -> выделяется пустая текстура нужного размера:
-    Texture_set_data(self, width, height, NULL, use_mipmap, format, format, dtype);
+    width = width <= 0 ? 1 : width;
+    height = height <= 0 ? 1 : height;
+    char *null_data = mm_calloc(1, (size_t)width * (size_t)height * 4);
+    Texture_set_data(self, width, height, null_data, use_mipmap, format, format, dtype);
+    mm_free(null_data);
 }
 
 // Загрузить текстуру (из файла):
@@ -137,74 +216,21 @@ void Texture_set_data(
         log_msg("[E] Texture_set_data: The texture could not be created.\n");
         return;
     }
-    Texture_begin(self);
 
     // Подбираем формат текстуры (internalformat):
-    int gl_tex_format = GL_RGBA;
-    switch (tex_format) {
-        case TEX_RED:      { gl_tex_format = GL_RED; break; }
-        case TEX_RG:       { gl_tex_format = GL_RG; break; }
-        case TEX_RGB:      { gl_tex_format = GL_RGB; break; }
-        case TEX_RGBA:     { gl_tex_format = GL_RGBA; break; }
-        case TEX_RGB16F:   { gl_tex_format = GL_RGB16F; break; }
-        case TEX_RGBA16F:  { gl_tex_format = GL_RGBA16F; break; }
-        case TEX_RGB32F:   { gl_tex_format = GL_RGB32F; break; }
-        case TEX_RGBA32F:  { gl_tex_format = GL_RGBA32F; break; }
-        case TEX_R16F:     { gl_tex_format = GL_R16F; break; }
-        case TEX_SRGB:     { gl_tex_format = GL_SRGB8; break; }
-        case TEX_SRGBA:    { gl_tex_format = GL_SRGB8_ALPHA8; break; }
-        case TEX_BGR:      { gl_tex_format = GL_RGB; break; }
-        case TEX_BGRA:     { gl_tex_format = GL_RGBA; break; }
-        case TEX_RGBA8:    { gl_tex_format = GL_RGBA8; break; }
-        case TEX_DEPTH16:  { gl_tex_format = GL_DEPTH_COMPONENT16; break; }
-        case TEX_DEPTH24:  { gl_tex_format = GL_DEPTH_COMPONENT24; break; }
-        case TEX_DEPTH32:  { gl_tex_format = GL_DEPTH_COMPONENT32; break; }
-        case TEX_DEPTH32F: { gl_tex_format = GL_DEPTH_COMPONENT32F; break; }
-        case TEX_DEPTH_COMPONENT: { gl_tex_format = GL_DEPTH_COMPONENT16; break; }
-        case TEX_DEPTH_STENCIL:   { gl_tex_format = GL_DEPTH24_STENCIL8; break; }
-    }
+    int gl_tex_format = get_tex_format(tex_format);
 
     // Подбираем формат внешних данных:
-    int gl_data_format = GL_RGBA;
-    switch (data_format) {
-        case TEX_RED:     { gl_data_format = GL_RED; break; }
-        case TEX_RG:      { gl_data_format = GL_RG; break; }
-        case TEX_RGB:     { gl_data_format = GL_RGB; break; }
-        case TEX_RGBA:    { gl_data_format = GL_RGBA; break; }
-        case TEX_RGB16F:
-        case TEX_RGB32F:
-        case TEX_SRGB:    { gl_data_format = GL_RGB; break; }
-        case TEX_RGBA8:
-        case TEX_RGBA16F:
-        case TEX_RGBA32F:
-        case TEX_SRGBA:   { gl_data_format = GL_RGBA; break; }
-        case TEX_BGR:     { gl_data_format = GL_BGR; break; }
-        case TEX_BGRA:    { gl_data_format = GL_BGRA; break; }
-        case TEX_R16F:    { gl_data_format = GL_RED; break; }
-        case TEX_DEPTH16:
-        case TEX_DEPTH24:
-        case TEX_DEPTH32:
-        case TEX_DEPTH32F:
-        case TEX_DEPTH_COMPONENT: { gl_data_format = GL_DEPTH_COMPONENT; break; }
-        case TEX_DEPTH_STENCIL:   { gl_data_format = GL_DEPTH_STENCIL; break; }
-    }
+    int gl_data_format = get_data_format(data_format);
 
     // Подбираем тип данных:
-    int gl_data_type;
-    switch (data_type) {
-        case TEX_DATA_UBYTE:  { gl_data_type = GL_UNSIGNED_BYTE; break; }
-        case TEX_DATA_BYTE:   { gl_data_type = GL_BYTE; break; }
-        case TEX_DATA_USHORT: { gl_data_type = GL_UNSIGNED_SHORT; break; }
-        case TEX_DATA_SHORT:  { gl_data_type = GL_SHORT; break; }
-        case TEX_DATA_UINT:   { gl_data_type = GL_UNSIGNED_INT; break; }
-        case TEX_DATA_INT:    { gl_data_type = GL_INT; break; }
-        case TEX_DATA_FLOAT:  { gl_data_type = GL_FLOAT; break; }
-        default:              { gl_data_type = GL_UNSIGNED_BYTE; break; }
-    }
+    int gl_data_type = get_data_type(data_type);
 
     // Перепроверка:
     if (gl_tex_format == GL_RGB16F || gl_tex_format == GL_RGBA16F) gl_data_type = GL_HALF_FLOAT;
     else if (gl_tex_format == GL_RGB32F || gl_tex_format == GL_RGBA32F) gl_data_type = GL_FLOAT;
+
+    Texture_begin(self);
 
     // UNPACK alignment для RGB/BGR:
     int prev_unpack = 0;
@@ -226,6 +252,36 @@ void Texture_set_data(
 
     // Устанавливаем фильтры по умолчанию:
     Texture_set_linear(self);
+    Texture_end(self);
+}
+
+// Установить данные текстуры (подмассив):
+void Texture_set_subdata(
+    Texture *self, int miplevel, int offset_x, int offset_y, int width, int height,
+    TextureFormat data_format, TextureDataType data_type, const void *data
+) {
+    if (!self) return;
+
+    // Подбираем формат внешних данных:
+    int gl_data_format = get_data_format(data_format);
+
+    // Подбираем тип данных:
+    int gl_data_type = get_data_type(data_type);
+
+    Texture_begin(self);
+
+    // UNPACK alignment для RGB/BGR:
+    int prev_unpack = 0;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack);
+    if (gl_data_format == GL_RGB || gl_data_format == GL_BGR) {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    }
+
+    glTexSubImage2D(GL_TEXTURE_2D, miplevel, offset_x, offset_y, width, height, gl_data_format, gl_data_type, data);
+
+    // Если надо использовать мипмапы, создаём их:
+    if (self->has_mipmap) glGenerateMipmap(GL_TEXTURE_2D);
+
     Texture_end(self);
 }
 

@@ -97,7 +97,7 @@ void Window_destroy(Window **window);
 
 
 // Вызовите для открытия окна:
-bool Window_open(Window *self, bool renderer_debug);
+bool Window_open(Window *self);
 
 // Вызовите для закрытия окна:
 bool Window_close(Window *self);

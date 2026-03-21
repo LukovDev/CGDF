@@ -25,6 +25,7 @@ static Texture *anim[18];
 static Texture *animation;
 static FrameAnimator2D *anim2d;
 static Shader *grid;
+FontPixmap *font;
 
 
 static void print_before_free() {
@@ -107,6 +108,10 @@ void start(Window *self) {
     Shader_compile(grid);
     mm_free(grid_vert);
     mm_free(grid_frag);
+
+    font = FontPixmap_create(self->renderer, "data/fonts/pixel.ttf", 32);
+    FontPixmap_set_pixelized(font, true);
+
     printf("data loaded\n");
 }
 
@@ -114,6 +119,7 @@ void start(Window *self) {
 // Вызывается при закрытии окна:
 void destroy(Window *self) {
     printf("Destroy called.\n");
+    print_before_free();
     Camera2D_destroy(&camera);
     CameraController2D_destroy(&ctrl);
     CameraOrbitController3D_destroy(&ctrl_orbit);
@@ -124,6 +130,7 @@ void destroy(Window *self) {
     SpriteBatch_destroy(&batch);
     SimpleDraw_destroy(&draw);
     Shader_destroy(&grid);
+    FontPixmap_destroy(&font);
 
     Camera3D_destroy(&camera3d);
     CameraController3D_destroy(&ctrl3d);
@@ -149,13 +156,14 @@ void update(Window *self, float dtime) {
         return;
     }
 
-    static bool cam2d = true;
+    static bool cam2d = false;
     if (Input_get_key_down(self)[K_2]) cam2d = !cam2d;
     if (cam2d) {
         CameraController2D_update(ctrl, dtime, false);
         Camera2D_update(camera);
         ctrl3d->target_pos.x = ctrl->target_pos.x;
         ctrl3d->target_pos.y = ctrl->target_pos.y;
+        ctrl3d->target_pos.z = ctrl->target_zoom;
         camera3d->position = ctrl3d->target_pos;
     } else {
         Camera3D_set_depth_test(camera3d, true);
@@ -210,8 +218,8 @@ void render(Window *self, float dtime) {
                 float len_xz = sqrtf(to_cam.x * to_cam.x + to_cam.z * to_cam.z);
                 // rotation.x = pitch, rotation.y = yaw, rotation.z = roll
                 Vec3f rot = (Vec3f){
-                    -atan2f(to_cam.y, len_xz) * (180.0f / GLM_PIf), // X
-                    atan2f(to_cam.x, to_cam.z) * (180.0f / GLM_PIf), // Y
+                    -degrees(atan2f(to_cam.y, len_xz)),  // X
+                    degrees(atan2f(to_cam.x, to_cam.z)), // Y
                 };
                 // SpriteBatch_set_color(batch, (Vec4f){fabs(sinf(time+spos.x)), fabs((sinf(time+spos.y)+cosf(time+spos.y))/2), fabs(cosf(time+spos.z)), 1});
                 SpriteBatch_draw3d(batch, animation, spos, rot, 1.0f, 1.0f);
@@ -238,8 +246,8 @@ void render(Window *self, float dtime) {
     float len_xz = sqrtf(to_cam.x * to_cam.x + to_cam.z * to_cam.z);
     // rotation.x = pitch, rotation.y = yaw, rotation.z = roll
     Vec3f rot = (Vec3f){
-        -atan2f(to_cam.y, len_xz) * (180.0f / GLM_PIf), // X
-        atan2f(to_cam.x, to_cam.z) * (180.0f / GLM_PIf), // Y
+        -degrees(atan2f(to_cam.y, len_xz)),  // X
+        degrees(atan2f(to_cam.x, to_cam.z)), // Y
     };
     sprite3d->rotation = rot;
     sprite3d->render(sprite3d);
@@ -319,6 +327,32 @@ void render(Window *self, float dtime) {
         Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
         Shader_end(grid);
     }
+    Sprite2D_render(self->renderer, font->atlas, 0, 20, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    font->line_height = sinf(time)*15.0f;
+    font->letter_spacing = cosf(time)*5.0f;
+
+    Camera2D_update(camera);
+    Camera2D_ui_begin(camera);
+    Sprite2D_render(self->renderer, font->atlas, 0, 0, 256.0f, 256.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    Vec2f text_pos = {32.0f, 192.0f};
+    FontPixmap_render(font, text_pos.x, text_pos.y, 0, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
+    SimpleDraw_point(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){text_pos.x, text_pos.y, 0}, 4.0f);
+
+    // FontTextBlock block = FontPixmap_get_text_block(font, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
+    // float min_x = block.min_x + 32.0f;
+    // float max_x = block.max_x + 32.0f;
+    // float min_y = block.min_y + 128+32+32.0f;
+    // float max_y = block.max_y + 128+32+32.0f;
+    // SimpleDraw_line_loop(draw, (Vec4f){1, 0, 0, 1}, (Vec3f[]){
+    //     {min_x, min_y, 0},
+    //     {min_x, max_y, 0},
+    //     {max_x, max_y, 0},
+    //     {max_x, min_y, 0},
+    // }, 4, 1.0f);
+    // FontPixmap_render(font, "ABOLTUZ!!!$@#@#:", 32.0f, 128+64+32.0f, 0.0f, (Vec4f){0.0f, 1.0f, 1.0f, 1.0f}, true);
+    Camera2D_ui_end(camera);
 
     Window_display(self);
 }
@@ -363,14 +397,13 @@ int main(int argc, char *argv[]) {
     log_msg("[I] CGDF version: %s\n", cgdf_version);
 
     WinConfig *config = Window_create_config(TestScene);
-    config->gl_major = 4;
-    config->gl_minor = 6;
+    config->gl_major = 3;
+    config->gl_minor = 3;
     Window *window = Window_create(config);
-    if (!Window_open(window, true)) {
+    Renderer_debug_config.debug_enabled = true;
+    if (!Window_open(window)) {
         log_msg("[E] Window creation failed.\n");
     }
-
-    print_before_free();
 
     Window_destroy(&window);
     Window_destroy_config(&config);

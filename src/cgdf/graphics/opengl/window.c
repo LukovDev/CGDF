@@ -362,7 +362,7 @@ static void ClosingStage(Window *self) {
 
 
 // Вызовите для открытия окна:
-bool Window_open(Window *self, bool renderer_debug) {
+bool Window_open(Window *self) {
     if (!self || !self->config) return false;
     WinConfig *cfg = self->config;
     WinVars *vars = self->vars;
@@ -417,7 +417,7 @@ bool Window_open(Window *self, bool renderer_debug) {
     self->renderer = rnd;  // Указываем рендерер в окне.
 
     // Инициализируем рендерер:
-    Renderer_init(rnd, renderer_debug);
+    Renderer_init(rnd);
 
     // Устанавливаем значения в глобальные переменные:
     vars->window = window;

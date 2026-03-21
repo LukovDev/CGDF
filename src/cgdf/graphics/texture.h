@@ -85,8 +85,16 @@ void Texture_end(Texture *self);
 void Texture_load_pixmap(Texture *self, Pixmap *pixmap, bool use_mipmap);
 
 // Установить данные текстуры:
-void Texture_set_data(Texture *self, const int width, const int height, const void *data, bool use_mipmap,
-                      TextureFormat tex_format, TextureFormat data_format, TextureDataType data_type);
+void Texture_set_data(
+    Texture *self, const int width, const int height, const void *data, bool use_mipmap,
+    TextureFormat tex_format, TextureFormat data_format, TextureDataType data_type
+);
+
+// Установить данные текстуры (подмассив):
+void Texture_set_subdata(
+    Texture *self, int miplevel, int offset_x, int offset_y, int width, int height,
+    TextureFormat data_format, TextureDataType data_type, const void *data
+);
 
 // Получить картинку из текстуры:
 Pixmap* Texture_get_pixmap(Texture *self, int channels);

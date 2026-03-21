@@ -26,6 +26,17 @@
 #define GL_VBO_FREE_MEMORY_ATI 0x87FB
 
 
+// Глобальная конфигурация дебага рендеринга:
+RendererDebugConfig Renderer_debug_config = {
+    .debug_enabled = false,
+    .sync = false,
+    .level_notify = false,
+    .level_low = false,
+    .level_medium = true,
+    .level_high = true
+};
+
+
 // -------- Стандартные шейдеры рендеринга: --------
 
 
@@ -219,35 +230,35 @@ static void APIENTRY gl_debug_cb(
     log_msg("[GL][%s][%s<id=%u>] %s\n", dbg_severity(severity), dbg_type(type), id, message ? message : "(null).");
 }
 
-static void gl_setup_debug_output(bool synchronous, bool notification, bool low, bool medium, bool high) {
+static void gl_setup_debug_output(bool sync, bool notify, bool low, bool medium, bool high) {
     log_msg("[GL] OpenGL debug log level: [NOTIFY=%s, LOW=%s, MEDIUM=%s, HIGH=%s]\n",
-        notification ? "ON" : "OFF", low ? "ON" : "OFF", medium ? "ON" : "OFF", high ? "ON" : "OFF"
+        notify ? "ON" : "OFF", low ? "ON" : "OFF", medium ? "ON" : "OFF", high ? "ON" : "OFF"
     );
 
     // Core 4.3+ (современнее и стабильнее):
     if (GLAD_GL_VERSION_4_3) {
         glEnable(GL_DEBUG_OUTPUT);
-        if (synchronous) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        if (sync) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         else glDisable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(gl_debug_cb, NULL);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, NULL, high);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notification);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notify);
         log_msg("[GL] OpenGL debug output enabled (CORE 4.3+).\n");
     }
 
     // Для старых драйверов:
     else if (GLAD_GL_ARB_debug_output) {
-        if (synchronous) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+        if (sync) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         else glDisable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         glDebugMessageCallbackARB((GLDEBUGPROCARB)gl_debug_cb, NULL);
         glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
         glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, NULL, high);
         glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
         glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
-        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notification);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notify);
         log_msg("[GL] OpenGL debug output enabled (ARB DEBUG).\n");
     }
 }
@@ -306,7 +317,7 @@ void Renderer_destroy(Renderer **rnd) {
 }
 
 // Инициализация рендерера:
-void Renderer_init(Renderer *self, bool renderer_debug) {
+void Renderer_init(Renderer *self) {
     if (!self || self->initialized) return;
 
     // Инициализируем OpenGL:
@@ -327,8 +338,14 @@ void Renderer_init(Renderer *self, bool renderer_debug) {
     };
 
     // Инициализируем логирование OpenGL:
-    if (renderer_debug) {
-        gl_setup_debug_output(false, false, false, true, true);
+    if (Renderer_debug_config.debug_enabled) {
+        gl_setup_debug_output(
+            Renderer_debug_config.sync,
+            Renderer_debug_config.level_notify,
+            Renderer_debug_config.level_low,
+            Renderer_debug_config.level_medium,
+            Renderer_debug_config.level_high
+        );
 
         // Логируем как мы получаем данные о памяти:
         if (GLAD_GL_NVX_gpu_memory_info) log_msg("[GL] Used memory info: GL_NVX_gpu_memory_info\n");

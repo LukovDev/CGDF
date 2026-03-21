@@ -31,9 +31,11 @@ Camera2D* Camera2D_create(Window *window, int width, int height, Vec2d position,
 
     // Матрица вида:
     glm_mat4_identity(camera->view);
+    glm_mat4_identity(camera->old_view);
 
     // Матрица проекции:
     glm_mat4_identity(camera->proj);
+    glm_mat4_identity(camera->old_proj);
 
     // Установка проекции:
     Camera2D_resize(camera, width, height);
@@ -105,13 +107,15 @@ void Camera2D_ui_begin(Camera2D *self) {
     Renderer *renderer = self->window->renderer;
     self->_ui_begin_ = true;
 
-    // Обнуляем матрицу вида в шейдере по умолчанию:
-    mat4 view;
-    glm_mat4_identity(view);
-    glm_translate(view, (vec3){-self->width/2, -self->height/2, 0});
+    // Сохраняем текущую матрицу камеры и переключаемся на отдельный UI-view:
+    glm_mat4_copy(self->view, self->old_view);
+    glm_mat4_copy(self->proj, self->old_proj);
+    glm_mat4_identity(self->view);
+    glm_ortho(0.0f, (float)self->width, 0.0f, (float)self->height, -1.0f, 1.0f, self->proj);
     Shader *shader = renderer->shader;
     Shader_begin(shader);
-    Shader_set_mat4(shader, "u_view", view);
+    Shader_set_mat4(shader, "u_view", self->view);
+    Shader_set_mat4(shader, "u_proj", self->proj);
     Shader_end(shader);
 }
 
@@ -122,9 +126,12 @@ void Camera2D_ui_end(Camera2D *self) {
     self->_ui_begin_ = false;
 
     // Возвращаем обратно матрицу вида в шейдере по умолчанию:
+    glm_mat4_copy(self->old_view, self->view);
+    glm_mat4_copy(self->old_proj, self->proj);
     Shader *shader = renderer->shader;
     Shader_begin(shader);
     Shader_set_mat4(shader, "u_view", self->view);
+    Shader_set_mat4(shader, "u_proj", self->proj);
     Shader_end(shader);
 }
 

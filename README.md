@@ -3,7 +3,7 @@
 
 Является прямым потомком игрового фреймворка [PyGDF](https://github.com/LukovDev/PyGDF) (его разработка остановлена).
 
-<img width="1792" height="512" alt="CGDF4x1" src="https://github.com/user-attachments/assets/71cfead2-7765-46bf-8cf6-75a050019b22" />
+<img width="1792" height="512" src="https://github.com/user-attachments/assets/71cfead2-7765-46bf-8cf6-75a050019b22" />
 
 #
 

@@ -1,5 +1,5 @@
 ﻿//
-// batch.c - Реализация пакетной отрисовки для OpenGL.
+// spritebatch.c - Реализация пакетной отрисовки спрайтов для OpenGL.
 //
 
 
@@ -9,7 +9,7 @@
 #include <cgdf/core/mm.h>
 #include "../camera.h"
 #include "../shader.h"
-#include "../batch.h"
+#include "../spritebatch.h"
 #include "buffers/buffers.h"
 #include "gl.h"
 

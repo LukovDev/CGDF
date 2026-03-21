@@ -9,9 +9,11 @@ Thumbs.db
 
 data/textures/snow.png
 data/animation/
+data/fonts/
 data/shaders/
 
 __pycache__
 metadata.json
 **/**/bin/*
 **/**/obj/*
+*.tmp_*

@@ -18,6 +18,7 @@
 // Объявление структур:
 typedef struct Renderer Renderer;          // Рендерер.
 typedef struct RendererInfo RendererInfo;  // Информация рендерера.
+typedef struct RendererDebugConfig RendererDebugConfig;  // Настройка дебага рендеринга.
 
 
 // Тип используемой камеры:
@@ -25,6 +26,21 @@ typedef enum {
     RENDERER_CAMERA_2D,
     RENDERER_CAMERA_3D,
 } RendererCameraType;
+
+
+// Настройка дебага рендеринга:
+struct RendererDebugConfig {
+    bool debug_enabled;  // Включить дебаг.
+    bool sync;           // Синхронизировать поступление сообщений с вызовом API.
+    bool level_notify;   // Уровень поступления сообщений: Уведомление.
+    bool level_low;      // Уровень поступления сообщений: Низкий.
+    bool level_medium;   // Уровень поступления сообщений: Средний.
+    bool level_high;     // Уровень поступления сообщений: Высокий.
+};
+
+
+// Глобальная конфигурация дебага рендеринга:
+extern RendererDebugConfig Renderer_debug_config;
 
 
 // Информация рендерера:
@@ -64,7 +80,7 @@ Renderer* Renderer_create(void);
 void Renderer_destroy(Renderer **rnd);
 
 // Инициализация рендерера:
-void Renderer_init(Renderer *self, bool renderer_debug);
+void Renderer_init(Renderer *self);
 
 // Освобождение буферов:
 void Renderer_buffers_flush(Renderer *self);
