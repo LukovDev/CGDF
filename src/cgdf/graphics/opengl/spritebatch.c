@@ -229,7 +229,7 @@ void SpriteBatch_draw(
         // Подготовка значений:
         float cx = x + width  * 0.5f;
         float cy = y + height * 0.5f;
-        float angle_rad     = -(angle * (GLM_PIf / 180.0f));
+        float angle_rad     = angle * (GLM_PIf / 180.0f);
         float angle_rad_sin = sinf(angle_rad);
         float angle_rad_cos = cosf(angle_rad);
 

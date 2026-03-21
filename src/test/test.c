@@ -336,11 +336,11 @@ void render(Window *self, float dtime) {
     Camera2D_ui_begin(camera);
     Sprite2D_render(self->renderer, font->atlas, 0, 0, 256.0f, 256.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
-    Vec2f text_pos = {256.0f, 256.0f};
-    font->align = FONT_ALIGN_CENTER_CENTER;
-    FontPixmap_render(font, text_pos.x, text_pos.y, 0, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
-
-    FontPixmap_render3d(font, (Vec3f){0, 5, 0}, rot, "This is 3D text!\nRendering3D!\nEXAMPLE!\nFPS: %g", Window_get_current_fps(self));
+    Vec2f text_pos = {64.0f, 64.0f};
+    // font->align = FONT_ALIGN_CENTER_CENTER;
+    font->bg_color = (Vec4f){0.0f, 0.0f, 0.0f, 0.75f};
+    font->bg_padding = (Vec4f){32.0f, 24.0f, 8.0f, 0.0f};
+    FontPixmap_render(font, text_pos.x, text_pos.y, sinf(time)*90.0f, "FPS: %g\nC Game D\tevelopm\nent Русла 異н Луков. Разработчик\nигрового фреймворка CGDF!", Window_get_current_fps(self));
 
     SimpleDraw_point(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){text_pos.x, text_pos.y, 0}, 4.0f);
 

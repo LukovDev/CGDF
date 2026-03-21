@@ -3,6 +3,14 @@
 //
 
 
+/*
+    Будущие улучшения:
+    - Добавить возможность отрисовывать фон отдельно для каждой строки либо для всего блока в целом.
+    - Добавить отрисовку в 3Д пространстве.
+    - Добавить поддержку отрисовки своих символов-иконок по маркерам (комбинациям символов).
+*/
+
+
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/libs.h>
@@ -210,30 +218,60 @@ static FontGlyph* generate_glyph(FontPixmap *self, uint32_t codepoint) {
 
 // Расширить атлас и перепаковать глифы:
 static bool font_expand_and_repack(FontPixmap *self) {
-    if (!self || !self->atlas) return false;
+    if (!self || !self->atlas || !self->glyphs) return false;
 
     // Получаем размеры и корректируем их до максимума:
     int old_size = self->atlas->width;
     int max_size = Renderer_get_max_texture_size(self->renderer);
     if (old_size >= max_size) return false;  // Крайне странная ситуация. Возвращаем что ничего не получилось.
 
-    int new_size = ceil(old_size * FONT_ATLAS_SCALING);  // Увеличиваем во столько то раз.
-    if (new_size > max_size) new_size = max_size;        // Ограничиваем максимумом.
+    int new_size = (int)ceilf((float)old_size * FONT_ATLAS_SCALING);
+    if (new_size > max_size) new_size = max_size;
+    if (new_size <= old_size) return false;
 
-    // Расширяем атлас:
-    Texture_empty(self->atlas, new_size, new_size, false, TEX_RGBA8, TEX_DATA_UBYTE);
-    HashTable_clear(self->glyphs, true);  // Удаляем старые key+glyph.
-    self->added_glyphs_count = 0;         // Обнуляем счетчик добавленных глифов.
+    // Старый атлас удерживаем:
+    Texture *old_atlas = self->atlas;
+    HashTable *old_glyphs = self->glyphs;
+    int old_added_count = self->added_glyphs_count;
+
+    // Создаём новый атлас:
+    Texture *new_atlas = Texture_create(self->renderer);
+    if (!new_atlas) return false;
+    Texture_empty(new_atlas, new_size, new_size, false, TEX_RGBA8, TEX_DATA_UBYTE);
+    HashTable *new_glyphs = HashTable_create();
+    if (!new_glyphs) {
+        Texture_destroy(&new_atlas);
+        return false;
+    }
+
+    // Временно переключаемся на новую пару atlas и glyphs:
+    self->atlas = new_atlas;
+    self->glyphs = new_glyphs;
+    self->added_glyphs_count = 0;
 
     // Заново генерируем глифы:
     for (size_t i = 0; i < Array_len(self->glyphs_array); i++) {
         uint32_t cp = *(uint32_t*)Array_get(self->glyphs_array, i);  // Получаем codepoint.
         FontGlyph *g = generate_glyph(self, cp);  // Генерируем глиф.
+        // Если глиф не создался или не кэшировался, то это плохо:
         if (!g || !glyph_insert_to_cache(self, cp, g)) {
-            return false;  // Если глиф не создался или не кэшировался, то это плохо.
+            // Возвращаем старое состояние:
+            self->atlas = old_atlas;
+            self->glyphs = old_glyphs;
+            self->added_glyphs_count = old_added_count;
+            // Удаляем новое состояние:
+            HashTable_clear(new_glyphs, true);
+            HashTable_destroy(&new_glyphs);
+            Texture_destroy(&new_atlas);
+            return false;
         }
     }
-    return true;  // Победа! Мы смогли пересобрать атлас в новом размере.
+
+    // Успех. Удаляем старые данные:
+    HashTable_clear(old_glyphs, true);
+    HashTable_destroy(&old_glyphs);
+    Texture_destroy(&old_atlas);
+    return true;
 }
 
 
@@ -251,11 +289,24 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
         return NULL;  // Без шрифта.
     }
 
+    // Создаём объект растрового шрифта:
     FontPixmap *font = (FontPixmap*)mm_alloc(sizeof(FontPixmap));
 
     // Загружаем шрифт и инициализируем его:
     font->ttf_buffer = Files_load_bin(font_path, "rb", NULL);
-    stbtt_InitFont(&font->info, font->ttf_buffer, 0);
+    if (!font->ttf_buffer) {
+        log_msg("[E] FontPixmap_create: failed to read font file: %s\n", font_path);
+        mm_free(font_path);
+        mm_free(font);
+        return NULL;
+    }
+    if (!stbtt_InitFont(&font->info, font->ttf_buffer, 0)) {
+        log_msg("[E] FontPixmap_create: stbtt_InitFont failed for: %s\n", font_path);
+        mm_free(font_path);
+        mm_free(font->ttf_buffer);
+        mm_free(font);
+        return NULL;
+    }
     mm_free(font_path);  // Освобождаем текст пути до файла.
 
     // Обрабатываем размер текста (от 1 до максимального размера текстуры):
@@ -271,6 +322,8 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     font->glyphs_array = Array_create(sizeof(uint32_t), FONT_ATLAS_SIZE);
     font->glyphs = HashTable_create();
     font->color = (Vec4f){1.0f, 1.0f, 1.0f, 1.0f};
+    font->bg_color = (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
+    font->bg_padding = (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
     font->pixelized = false;  // Чисто технически, нужен как флаг-кэш для включения/отключения пикселизации один раз.
     font->added_glyphs_count = 0;
     font->align = FONT_ALIGN_BOTTOM_LEFT;
@@ -359,6 +412,30 @@ Vec4f FontPixmap_get_color(FontPixmap *self) {
     return self->color;
 }
 
+// Установить фоновый цвет текста:
+void FontPixmap_set_bg_color(FontPixmap *self, Vec4f bg_color) {
+    if (!self) return;
+    self->bg_color = bg_color;
+}
+
+// Получить фоновый цвет текста:
+Vec4f FontPixmap_get_bg_color(FontPixmap *self) {
+    if (!self) return (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
+    return self->bg_color;
+}
+
+// Установить отступ фона:
+void FontPixmap_set_bg_padding(FontPixmap *self, Vec4f bg_padding) {
+    if (!self) return;
+    self->bg_padding = bg_padding;
+}
+
+// Получить отступ фона:
+Vec4f FontPixmap_get_bg_padding(FontPixmap *self) {
+    if (!self) return (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
+    return self->bg_padding;
+}
+
 // Установить пикселизацию текста:
 void FontPixmap_set_pixelized(FontPixmap *self, bool pixelized) {
     if (!self) return;
@@ -372,6 +449,54 @@ void FontPixmap_set_pixelized(FontPixmap *self, bool pixelized) {
 bool FontPixmap_get_pixelized(FontPixmap *self) {
     if (!self) return false;
     return self->pixelized;
+}
+
+// Установить смещение межстрочного интервала:
+void FontPixmap_set_line_height(FontPixmap *self, float line_height) {
+    if (!self) return;
+    self->line_height = line_height;
+}
+
+// Получить смещение межстрочного интервала:
+float FontPixmap_get_line_height(FontPixmap *self) {
+    if (!self) return 0.0f;
+    return self->line_height;
+}
+
+// Установить межбуквенный интервал:
+void FontPixmap_set_letter_spacing(FontPixmap *self, float letter_spacing) {
+    if (!self) return;
+    self->letter_spacing = letter_spacing;
+}
+
+// Получить межбуквенный интервал:
+float FontPixmap_get_letter_spacing(FontPixmap *self) {
+    if (!self) return 0.0f;
+    return self->letter_spacing;
+}
+
+// Установить размер табуляции:
+void FontPixmap_set_tab_size(FontPixmap *self, int tab_size) {
+    if (!self) return;
+    self->tab_size = tab_size;
+}
+
+// Получить размер табуляции:
+int FontPixmap_get_tab_size(FontPixmap *self) {
+    if (!self) return 0;
+    return self->tab_size;
+}
+
+// Установить ширину пробела:
+void FontPixmap_set_space_advance(FontPixmap *self, float space_advance) {
+    if (!self) return;
+    self->space_advance = space_advance;
+}
+
+// Получить ширину пробела:
+float FontPixmap_get_space_advance(FontPixmap *self) {
+    if (!self) return 0.0f;
+    return self->space_advance;
 }
 
 // Получить блок текста:
@@ -487,6 +612,7 @@ FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...)
         i += adv_bytes;
     }
 
+    // Заполняем поля:
     out.lines = lines;
     if (has_bounds) {
         out.start = (Vec2f){min_x, min_y};
@@ -544,27 +670,47 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     float baseline = self->ascent * self->scale;
 
     // Для вращения:
-    float angle_rad = -radians(angle);
+    float angle_rad = radians(angle);
     float s = sinf(angle_rad);
     float c = cosf(angle_rad);
     float pivot_x = x;
     float pivot_y = y;
 
     // Точка вращения текста:
+    float align_x = 0.0f;
+    float align_y = 0.0f;
     switch (self->align) {
-        case FONT_ALIGN_BOTTOM_LEFT:   { break; }
-        case FONT_ALIGN_BOTTOM_CENTER: { pivot_x = x + block.size.x * 0.5f; pivot_y = y; break; }
-        case FONT_ALIGN_BOTTOM_RIGHT:  { pivot_x = x + block.size.x; pivot_y = y; break; }
-        case FONT_ALIGN_CENTER_LEFT:   { pivot_x = x; pivot_y = y + block.size.y * 0.5f; break; }
-        case FONT_ALIGN_CENTER_CENTER: { pivot_x = x + block.size.x * 0.5f; pivot_y = y + block.size.y * 0.5f; break; }
-        case FONT_ALIGN_CENTER_RIGHT:  { pivot_x = x + block.size.x; pivot_y = y + block.size.y * 0.5f; break; }
-        case FONT_ALIGN_TOP_LEFT:      { pivot_x = x; pivot_y = y + block.size.y; break; }
-        case FONT_ALIGN_TOP_CENTER:    { pivot_x = x + block.size.x * 0.5f; pivot_y = y + block.size.y; break; }
-        case FONT_ALIGN_TOP_RIGHT:     { pivot_x = x + block.size.x; pivot_y = y + block.size.y; break; }
+        case FONT_ALIGN_BOTTOM_LEFT:   { align_x = 0.0f;                 align_y = 0.0f;                 break; }
+        case FONT_ALIGN_BOTTOM_CENTER: { align_x = -block.size.x * 0.5f; align_y = 0.0f;                 break; }
+        case FONT_ALIGN_BOTTOM_RIGHT:  { align_x = -block.size.x;        align_y = 0.0f;                 break; }
+        case FONT_ALIGN_CENTER_LEFT:   { align_x = 0.0f;                 align_y = -block.size.y * 0.5f; break; }
+        case FONT_ALIGN_CENTER_CENTER: { align_x = -block.size.x * 0.5f; align_y = -block.size.y * 0.5f; break; }
+        case FONT_ALIGN_CENTER_RIGHT:  { align_x = -block.size.x;        align_y = -block.size.y * 0.5f; break; }
+        case FONT_ALIGN_TOP_LEFT:      { align_x = 0.0f;                 align_y = -block.size.y;        break; }
+        case FONT_ALIGN_TOP_CENTER:    { align_x = -block.size.x * 0.5f; align_y = -block.size.y;        break; }
+        case FONT_ALIGN_TOP_RIGHT:     { align_x = -block.size.x;        align_y = -block.size.y;        break; }
     }
+    float block_x = x + align_x;
+    float block_y = y + align_y;
 
     // Рисуем текст:
     SpriteBatch_begin(self->batch);
+
+    // Рисуем фон (пока что на весь блок текста):
+    if (self->bg_color.w > 0.0f) {
+        Vec4f rect = {
+            block_x - self->bg_padding.x,
+            block_y - self->bg_padding.w,
+            block.size.x + self->bg_padding.x + self->bg_padding.z,
+            block.size.y + self->bg_padding.w + self->bg_padding.y,
+        };
+        // Вращение:
+        float rx = pivot_x+((rect.x+rect.z*0.5f-pivot_x)*c-(rect.y+rect.w*0.5f-pivot_y)*s)-rect.z*0.5f;
+        float ry = pivot_y+((rect.x+rect.z*0.5f-pivot_x)*s+(rect.y+rect.w*0.5f-pivot_y)*c)-rect.w*0.5f;
+        SpriteBatch_set_color(self->batch, self->bg_color);
+        SpriteBatch_draw(self->batch, NULL, rx, ry, rect.z, rect.w, angle);
+        SpriteBatch_set_color(self->batch, self->color);
+    }
 
     // Перебираем байты текста:
     int i = 0;
@@ -615,21 +761,8 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
         }
 
         // Точки отрисовки символов:
-        float drawX = (pen_x + g->offset_x) - block.start.x;
-        float drawY = (baseline - g->offset_y - g->height) - block.start.y;
-
-        // Смещение текста:
-        switch (self->align) {
-            case FONT_ALIGN_BOTTOM_LEFT:   { break; }
-            case FONT_ALIGN_BOTTOM_CENTER: { drawX += x - block.size.x*0.5f; drawY += y; break; }
-            case FONT_ALIGN_BOTTOM_RIGHT:  { drawX += x - block.size.x; drawY += y; break; }
-            case FONT_ALIGN_CENTER_LEFT:   { drawX += x; drawY += y - block.size.y*0.5f; break; }
-            case FONT_ALIGN_CENTER_CENTER: { drawX += x - block.size.x*0.5f; drawY += y - block.size.y*0.5f; break; }
-            case FONT_ALIGN_CENTER_RIGHT:  { drawX += x - block.size.x; drawY += y - block.size.y*0.5f; break; }
-            case FONT_ALIGN_TOP_LEFT:      { drawX += x; drawY += y - block.size.y; break; }
-            case FONT_ALIGN_TOP_CENTER:    { drawX += x - block.size.x*0.5f; drawY += y - block.size.y; break; }
-            case FONT_ALIGN_TOP_RIGHT:     { drawX += x - block.size.x; drawY += y - block.size.y; break; }
-        }
+        float drawX = block_x + ((pen_x + g->offset_x) - block.start.x);
+        float drawY = block_y + ((baseline - g->offset_y - g->height) - block.start.y);
 
         // Если размер глифа больше нуля, то рисуем его:
         if (g->width > 0 && g->height > 0) {
@@ -661,9 +794,4 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
 
     SpriteBatch_end(self->batch);
     if (heap_text) mm_free(heap_text);
-}
-
-// Отрисовать 3D текст:
-void FontPixmap_render3d(FontPixmap *self, Vec3f position, Vec3f rotation, const char *text, ...) {
-    if (!self || !text) return;
 }

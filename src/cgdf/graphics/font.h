@@ -54,6 +54,8 @@ struct FontPixmap {
     Array          *glyphs_array;  // Массив глифов (просто коды символов). Нужен для расширения атласа.
     HashTable      *glyphs;        // Хэш-таблица глифов (символов). Нужен для немедленного доступа к глифам.
     Vec4f          color;          // Цвет текста.
+    Vec4f          bg_color;       // Фоновый цвет.
+    Vec4f          bg_padding;     // Отступы фона (left, top, right, bottom).
     bool           pixelized;      // Пикселизированный шрифт.
     int added_glyphs_count;        // Сколько глифов было добавлено в атлас. Нужен для авто-расширения атласа.
     unsigned char  *ttf_buffer;    // Буфер данных файла шрифта.
@@ -68,7 +70,7 @@ struct FontPixmap {
     float line_advance;  // [don't edit] Базовый шаг строки из шрифта (px). Используется при '\n'.
 
     // Метрики которые можно редактировать:
-    float line_height;     // [editable] Смещение расстояния строк по высоте. Используется при '\n'.
+    float line_height;     // [editable] Смещение межстрочного интервала. Используется при '\n'.
     float letter_spacing;  // [editable] Дополнительный межбуквенный интервал (px).
     int   tab_size;        // [editable] Сколько пробелов в '\t'.
     float space_advance;   // [editable] Ширина пробела (px).
@@ -114,17 +116,50 @@ void FontPixmap_set_color(FontPixmap *self, Vec4f color);
 // Получить цвет текста:
 Vec4f FontPixmap_get_color(FontPixmap *self);
 
+// Установить фоновый цвет текста:
+void FontPixmap_set_bg_color(FontPixmap *self, Vec4f bg_color);
+
+// Получить фоновый цвет текста:
+Vec4f FontPixmap_get_bg_color(FontPixmap *self);
+
+// Установить отступ фона:
+void FontPixmap_set_bg_padding(FontPixmap *self, Vec4f bg_padding);
+
+// Получить отступ фона:
+Vec4f FontPixmap_get_bg_padding(FontPixmap *self);
+
 // Установить пикселизацию текста:
 void FontPixmap_set_pixelized(FontPixmap *self, bool pixelized);
 
 // Получить пикселизацию текста:
 bool FontPixmap_get_pixelized(FontPixmap *self);
 
+// Установить смещение межстрочного интервала:
+void FontPixmap_set_line_height(FontPixmap *self, float line_height);
+
+// Получить смещение межстрочного интервала:
+float FontPixmap_get_line_height(FontPixmap *self);
+
+// Установить межбуквенный интервал:
+void FontPixmap_set_letter_spacing(FontPixmap *self, float letter_spacing);
+
+// Получить межбуквенный интервал:
+float FontPixmap_get_letter_spacing(FontPixmap *self);
+
+// Установить размер табуляции:
+void FontPixmap_set_tab_size(FontPixmap *self, int tab_size);
+
+// Получить размер табуляции:
+int FontPixmap_get_tab_size(FontPixmap *self);
+
+// Установить ширину пробела:
+void FontPixmap_set_space_advance(FontPixmap *self, float space_advance);
+
+// Получить ширину пробела:
+float FontPixmap_get_space_advance(FontPixmap *self);
+
 // Получить блок текста:
 FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...);
 
 // Отрисовать текст:
 void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const char *text, ...);
-
-// Отрисовать 3D текст:
-void FontPixmap_render3d(FontPixmap *self, Vec3f position, Vec3f rotation, const char *text, ...);
