@@ -329,17 +329,35 @@ void render(Window *self, float dtime) {
     }
     Sprite2D_render(self->renderer, font->atlas, 0, 20, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
+    Vec2f text_pos = {16.0f, 16.0f};
+    FontPixmap_set_align(font, FONT_ALIGN_BOTTOM_LEFT);
+    FontPixmap_set_scale_factor(font, (Vec2f){camera->meter/100.0f, camera->meter/100.0f});
+    FontPixmap_render(font, text_pos.x, text_pos.y, 0, "CameraPos: x%.3f y%.3f z%.3f", camera3d->position.x, camera3d->position.y, camera3d->position.z);
+
     Camera2D_update(camera);
     Camera2D_ui_begin(camera);
     int width, height;
     Window_get_size(self, &width, &height);
 
-    Vec2f text_pos = {16.0f, height - 16.0f};
-    font->align = FONT_ALIGN_TOP_LEFT;
-    font->bg_color = (Vec4f){0.0f, 0.0f, 0.0f, 0.75f};
-    font->bg_padding = (Vec4f){8.0f, 8.0f, 8.0f, 8.0f};
+    text_pos = (Vec2f){32.0f, height-64.0f};
+    FontPixmap_set_align(font, FONT_ALIGN_TOP_LEFT);
+    FontPixmap_set_bg_color(font, (Vec4f){0.0f, 0.0f, 0.0f, 0.75f});
+    FontPixmap_set_bg_padding(font, (Vec4f){8.0f, 8.0f, 8.0f, 8.0f});
+    FontPixmap_set_scale_factor(font, (Vec2f){1.0f, 1.0f});
     FontPixmap_render(font, text_pos.x, text_pos.y, 0, "FPS: %g", Window_get_current_fps(self));
 
+    // SimpleDraw_point(draw, (Vec4f){1, 1, 0, 1}, (Vec3f){text_pos.x, text_pos.y, 0}, 4.0f);
+    // FontTextBlock block = FontPixmap_get_text_block(font, "FPS: %g", Window_get_current_fps(self));
+    // float min_x = text_pos.x;
+    // float min_y = text_pos.y;
+    // float max_x = text_pos.x + block.size.x;
+    // float max_y = text_pos.y + block.size.y;
+    // SimpleDraw_line_loop(draw, (Vec4f){1, 0, 0, 1}, (Vec3f[]){
+    //     {min_x, min_y, 0},
+    //     {min_x, max_y, 0},
+    //     {max_x, max_y, 0},
+    //     {max_x, min_y, 0},
+    // }, 4, 1.0f);
     Camera2D_ui_end(camera);
 
     Window_display(self);

@@ -321,11 +321,14 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     font->batch = SpriteBatch_create(renderer);
     font->glyphs_array = Array_create(sizeof(uint32_t), FONT_ATLAS_SIZE);
     font->glyphs = HashTable_create();
+    font->added_glyphs_count = 0;
+    // ttf_buffer - уже загружен выше.
+
     font->color = (Vec4f){1.0f, 1.0f, 1.0f, 1.0f};
     font->bg_color = (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
     font->bg_padding = (Vec4f){0.0f, 0.0f, 0.0f, 0.0f};
+    font->scale_factor = (Vec2f){1.0f, 1.0f};
     font->pixelized = false;  // Чисто технически, нужен как флаг-кэш для включения/отключения пикселизации один раз.
-    font->added_glyphs_count = 0;
     font->align = FONT_ALIGN_BOTTOM_LEFT;
 
     // Метрики которые нельзя редактировать:
@@ -436,6 +439,18 @@ Vec4f FontPixmap_get_bg_padding(FontPixmap *self) {
     return self->bg_padding;
 }
 
+// Установить коэффициент масштабирования:
+void FontPixmap_set_scale_factor(FontPixmap *self, Vec2f scale_factor) {
+    if (!self) return;
+    self->scale_factor = scale_factor;
+}
+
+// Получить коэффициент масштабирования:
+Vec2f FontPixmap_get_scale_factor(FontPixmap *self) {
+    if (!self) return (Vec2f){1.0f, 1.0f};
+    return self->scale_factor;
+}
+
 // Установить пикселизацию текста:
 void FontPixmap_set_pixelized(FontPixmap *self, bool pixelized) {
     if (!self) return;
@@ -449,6 +464,18 @@ void FontPixmap_set_pixelized(FontPixmap *self, bool pixelized) {
 bool FontPixmap_get_pixelized(FontPixmap *self) {
     if (!self) return false;
     return self->pixelized;
+}
+
+// Установить выравнивание блока текста:
+void FontPixmap_set_align(FontPixmap *self, FontAlign align) {
+    if (!self) return;
+    self->align = align >= 0 && align < FONT_ALIGN_COUNT ? align : FONT_ALIGN_BOTTOM_LEFT;
+}
+
+// Получить выравнивание блока текста:
+FontAlign FontPixmap_get_align(FontPixmap *self) {
+    if (!self) return FONT_ALIGN_BOTTOM_LEFT;
+    return self->align;
 }
 
 // Установить смещение межстрочного интервала:
@@ -497,18 +524,6 @@ void FontPixmap_set_space_advance(FontPixmap *self, float space_advance) {
 float FontPixmap_get_space_advance(FontPixmap *self) {
     if (!self) return 0.0f;
     return self->space_advance;
-}
-
-// Установить выравнивание блока текста:
-void FontPixmap_set_align(FontPixmap *self, FontAlign align) {
-    if (!self) return;
-    self->align = align >= 0 && align < FONT_ALIGN_COUNT ? align : FONT_ALIGN_BOTTOM_LEFT;
-}
-
-// Получить выравнивание блока текста:
-FontAlign FontPixmap_get_align(FontPixmap *self) {
-    if (!self) return FONT_ALIGN_BOTTOM_LEFT;
-    return self->align;
 }
 
 // Получить блок текста:
@@ -627,9 +642,11 @@ FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...)
     // Заполняем поля:
     out.lines = lines;
     if (has_bounds) {
-        out.start = (Vec2f){min_x, min_y};
-        out.end   = (Vec2f){max_x, max_y};
-        out.size  = (Vec2f){max_x - min_x, max_y - min_y};
+        const float sx = self->scale_factor.x;
+        const float sy = self->scale_factor.y;
+        out.start = (Vec2f){min_x*sx, min_y*sy};
+        out.end   = (Vec2f){max_x*sx, max_y*sy};
+        out.size  = (Vec2f){(max_x - min_x)*sx, (max_y - min_y)*sy};
     } else {
         out.start = (Vec2f){0.0f, 0.0f};
         out.end   = (Vec2f){0.0f, 0.0f};
@@ -680,6 +697,8 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     FontTextBlock block = FontPixmap_get_text_block(self, "%s", render_text);
     float pen_x = 0.0f;
     float baseline = self->ascent * self->scale;
+    const float sx = self->scale_factor.x;
+    const float sy = self->scale_factor.y;
 
     // Для вращения:
     float angle_rad = radians(angle);
@@ -712,10 +731,10 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     // Рисуем фон (пока что на весь блок текста):
     if (self->bg_color.w > 0.0f) {
         Vec4f rect = {
-            block_x - self->bg_padding.x,
-            block_y - self->bg_padding.w,
-            block.size.x + self->bg_padding.x + self->bg_padding.z,
-            block.size.y + self->bg_padding.w + self->bg_padding.y,
+            block_x - self->bg_padding.x * sx,
+            block_y - self->bg_padding.w * sy,
+            block.size.x + (self->bg_padding.x + self->bg_padding.z) * sx,
+            block.size.y + (self->bg_padding.w + self->bg_padding.y) * sy
         };
         // Вращение:
         float rx = pivot_x+((rect.x+rect.z*0.5f-pivot_x)*c-(rect.y+rect.w*0.5f-pivot_y)*s)-rect.z*0.5f;
@@ -773,29 +792,27 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
             pen_x += (float)kern * self->scale;
         }
 
-        // Точки отрисовки символов:
-        float drawX = block_x + ((pen_x + g->offset_x) - block.start.x);
-        float drawY = block_y + ((baseline - g->offset_y - g->height) - block.start.y);
-
         // Если размер глифа больше нуля, то рисуем его:
         if (g->width > 0 && g->height > 0) {
             SpriteBatch_set_color(self->batch, self->color);
             SpriteBatch_set_texcoord(self->batch, (Vec4f){g->u0, g->v0, g->u1, g->v1});
 
+            // Точки отрисовки символов:
+            float drawX = block_x + ((pen_x + g->offset_x) * sx - block.start.x);
+            float drawY = block_y + ((baseline - g->offset_y - g->height) * sy - block.start.y);
+            float gw = (float)g->width * sx;   // Ширина глифа.
+            float gh = (float)g->height * sy;  // Высота глифа.
+
             // Центр глифа:
-            float gcx = drawX + g->width  * 0.5f;
-            float gcy = drawY + g->height * 0.5f;
+            float gcx = drawX + gw * 0.5f;
+            float gcy = drawY + gh * 0.5f;
 
             // Поворот центра вокруг pivot:
-            float dx = gcx - pivot_x;
-            float dy = gcy - pivot_y;
-            float rcx = pivot_x + dx * c - dy * s;
-            float rcy = pivot_y + dx * s + dy * c;
+            float rcx = pivot_x + (gcx - pivot_x) * c - (gcy - pivot_y) * s;
+            float rcy = pivot_y + (gcx - pivot_x) * s + (gcy - pivot_y) * c;
 
             // Обратно в левый нижний угол:
-            float rx = rcx - g->width  * 0.5f;
-            float ry = rcy - g->height * 0.5f;
-            SpriteBatch_draw(self->batch, self->atlas, rx, ry, (float)g->width, (float)g->height, angle);
+            SpriteBatch_draw(self->batch, self->atlas, rcx-gw*0.5f, rcy-gh*0.5f, gw, gh, angle);
         }
 
         // Сдвигаем курсор:

@@ -55,13 +55,15 @@ struct FontPixmap {
     SpriteBatch    *batch;         // Пакетная отрисовка спрайтов (для нас - символов).
     Array          *glyphs_array;  // Массив глифов (просто коды символов). Нужен для расширения атласа.
     HashTable      *glyphs;        // Хэш-таблица глифов (символов). Нужен для немедленного доступа к глифам.
-    Vec4f          color;          // Цвет текста.
-    Vec4f          bg_color;       // Фоновый цвет.
-    Vec4f          bg_padding;     // Отступы фона (left, top, right, bottom).
-    bool           pixelized;      // Пикселизированный шрифт.
     int added_glyphs_count;        // Сколько глифов было добавлено в атлас. Нужен для авто-расширения атласа.
     unsigned char  *ttf_buffer;    // Буфер данных файла шрифта.
-    FontAlign      align;          // Выравнивание текста.
+
+    Vec4f     color;         // Цвет текста.
+    Vec4f     bg_color;      // Фоновый цвет.
+    Vec4f     bg_padding;    // Отступы фона (left, top, right, bottom).
+    Vec2f     scale_factor;  // Коэффициент масштабирования.
+    bool      pixelized;     // Пикселизированный шрифт.
+    FontAlign align;         // Выравнивание текста.
 
     // Метрики которые нельзя редактировать:
     int   font_size;     // [don't edit] Размер шрифта (по высоте в пикселях).
@@ -130,11 +132,23 @@ void FontPixmap_set_bg_padding(FontPixmap *self, Vec4f bg_padding);
 // Получить отступ фона:
 Vec4f FontPixmap_get_bg_padding(FontPixmap *self);
 
+// Установить коэффициент масштабирования:
+void FontPixmap_set_scale_factor(FontPixmap *self, Vec2f scale_factor);
+
+// Получить коэффициент масштабирования:
+Vec2f FontPixmap_get_scale_factor(FontPixmap *self);
+
 // Установить пикселизацию текста:
 void FontPixmap_set_pixelized(FontPixmap *self, bool pixelized);
 
 // Получить пикселизацию текста:
 bool FontPixmap_get_pixelized(FontPixmap *self);
+
+// Установить выравнивание блока текста:
+void FontPixmap_set_align(FontPixmap *self, FontAlign align);
+
+// Получить выравнивание блока текста:
+FontAlign FontPixmap_get_align(FontPixmap *self);
 
 // Установить смещение межстрочного интервала:
 void FontPixmap_set_line_height(FontPixmap *self, float line_height);
@@ -159,12 +173,6 @@ void FontPixmap_set_space_advance(FontPixmap *self, float space_advance);
 
 // Получить ширину пробела:
 float FontPixmap_get_space_advance(FontPixmap *self);
-
-// Установить выравнивание блока текста:
-void FontPixmap_set_align(FontPixmap *self, FontAlign align);
-
-// Получить выравнивание блока текста:
-FontAlign FontPixmap_get_align(FontPixmap *self);
 
 // Получить блок текста:
 FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...);
