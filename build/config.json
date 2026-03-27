@@ -4,7 +4,7 @@
     "source-dirs":   [
         "src/test/",
         "src/cgdf/core/",
-        "src/cgdf/graphics/",
+        "src/cgdf/graphics/core/",
         "src/cgdf/graphics/opengl/"
     ],
     "build-dir":     "build/",

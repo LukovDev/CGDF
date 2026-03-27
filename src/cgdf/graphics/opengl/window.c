@@ -9,10 +9,10 @@
 #include <cgdf/core/mm.h>
 #include <cgdf/core/pixmap.h>
 #include <cgdf/core/logger.h>
-#include "../input.h"
-#include "../scene.h"
-#include "../renderer.h"
-#include "../window.h"
+#include "../core/input.h"
+#include "../core/scene.h"
+#include "../core/renderer.h"
+#include "../core/window.h"
 #include "gl.h"
 
 

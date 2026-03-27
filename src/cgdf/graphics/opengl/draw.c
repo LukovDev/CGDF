@@ -9,10 +9,10 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/math.h>
 #include <cgdf/core/mm.h>
-#include "../shader.h"
-#include "../renderer.h"
-#include "../vertex.h"
-#include "../draw.h"
+#include "../core/shader.h"
+#include "../core/renderer.h"
+#include "../core/vertex.h"
+#include "../core/draw.h"
 #include "buffers/buffers.h"
 #include "gl.h"
 

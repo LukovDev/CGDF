@@ -7,8 +7,8 @@
 #include <cgdf/core/math.h>
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
-#include "../window.h"
-#include "../camera.h"
+#include "../core/window.h"
+#include "../core/camera.h"
 #include "gl.h"
 
 

@@ -7,11 +7,11 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/logger.h>
-#include "../renderer.h"
-#include "../texture.h"
-#include "../shader.h"
-#include "../mesh.h"
-#include "../sprite.h"
+#include "../core/renderer.h"
+#include "../core/texture.h"
+#include "../core/shader.h"
+#include "../core/mesh.h"
+#include "../core/sprite.h"
 
 
 // Объявление функций:

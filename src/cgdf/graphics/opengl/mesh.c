@@ -7,8 +7,8 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/logger.h>
-#include "../vertex.h"
-#include "../mesh.h"
+#include "../core/vertex.h"
+#include "../core/mesh.h"
 #include "buffers/buffers.h"
 #include "gl.h"
 

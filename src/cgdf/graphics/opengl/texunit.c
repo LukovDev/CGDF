@@ -22,8 +22,8 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/array.h>
 #include <cgdf/core/logger.h>
-#include "../texture.h"
-#include "../renderer.h"
+#include "../core/texture.h"
+#include "../core/renderer.h"
 #include "gl.h"
 #include "texunit.h"
 

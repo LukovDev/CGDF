@@ -8,9 +8,9 @@
 #include <cgdf/core/math.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/logger.h>
-#include "../camera.h"
-#include "../shader.h"
-#include "../spritebatch.h"
+#include "../core/camera.h"
+#include "../core/shader.h"
+#include "../core/spritebatch.h"
 #include "buffers/buffers.h"
 #include "gl.h"
 

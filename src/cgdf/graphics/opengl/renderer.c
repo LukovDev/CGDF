@@ -8,11 +8,11 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/logger.h>
-#include "../vertex.h"
-#include "../mesh.h"
-#include "../camera.h"
-#include "../renderer.h"
-#include "../texture.h"
+#include "../core/vertex.h"
+#include "../core/mesh.h"
+#include "../core/camera.h"
+#include "../core/renderer.h"
+#include "../core/texture.h"
 #include "buffer_gc.h"
 #include "texunit.h"
 #include "gl.h"

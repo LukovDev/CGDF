@@ -8,7 +8,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/array.h>
-#include "../texture.h"
+#include "../core/texture.h"
 
 
 // Объявление структур:

@@ -9,9 +9,9 @@
 #include <cgdf/core/mm.h>
 #include <cgdf/core/array.h>
 #include <cgdf/core/logger.h>
-#include "../texture.h"
-#include "../renderer.h"
-#include "../shader.h"
+#include "../core/texture.h"
+#include "../core/renderer.h"
+#include "../core/shader.h"
 #include "texunit.h"
 #include "gl.h"
 

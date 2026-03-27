@@ -7,10 +7,10 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/math.h>
-#include "../renderer.h"
-#include "../shader.h"
-#include "../texture.h"
-#include "../light.h"
+#include "../core/renderer.h"
+#include "../core/shader.h"
+#include "../core/texture.h"
+#include "../core/light.h"
 #include "buffers/buffers.h"
 #include "gl.h"
 

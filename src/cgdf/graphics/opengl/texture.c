@@ -8,8 +8,8 @@
 #include <cgdf/core/mm.h>
 #include <cgdf/core/pixmap.h>
 #include <cgdf/core/logger.h>
-#include "../renderer.h"
-#include "../texture.h"
+#include "../core/renderer.h"
+#include "../core/texture.h"
 #include "buffer_gc.h"
 #include "texunit.h"
 #include "gl.h"
