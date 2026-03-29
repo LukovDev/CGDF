@@ -1,5 +1,5 @@
 //
-// cgdf.h - C Game Development Framework. Встраиваемая библиотека (пакет) для разработки игр на Си.
+// cgdf.h - C Game Development Framework. Фреймворк для разработки игр на Си.
 //
 
 #pragma once
@@ -15,14 +15,14 @@ extern "C" {
 // Подключаем:
 #include "core/core.h"
 
-// Инициализировать библиотеку:
+// Инициализировать фреймворк:
 static inline bool CGDF_Init(void) {
     if (!core_init()) return false;
     // ...
     return true;
 }
 
-// Получить версию библиотеки:
+// Получить версию фреймворка:
 static inline const char* CGDF_GetVersion(void) {
     return CGDF_VERSION;
 }

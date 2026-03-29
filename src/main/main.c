@@ -15,7 +15,7 @@ static Sprite2D *sprite;
 
 
 // Вызывается после создания окна:
-void Main_start(Window *self) {
+static void start(Window *self) {
     // Загружаем и устанавливаем иконку:
     Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
     Window_set_icon(self, icon);
@@ -40,7 +40,7 @@ void Main_start(Window *self) {
 
 
 // Вызывается при закрытии окна:
-void Main_destroy(Window *self) {
+static void destroy(Window *self) {
     // Тут мы уничтожаем все объекты, что создали.
     Camera2D_destroy(&camera);
     Texture_destroy(&tex1);
@@ -49,7 +49,7 @@ void Main_destroy(Window *self) {
 
 
 // Вызывается каждый кадр (цикл окна):
-void Main_update(Window *self, float dtime) {
+static void update(Window *self, float dtime) {
 
     // Пример перемещения камеры:
     float speed = 4.0f;
@@ -65,7 +65,7 @@ void Main_update(Window *self, float dtime) {
 
 
 // Вызывается каждый кадр (отрисовка окна):
-void Main_render(Window *self, float dtime) {
+static void render(Window *self, float dtime) {
     // Очищаем содержимое окна:
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
@@ -82,19 +82,19 @@ void Main_render(Window *self, float dtime) {
 
 
 // Вызывается при изменении размера окна:
-void Main_resize(Window *self, int width, int height) {
+static void resize(Window *self, int width, int height) {
     Camera2D_resize(camera, width, height);  // Масштабируем камеру под новый размер окна.
 }
 
 
 // Вызывается при разворачивании окна:
-void Main_show(Window *self) {
+static void show(Window *self) {
     // Логика при разворачивании окна.
 }
 
 
 // Вызывается при сворачивании окна:
-void Main_hide(Window *self) {
+static void hide(Window *self) {
     // Логика при скрытии окна.
 }
 
@@ -103,25 +103,25 @@ void Main_hide(Window *self) {
 // Это просто структура с нашими функциями, которые будут вызываться нашим окном.
 // Можно указать NULL вместо функции, чтобы она не вызывалась, но лучше оставить.
 WindowScene MainScene = {
-    .start   = Main_start,
-    .destroy = Main_destroy,
-    .update  = Main_update,
-    .render  = Main_render,
-    .resize  = Main_resize,
-    .show    = Main_show,
-    .hide    = Main_hide
+    .start   = start,
+    .destroy = destroy,
+    .update  = update,
+    .render  = render,
+    .resize  = resize,
+    .show    = show,
+    .hide    = hide
 };
 
 
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
-    // В первую очередь, нам надо инициализировать библиотеку:
+    // В первую очередь, нам надо инициализировать фреймворк:
     if (!CGDF_Init()) {
         printf("CGDF initialization failed.\n");
         return 1;
     }
 
-    // Также можно узнать версию библиотеки:
+    // Также можно узнать версию фреймворка:
     printf("CGDF version: %s\n", CGDF_GetVersion());
 
     // Теперь нам надо создать конфигурацию окна (настройки окна):

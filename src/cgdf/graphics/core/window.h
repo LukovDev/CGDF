@@ -43,8 +43,8 @@ struct WinConfig {
     WindowScene scene;  // Сцена окна.
 
     // Версия рендерера:
-    int gl_major;
-    int gl_minor;
+    int gl_major;  // Старшая версия OpenGL.
+    int gl_minor;  // Младшая версия OpenGL.
 
     union {
         int size[2];  // Размер окна.
