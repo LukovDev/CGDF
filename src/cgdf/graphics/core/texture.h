@@ -42,21 +42,21 @@ typedef enum TextureType {
 
 
 // Объявление структур:
-typedef struct Texture Texture;  // Текстура 2D.
 typedef struct Renderer Renderer;
+typedef struct Texture Texture;  // Текстура 2D.
 
 
 // Структура текстуры:
 struct Texture {
-    Renderer *renderer;
-    uint32_t id;
-    int width;
-    int height;
-    int channels;
-    bool has_mipmap;
-    bool _is_begin_;
-    int32_t _id_before_begin_;
-    int32_t _active_id_before_begin_;
+    Renderer *renderer;  // Указатель на рендерер.
+    uint32_t id;         // Айди текстуры.
+    int width;           // Ширина текстуры.
+    int height;          // Высота текстуры.
+    int channels;        // Количество каналов текстуры.
+    bool has_mipmap;     // Наличие мипмапов.
+    bool _is_begin_;     // Признак активности текстуры (внутренняя логика).
+    int32_t _id_before_begin_;         // Прошлые айди состояния (внутренняя логика).
+    int32_t _active_id_before_begin_;  // Прошлые айди состояния (внутренняя логика).
 };
 
 

@@ -24,8 +24,8 @@ typedef enum ShaderCacheUniformType {
 
 // Объявление структур:
 typedef struct Shader Shader;  // Шейдерная программа.
-typedef struct ShaderCacheUniformLocation ShaderCacheUniformLocation;
-typedef struct ShaderCacheUniformValue ShaderCacheUniformValue;
+typedef struct ShaderCacheUniformLocation ShaderCacheUniformLocation;  // Кэш локаций юниформов.
+typedef struct ShaderCacheUniformValue ShaderCacheUniformValue;  // Кэш значений юниформов.
 typedef struct ShaderCacheSampler ShaderCacheSampler;
 typedef struct Renderer Renderer;  // Повторное локальное определение.
 

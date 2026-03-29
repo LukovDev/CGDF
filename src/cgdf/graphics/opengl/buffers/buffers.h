@@ -32,8 +32,8 @@ typedef struct BufferVAO BufferVAO;  // Структура буфера атри
 
 // Структура буфера отслеживания:
 struct BufferQBO {
-    uint32_t id;
-    bool _is_begin_;
+    uint32_t id;      // Айди буфера.
+    bool _is_begin_;  // Флаг использования буфера (внутренняя логика).
 };
 
 // Создать буфер отслеживания:
@@ -57,16 +57,16 @@ uint32_t BufferQBO_get_primitives(BufferQBO *self);
 
 // Структура буфера кадра:
 struct BufferFBO {
-    int width;
-    int height;
-    uint32_t id;
-    uint32_t rbo_id;
-    bool _is_begin_;
-    int32_t _id_before_begin_;
-    int32_t _rbo_id_before_begin_;
-    int32_t _id_before_read_;
-    int32_t _id_before_draw_;
-    Array *attachments;
+    int width;        // Ширина кадрового буфера.
+    int height;       // Высота кадрового буфера.
+    uint32_t id;      // Айди кадрового буфера.
+    uint32_t rbo_id;  // Айди рендер буфера.
+    bool _is_begin_;  // Флаг использования буфера (внутренняя логика).
+    int32_t _id_before_begin_;  // ID буфера перед использованием (внутренняя логика).
+    int32_t _rbo_id_before_begin_;  // ID рендер буфера перед использованием (внутренняя логика).
+    int32_t _id_before_read_;   // Айди перед чтением (внутренняя логика).
+    int32_t _id_before_draw_;   // Айди перед рисованием (внутренняя логика).
+    Array *attachments;         // Массив привязок.
 };
 
 // Создать буфер кадра:
@@ -114,9 +114,9 @@ void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment,
 
 // Структура буфера вершин:
 struct BufferVBO {
-    uint32_t id;
-    bool _is_begin_;
-    int32_t _id_before_begin_;
+    uint32_t id;      // Айди буфера.
+    bool _is_begin_;  // Флаг использования буфера (внутренняя логика).
+    int32_t _id_before_begin_;  // ID буфера перед использованием (внутренняя логика).
 };
 
 // Создать буфер вершин:
@@ -146,9 +146,9 @@ void BufferVBO_set_subdata(BufferVBO *self, const void *data, const size_t offse
 
 // Структура буфера индексов:
 struct BufferEBO {
-    uint32_t id;
-    bool _is_begin_;
-    int32_t _id_before_begin_;
+    uint32_t id;      // Айди буфера.
+    bool _is_begin_;  // Флаг использования буфера (внутренняя логика).
+    int32_t _id_before_begin_;  // ID буфера перед использованием (внутренняя логика).
 };
 
 // Создать буфер индексов:
@@ -178,9 +178,9 @@ void BufferEBO_set_subdata(BufferEBO *self, const void *data, const size_t offse
 
 // Структура буфера атрибутов:
 struct BufferVAO {
-    uint32_t id;
-    bool _is_begin_;
-    int32_t _id_before_begin_;
+    uint32_t id;      // Айди буфера.
+    bool _is_begin_;  // Флаг использования буфера (внутренняя логика).
+    int32_t _id_before_begin_;  // ID буфера перед использованием (внутренняя логика).
 };
 
 // Создать буфер атрибутов:

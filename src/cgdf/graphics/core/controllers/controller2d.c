@@ -76,7 +76,8 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
     if (is_zooming) self->target_zoom -= mouse_scroll * self->target_zoom * 0.1f;
     if (self->target_zoom*meter < self->min_zoom) self->target_zoom = self->min_zoom*1.0f/meter;
     if (self->target_zoom > self->max_zoom) self->target_zoom = self->max_zoom;
-    camera->zoom += ((self->target_zoom - camera->zoom) * 1.0f/fr) * dtime;
+    if (fr > 0.0f) camera->zoom += ((self->target_zoom - camera->zoom) * 1.0f/fr) * dtime;
+    else camera->zoom = self->target_zoom;
 
     // Плавное перемещение камеры:
     if (fr > 0.0f) {

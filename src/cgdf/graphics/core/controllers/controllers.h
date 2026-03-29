@@ -20,56 +20,54 @@ typedef struct CameraOrbitController3D CameraOrbitController3D;  // Орбита
 
 // Простой контроллер для 2D камеры:
 struct CameraController2D {
-    Window *window;
-    Camera2D *camera;
-    Vec2i fixed_mouse_pos;
-    Vec2d target_pos;
-    float target_zoom;
-    float offset_scale;
-    float min_zoom;
-    float max_zoom;
-    float friction;
-    bool is_movement;
+    Window *window;      // Указатель на окно.
+    Camera2D *camera;    // Указатель на 2D камеру.
+    Vec2i fixed_mouse_pos;  // Прошлая позиция мыши.
+    Vec2d target_pos;    // Целевая позиция камеры.
+    float target_zoom;   // Целевой масштаб камеры.
+    float offset_scale;  // Коэффициент смещения мыши для скольжения через колесико мыши.
+    float min_zoom;      // Минимальный масштаб камеры.
+    float max_zoom;      // Максимальный масштаб камеры.
+    float friction;      // Коэффициент скольжения камеры.
+    bool is_movement;    // Перемещается ли камера или нет.
 };
 
 
 // Простой контроллер для 3D камеры:
 struct CameraController3D {
-    Window *window;
-    Camera3D *camera;
-    float mouse_sensitivity;
-    float ctrl_speed;
-    float speed;
-    float shift_speed;
-    float friction;
-    bool up_is_forward;
-
-    Vec3f up_dir;
-    Vec3d target_pos;
-    float target_fov;
-    bool pressed_pass;
-    bool is_pressed;
-    bool is_movement;
+    Window *window;      // Указатель на окно.
+    Camera3D *camera;    // Указатель на 3D камеру.
+    float mouse_sensitivity;  // Коэффициент чувствительности мыши.
+    float ctrl_speed;    // Скорость камеры при зажатом CTRL (ед/сек).
+    float speed;         // Скорость камеры без клавиш модификаторов (ед/сек).
+    float shift_speed;   // Скорость камеры при зажатом SHIFT (ед/сек).
+    float friction;      // Коэффициент скольжения камеры.
+    bool up_is_forward;  // Вверх - вперед.
+    Vec3f up_dir;        // Направление вверх.
+    Vec3d target_pos;    // Целевая позиция камеры.
+    float target_fov;    // Целевой угол обзора.
+    bool pressed_pass;   // Пропуск нажатия (внутренняя логика).
+    bool is_pressed;     // Нажата клавиша (внутренняя логика).
+    bool is_movement;    // Перемещается ли камера или нет.
 };
 
 
 // Орбитальный контроллер для 3D камеры:
 struct CameraOrbitController3D {
-    Window *window;
-    Camera3D *camera;
-    float mouse_sensitivity;
-    float distance;
-    float friction;
-    bool up_is_forward;
-
-    Vec3d rotation;
-    Vec3d target_pos;
-    Vec3d target_rot;
-    float target_dst;
-    float target_fov;
-    bool pressed_pass;
-    bool is_pressed;
-    bool is_movement;
+    Window *window;      // Указатель на окно.
+    Camera3D *camera;    // Указатель на 3D камеру.
+    float mouse_sensitivity;  // Коэффициент чувствительности мыши.
+    float distance;      // Дистанция камеры от цели.
+    float friction;      // Коэффициент скольжения камеры.
+    bool up_is_forward;  // Вверх - вперед.
+    Vec3d rotation;      // Поворот камеры.
+    Vec3d target_pos;    // Целевая позиция камеры.
+    Vec3d target_rot;    // Целевой поворот камеры.
+    float target_dst;    // Целевая дистанция камеры.
+    float target_fov;    // Целевой угол обзора.
+    bool pressed_pass;   // Пропуск нажатия (внутренняя логика).
+    bool is_pressed;     // Нажата клавиша (внутренняя логика).
+    bool is_movement;    // Перемещается ли камера или нет.
 };
 
 

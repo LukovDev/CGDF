@@ -29,11 +29,11 @@ typedef struct Pixmap Pixmap;  // Картинка.
 
 // Структура картинки:
 struct Pixmap {
-    int width;
-    int height;
-    int channels;
-    bool from_stbi;
-    unsigned char* data;
+    int width;       // Ширина картинки.
+    int height;      // Высота картинки.
+    int channels;    // Количество байт на пиксель.
+    bool from_stbi;  // Флаг, что картинка загружена с помощью stbi.
+    unsigned char* data;  // Указатель на блок данных.
 };
 
 

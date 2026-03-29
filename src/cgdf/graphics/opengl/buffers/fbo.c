@@ -80,7 +80,7 @@ static void attach_handle_array(BufferFBO *self, uint32_t attachment, uint32_t t
         }
         // Если не нашли то добавляем в конец:
         Array_push(self->attachments, &(uint32_t){GL_COLOR_ATTACHMENT0+attachment});
-    } else {  // Иначе значит что текстура отвязывается, по этому ищем и удаляем привязку:
+    } else {  // Иначе значит что текстура отвязывается, по-этому ищем и удаляем привязку:
         for (size_t i=0; i < Array_len(self->attachments); i++) {
             uint32_t attach = *(uint32_t*)Array_get(self->attachments, i);
             if (attach == GL_COLOR_ATTACHMENT0+attachment) {

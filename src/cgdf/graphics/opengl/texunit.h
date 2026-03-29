@@ -19,7 +19,7 @@ typedef struct Renderer Renderer;
 
 // Текстурные юниты:
 struct TextureUnits {
-    Renderer *renderer;
+    Renderer *renderer;  // Указатель на рендерер.
     Array *stack;  // Стек юнитов и привязок.
     size_t total;  // Всего юнитов.
     size_t used;   // Использовано юнитов.
