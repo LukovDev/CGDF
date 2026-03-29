@@ -500,8 +500,8 @@ def write_functions(f, items: list) -> None:
     f.write("  **Функции:**</br>\n")
     for item in items:
         title = item["comment"].rstrip(":. ") if item["comment"] else f"Функция `{item['name']}`"
-        f.write(f"  > {title}:</br>\n")
-        f.write(f"  > `{item['decl']}`\n\n")
+        f.write(f"  - {title}:</br>\n")
+        f.write(f"    `{item['decl']}`\n\n")
 
 
 # Пишет раздел Глобальные переменные:
