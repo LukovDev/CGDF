@@ -597,7 +597,7 @@ def main() -> None:
 
         # Разделы API:
         for dir_path, items in non_empty_by_dir.items():
-            f.write(f"### {dir_path}\n\n")
+            f.write(f"#\n\n### {dir_path}\n\n")
             for idx, (file_path, parsed) in enumerate(items):
                 short_name = os.path.basename(file_path)
                 anchor = make_anchor(file_path)
