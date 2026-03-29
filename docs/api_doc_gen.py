@@ -581,7 +581,7 @@ def main() -> None:
     # Открываем файл генерации для записи:
     with open(final_output, "w", encoding="utf-8") as f:
         f.write("# API CGDF\n\n")
-        f.write("Обратно к [главной документации.](readme.md)\n\n")
+        f.write("Обратно к [**главной документации.**](readme.md)\n\n")
         f.write(f"_Сгенерировано автоматически. Версия генератора: {VERSION}_\n\n")
 
         # Красивое содержание:
