@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
     WinConfig *config = Window_create_config(MainScene);
 
     // Конфигурацию можно настраивать, меняя её поля:
-    config->title = "Hello my First Game!";
+    config->title = "My first game!";
     config->width = 960;
     config->height = 540;
     // Пометка: Управление окном и графикой, варьируется в зависимости
