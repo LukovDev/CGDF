@@ -227,7 +227,22 @@ static void APIENTRY gl_debug_cb(
     GLsizei length, const GLchar* message, const void* userParam
 ) {
     (void)source; (void)type; (void)id; (void)length; (void)userParam;
-    log_msg("[GL][%s][%s<id=%u>] %s\n", dbg_severity(severity), dbg_type(type), id, message ? message : "(null).");
+    static GLuint last_id = 0;
+    static GLenum last_type = 0;
+    static GLenum last_severity = 0;
+    static char last_msg[1024] = {0};
+
+    const char *msg = message ? message : "(null)";
+
+    // Если лог полностью такой же, не выводим:
+    if (id == last_id && type == last_type && severity == last_severity && strcmp(msg, last_msg) == 0) return;
+
+    last_id = id;
+    last_type = type;
+    last_severity = severity;
+    snprintf(last_msg, sizeof(last_msg), "%s", msg);
+
+    log_msg("[GL][%s][%s<id=%u>] %s\n", dbg_severity(severity), dbg_type(type), id, msg);
 }
 
 static void gl_setup_debug_output(bool sync, bool notify, bool low, bool medium, bool high) {
