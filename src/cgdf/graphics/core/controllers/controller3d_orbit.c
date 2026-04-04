@@ -59,8 +59,14 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     // const int k_roll_right = K_RIGHT;
     const int k_zoom = K_LALT;
     const float m_whl_factor   = 0.1f;  // Фактор уменьшения чувствительности колесика мыши.
-    const int mouse_active_key = 2;     // Кнопка мыши для активации управления.
     const int mouse_pos_offset = 16;    // Область от края окна для телепортации мыши.
+
+    // Кнопка мыши для активации управления:
+    #ifdef __APPLE__
+    const int mouse_active_key = 0;
+    #else
+    const int mouse_active_key = 2;
+    #endif
 
     // Получаем нажатие кнопки мыши:
     bool mouse_pressed = Input_get_mouse_pressed(window)[mouse_active_key];

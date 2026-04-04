@@ -11,6 +11,7 @@
 
 
 static Texture *tex1;
+static Texture *blue_noise;
 static CameraController3D *ctrl3d;
 static CameraOrbitController3D *ctrl_orbit;
 static Camera3D *camera3d;
@@ -90,6 +91,8 @@ void start(Window *self) {
     font = FontPixmap_create(self->renderer, "data/fonts/pixel.ttf", 32);
     FontPixmap_set_pixelized(font, true);
 
+    blue_noise = Texture_create(self->renderer);
+    Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
     printf("data loaded\n");
 }
 
@@ -99,6 +102,7 @@ void destroy(Window *self) {
     printf("Destroy called.\n");
     print_before_free();
     Texture_destroy(&tex1);
+    Texture_destroy(&blue_noise);
     SpriteBatch_destroy(&batch);
     SimpleDraw_destroy(&draw);
     Shader_destroy(&grid);
@@ -164,17 +168,18 @@ void render(Window *self, float dtime) {
         Shader_set_float(atmosphere, "u_camera_fov", camera3d->fov);
 
         Shader_set_vec3(atmosphere, "u_planet_pos", (Vec3f){0, 0, 0});
-        Shader_set_float(atmosphere, "u_planet_rad", 1.0f);
+        Shader_set_float(atmosphere, "u_planet_rad", 10.0f);
         Shader_set_vec3(atmosphere, "u_sun_dir", Vec3f_norm((Vec3f){1, 0, 0}));
 
-        Shader_set_float(atmosphere, "u_floor_rad", 1.0f);
-        Shader_set_float(atmosphere, "u_atm_height", 1.0f);
+        Shader_set_float(atmosphere, "u_floor_rad", 10.0f);
+        Shader_set_float(atmosphere, "u_atm_height", 5.0f);
 
         Shader_set_int(atmosphere, "u_num_in_scatter_points", 10);
         Shader_set_int(atmosphere, "u_num_optical_depth_points", 10);
         Shader_set_float(atmosphere, "u_density_falloff", 3.0f);
         Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){720, 530, 440});
         Shader_set_float(atmosphere, "u_scattering_strength", 1.0f);
+        Shader_set_tex2d(atmosphere, "u_blue_noise", blue_noise->id);
         Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
         Shader_end(atmosphere);
     }
