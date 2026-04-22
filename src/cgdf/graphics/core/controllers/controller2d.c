@@ -51,7 +51,6 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
     float mouse_scroll = (float)Input_get_mouse_wheel(window).y;
     bool is_zooming = !pressed_pass || Input_get_mouse_pressed(window)[0];
     float meter = camera->meter;
-    const int mouse_pos_offset = 16;  // Область от края окна для телепортации мыши.
 
     // Если нажимают на колесико мыши:
     if (Input_get_mouse_pressed(window)[1]) {
@@ -64,7 +63,7 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
         camera->position.x -= (mouse_rel.x * camera->zoom) * meter/100.0f;
         camera->position.y += (mouse_rel.y * camera->zoom) * meter/100.0f;
         self->target_pos = camera->position;
-        _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
+        _check_mouse_pos_(window, camera->width, camera->height);
         self->fixed_mouse_pos = (Vec2i){mouse_pos.x, mouse_pos.y};
     } else {
         self->fixed_mouse_pos = (Vec2i){mouse_pos.x, mouse_pos.y};

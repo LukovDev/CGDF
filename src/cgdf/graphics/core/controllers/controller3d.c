@@ -64,9 +64,6 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     const int k_down    = K_q;
     const int k_zoom = K_LALT;
 
-    const float m_whl_factor   = 0.1f;  // Фактор уменьшения чувствительности колесика мыши.
-    const int mouse_pos_offset = 16;    // Область от края окна для телепортации мыши.
-
     // Кнопка мыши для активации управления:
     #ifdef __APPLE__
     const int mouse_active_key = 0;
@@ -89,86 +86,87 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
         self->is_pressed = false;
     }
 
-    // Вращение камеры:
+    // Управление камерой в случае если мы не попали на интерфейс и зажали ПКМ:
     if (self->is_pressed && !self->pressed_pass) {
+        // Вращение камеры:
         self->euler.y -= mouse_rel.x * self->mouse_sensitivity;
         self->euler.x -= mouse_rel.y * self->mouse_sensitivity;
         self->euler.x = glm_clamp(self->euler.x, -89.9f, 89.9f);
-        _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
+        _check_mouse_pos_(window, camera->width, camera->height);
         Camera3D_set_euler(camera, (Vec3d){self->euler.x, self->euler.y, 0.0});
-    }
 
-    // Базис камеры:
-    vec3 world_up = { 0.0, 1.0, 0.0 };  // Можно менять на другой вектор, но результат нестабилен.
-    Vec3d f = Camera3D_get_forward(camera);
-    Vec3d r = Camera3D_get_right(camera);
-    Vec3d u = Camera3D_get_up(camera);
-    vec3 forward = {f.x, f.y, f.z};
-    vec3 right   = {r.x, r.y, r.z};
-    vec3 up      = {u.x, u.y, u.z};
+        // Базис камеры:
+        vec3 world_up = { 0.0, 1.0, 0.0 };  // Можно менять на другой вектор, но результат нестабилен.
+        Vec3d f = Camera3D_get_forward(camera);
+        Vec3d r = Camera3D_get_right(camera);
+        Vec3d u = Camera3D_get_up(camera);
+        vec3 forward = {f.x, f.y, f.z};
+        vec3 right   = {r.x, r.y, r.z};
+        vec3 up      = {u.x, u.y, u.z};
 
-    // Вектор, который мы будем использовать для движения вперед:
-    vec3 move_forward;
+        // Вектор, который мы будем использовать для движения вперед:
+        vec3 move_forward;
 
-    // Свободный полёт:
-    if (self->up_is_forward) {
-        glm_vec3_copy(forward, move_forward);
-    } else {
-        glm_vec3_cross(right, world_up, move_forward);
-        glm_vec3_normalize(move_forward);
-        glm_vec3_copy(world_up, up);
-        glm_vec3_inv(move_forward);
-    }
+        // Свободный полёт:
+        if (self->up_is_forward) {
+            glm_vec3_copy(forward, move_forward);
+        } else {
+            glm_vec3_cross(right, world_up, move_forward);
+            glm_vec3_normalize(move_forward);
+            glm_vec3_copy(world_up, up);
+            glm_vec3_inv(move_forward);
+        }
 
-    // Перемещение камеры:
-    float speed = self->speed * dtime;
-    if (keys[K_LSHIFT] || keys[K_RSHIFT])    speed = self->shift_speed * dtime;
-    else if (keys[K_LCTRL] || keys[K_RCTRL]) speed = self->ctrl_speed * dtime;
+        // Перемещение камеры:
+        float speed = self->speed * dtime;
+        if (keys[K_LSHIFT] || keys[K_RSHIFT])    speed = self->shift_speed * dtime;
+        else if (keys[K_LCTRL] || keys[K_RCTRL]) speed = self->ctrl_speed * dtime;
 
-    // Вперед/Назад:
-    if (keys[k_forward]) {
-        self->target_pos.x += move_forward[0] * speed;
-        self->target_pos.y += move_forward[1] * speed;
-        self->target_pos.z += move_forward[2] * speed;
-    }
-    if (keys[k_back]) {
-        self->target_pos.x -= move_forward[0] * speed;
-        self->target_pos.y -= move_forward[1] * speed;
-        self->target_pos.z -= move_forward[2] * speed;
-    }
+        // Вперед/Назад:
+        if (keys[k_forward]) {
+            self->target_pos.x += move_forward[0] * speed;
+            self->target_pos.y += move_forward[1] * speed;
+            self->target_pos.z += move_forward[2] * speed;
+        }
+        if (keys[k_back]) {
+            self->target_pos.x -= move_forward[0] * speed;
+            self->target_pos.y -= move_forward[1] * speed;
+            self->target_pos.z -= move_forward[2] * speed;
+        }
 
-    // Влево/Вправо:
-    if (keys[k_left]) {
-        self->target_pos.x -= right[0] * speed;
-        self->target_pos.y -= right[1] * speed;
-        self->target_pos.z -= right[2] * speed;
-    }
-    if (keys[k_right]) {
-        self->target_pos.x += right[0] * speed;
-        self->target_pos.y += right[1] * speed;
-        self->target_pos.z += right[2] * speed;
-    }
+        // Влево/Вправо:
+        if (keys[k_left]) {
+            self->target_pos.x -= right[0] * speed;
+            self->target_pos.y -= right[1] * speed;
+            self->target_pos.z -= right[2] * speed;
+        }
+        if (keys[k_right]) {
+            self->target_pos.x += right[0] * speed;
+            self->target_pos.y += right[1] * speed;
+            self->target_pos.z += right[2] * speed;
+        }
 
-    // Вверх/Вниз:
-    if (keys[k_up]) {
-        self->target_pos.x += world_up[0] * speed;
-        self->target_pos.y += world_up[1] * speed;
-        self->target_pos.z += world_up[2] * speed;
-    }
-    if (keys[k_down]) {
-        self->target_pos.x -= world_up[0] * speed;
-        self->target_pos.y -= world_up[1] * speed;
-        self->target_pos.z -= world_up[2] * speed;
+        // Вверх/Вниз:
+        if (keys[k_up]) {
+            self->target_pos.x += world_up[0] * speed;
+            self->target_pos.y += world_up[1] * speed;
+            self->target_pos.z += world_up[2] * speed;
+        }
+        if (keys[k_down]) {
+            self->target_pos.x -= world_up[0] * speed;
+            self->target_pos.y -= world_up[1] * speed;
+            self->target_pos.z -= world_up[2] * speed;
+        }
     }
 
     // Управление обзором камеры:
     if (keys[k_zoom]) {
         if (!camera->is_ortho) {
-            self->target_fov -= Input_get_mouse_wheel(window).y * m_whl_factor * self->target_fov;
+            self->target_fov -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * self->target_fov;
         } else {
-            camera->size.x -= Input_get_mouse_wheel(window).y * m_whl_factor * camera->size.x;
-            camera->size.y -= Input_get_mouse_wheel(window).y * m_whl_factor * camera->size.y;
-            camera->size.z -= Input_get_mouse_wheel(window).y * m_whl_factor * camera->size.z;
+            camera->size.x -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.x;
+            camera->size.y -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.y;
+            camera->size.z -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.z;
         }
     }
 

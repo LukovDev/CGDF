@@ -14,13 +14,87 @@ static Texture *tex1;
 static Texture *blue_noise;
 static CameraController3D *ctrl3d;
 static CameraOrbitController3D *ctrl_orbit;
+static CameraPlanetController3D *ctrl_planet;
 static Camera3D *camera3d;
 static Camera2D *camera2d;
 static SpriteBatch *batch;
 static SimpleDraw *draw;
 static Shader *grid;
 static Shader *atmosphere;
-FontPixmap *font;
+static FontPixmap *font;
+static Mesh *sphere;
+static float planet_rad = 10.0f;
+
+
+void generate_sphere(float radius, int sectors, int stacks, Vertex** vertices, unsigned int** indices, int* numVertices, int* numIndices) {
+    *numVertices = (stacks + 1) * (sectors + 1);
+    *numIndices = stacks * sectors * 6;
+
+    *vertices = (Vertex*)mm_alloc((*numVertices) * sizeof(Vertex));
+    *indices = (unsigned int*)mm_alloc((*numIndices) * sizeof(unsigned int));
+
+    float x, y, z, xy;
+    float sectorStep = 2 * GLM_PI / sectors;
+    float stackStep = GLM_PI / stacks;
+    float sectorAngle, stackAngle;
+
+    int vCount = 0;
+    for (int i = 0; i <= stacks; ++i) {
+        stackAngle = GLM_PI / 2 - i * stackStep;        // от pi/2 до -pi/2
+        xy = radius * cosf(stackAngle);
+        z = radius * sinf(stackAngle);
+
+        for (int j = 0; j <= sectors; ++j) {
+            sectorAngle = j * sectorStep;           
+
+            x = xy * cosf(sectorAngle);
+            y = xy * sinf(sectorAngle);
+
+            // Позиция
+            (*vertices)[vCount].px = x;
+            (*vertices)[vCount].py = y;
+            (*vertices)[vCount].pz = z;
+
+            // Нормаль (для сферы это просто нормализованная позиция)
+            // Если сфера в (0,0,0), то нормаль = pos / radius
+            (*vertices)[vCount].nx = x / radius;
+            (*vertices)[vCount].ny = y / radius;
+            (*vertices)[vCount].nz = z / radius;
+
+            // Цвет (белый по умолчанию)
+            (*vertices)[vCount].r = 1.0f;
+            (*vertices)[vCount].g = 1.0f;
+            (*vertices)[vCount].b = 1.0f;
+            (*vertices)[vCount].a = 1.0f;
+
+            // UV координаты
+            (*vertices)[vCount].u = (float)j / sectors;
+            (*vertices)[vCount].v = (float)i / stacks;
+            
+            vCount++;
+        }
+    }
+
+    int iCount = 0;
+    for (int i = 0; i < stacks; ++i) {
+        int k1 = i * (sectors + 1);
+        int k2 = k1 + sectors + 1;
+
+        for (int j = 0; j < sectors; ++j, ++k1, ++k2) {
+            if (i != 0) {
+                (*indices)[iCount++] = k1;
+                (*indices)[iCount++] = k2;
+                (*indices)[iCount++] = k1 + 1;
+            }
+
+            if (i != (stacks - 1)) {
+                (*indices)[iCount++] = k1 + 1;
+                (*indices)[iCount++] = k2;
+                (*indices)[iCount++] = k2 + 1;
+            }
+        }
+    }
+}
 
 
 static void print_before_free() {
@@ -75,6 +149,7 @@ void start(Window *self) {
     Camera3D_set_depth_test(camera3d, false);
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
     ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f);
+    ctrl_planet = CameraPlanetController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
 
     printf("Loading data...\n");
 
@@ -96,6 +171,13 @@ void start(Window *self) {
 
     blue_noise = Texture_create(self->renderer);
     Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
+
+    Vertex *vertices;
+    uint32_t *indices;
+    int vert_count, idx_count;
+    generate_sphere(planet_rad, 36, 18, &vertices, &indices, &vert_count, &idx_count);
+    sphere = Mesh_create(vertices, vert_count, indices, idx_count, false);
+
     printf("data loaded\n");
 }
 
@@ -115,6 +197,8 @@ void destroy(Window *self) {
     Camera3D_destroy(&camera3d);
     CameraController3D_destroy(&ctrl3d);
     CameraOrbitController3D_destroy(&ctrl_orbit);
+    CameraPlanetController3D_destroy(&ctrl_planet);
+    Mesh_destroy(&sphere);
 }
 
 
@@ -134,9 +218,12 @@ void update(Window *self, float dtime) {
     static bool orbit_enabled = false;
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
     if (orbit_enabled) {
-        CameraOrbitController3D_update(ctrl_orbit, dtime, false);
+        // CameraOrbitController3D_update(ctrl_orbit, dtime, false);
+        CameraPlanetController3D_update(ctrl_planet, dtime, false);
+        ctrl3d->euler = ctrl_planet->euler;
     } else {
         CameraController3D_update(ctrl3d, dtime, false);
+        ctrl_planet->euler = ctrl3d->euler;
     }
     Camera3D_update(camera3d);
 }
@@ -179,21 +266,31 @@ void render(Window *self, float dtime) {
         Shader_set_float(atmosphere, "u_camera_fov", camera3d->fov);
 
         Shader_set_vec3(atmosphere, "u_planet_pos", (Vec3f){0, 0, 0});
-        Shader_set_float(atmosphere, "u_planet_rad", 10.0f);
+        Shader_set_float(atmosphere, "u_planet_rad", planet_rad);
         Shader_set_vec3(atmosphere, "u_sun_dir", Vec3f_norm((Vec3f){1, 0, 0}));
 
-        Shader_set_float(atmosphere, "u_floor_rad", 10.0f);
+        Shader_set_float(atmosphere, "u_floor_rad", planet_rad);
         Shader_set_float(atmosphere, "u_atm_height", 5.0f);
 
         Shader_set_int(atmosphere, "u_num_in_scatter_points", 10);
         Shader_set_int(atmosphere, "u_num_optical_depth_points", 5);
         Shader_set_float(atmosphere, "u_density_falloff", 3.0f);
-        Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){720, 530, 440});
+        Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){700, 530, 440});
         Shader_set_float(atmosphere, "u_scattering_strength", 1.0f);
         Shader_set_tex2d(atmosphere, "u_blue_noise", blue_noise->id);
         Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
         Shader_end(atmosphere);
     }
+
+    mat4 mdl;
+    glm_mat4_identity(mdl);
+    glm_rotate(mdl, radians(90), (vec3){1, 0, 0});
+    Shader_begin(self->renderer->shader);
+    Shader_set_bool(self->renderer->shader, "u_use_texture", false);
+    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 1, 1});
+    Shader_set_mat4(self->renderer->shader, "u_model", mdl);
+    Mesh_render(sphere, true);
+    Shader_end(self->renderer->shader);
 
     Vec2d screen_pos = world3d_to_screen(camera3d, (Vec3d){0, 0, 0});
     Vec2f text_pos = {screen_pos.x, screen_pos.y};
@@ -203,6 +300,11 @@ void render(Window *self, float dtime) {
     FontPixmap_set_color(font, (Vec4f){0, 0.75, 0, 1});
     FontPixmap_set_bg_color(font, (Vec4f){0, 0, 0, 0.5f});
     FontPixmap_set_bg_padding(font, (Vec4f){8, 8, 8, 8});
+
+    // Нарисовать линию:
+    SimpleDraw_line(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){1000, 0, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 1000, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 0, 1, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 1000}, 3.0f);
 
     Camera2D_update(camera2d);
     Camera2D_ui_begin(camera2d);

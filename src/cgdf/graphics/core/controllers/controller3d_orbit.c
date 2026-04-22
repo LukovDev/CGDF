@@ -56,8 +56,6 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
 
     // Константы управления:
     const int k_zoom = K_LALT;
-    const float m_whl_factor   = 0.1f;  // Фактор уменьшения чувствительности колесика мыши.
-    const int mouse_pos_offset = 16;    // Область от края окна для телепортации мыши.
 
     // Кнопка мыши для активации управления:
     #ifdef __APPLE__
@@ -93,8 +91,8 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
         if (rot_x < -89.9f || rot_x > 89.9f) {
             self->euler.y -= cam_dx * self->mouse_sensitivity;     // Противоположный диапазон.
         } else self->euler.y += cam_dx * self->mouse_sensitivity;  // Обычный диапазон.
-        self->euler.x += cam_dy * self->mouse_sensitivity;  // По вертикали.
-        _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
+        self->euler.x += cam_dy * self->mouse_sensitivity;         // По вертикали.
+        _check_mouse_pos_(window, camera->width, camera->height);
 
         // Ограничиваем вращение камеры вверх-вниз до -89/89 градусов:
         self->euler.x = glm_clamp(self->euler.x, -89.9f, +89.9f);
@@ -103,18 +101,18 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     // Управление обзором камеры:
     if (keys[k_zoom]) {
         if (!camera->is_ortho) {
-            self->target_fov -= Input_get_mouse_wheel(window).y * m_whl_factor * self->target_fov;
+            self->target_fov -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * self->target_fov;
         } else {
-            camera->size.x -= Input_get_mouse_wheel(window).y * m_whl_factor * camera->size.x;
-            camera->size.y -= Input_get_mouse_wheel(window).y * m_whl_factor * camera->size.y;
-            camera->size.z -= Input_get_mouse_wheel(window).y * m_whl_factor * camera->size.z;
+            camera->size.x -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.x;
+            camera->size.y -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.y;
+            camera->size.z -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.z;
         }
     }
 
     // Если мы не попали на интерфейс:
     if (!pressed_pass && !keys[k_zoom]) {
         // Масштабируем расстояние:
-        self->target_dst -= Input_get_mouse_wheel(window).y * self->target_dst * m_whl_factor;
+        self->target_dst -= Input_get_mouse_wheel(window).y * self->target_dst * self->mouse_sensitivity;
     }
 
     // Плавное масштабирование расстояния, вращение и обзора камеры:
