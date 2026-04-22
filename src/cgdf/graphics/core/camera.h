@@ -20,6 +20,7 @@ typedef struct Camera3D Camera3D;  // 3D Камера.
 struct Camera2D {
     mat4 view;        // Матрица вида.
     mat4 proj;        // Матрица проекции.
+    mat4 view_proj;   // Матрица взгляда камеры.
     mat4 old_view;    // Старая матрица вида (используется при ui_begin/end).
     mat4 old_proj;    // Старая матрица проекции (используется при ui_begin/end).
     Window *window;   // Указатель на окно.
@@ -42,21 +43,22 @@ struct Camera2D {
 
 // Структура 3D камеры:
 struct Camera3D {
-    mat4 view;        // Матрица вида.
-    mat4 proj;        // Матрица проекции.
-    Window *window;   // Указатель на окно.
-    Vec3d position;   // Позиция камеры.
-    Vec3d rotation;   // Поворот камеры (x=pitch, y=yaw, z=roll).
-    Vec3d size;       // Размер камеры.
-    float fov;        // Угол обзора.
-    float z_far;      // Дальняя плоскость отсечения.
-    float z_near;     // Ближняя плоскость отсечения.
-    bool is_ortho;    // Ортографическая камера.
-    int width;        // Ширина.
-    int height;       // Высота.
-    float _oldfov_;   // Старый угол обзора.
-    float _oldfar_;   // Старая дальняя плоскость отсечения.
-    float _oldnear_;  // Старая ближняя плоскость отсечения.
+    mat4 view;          // Матрица вида.
+    mat4 proj;          // Матрица проекции.
+    mat4 view_proj;     // Матрица взгляда камеры.
+    Window *window;     // Указатель на окно.
+    Vec3d position;     // Позиция камеры.
+    versor quaternion;  // Ориентация камеры (кватернион).
+    Vec3d size;         // Размер камеры.
+    float fov;          // Угол обзора.
+    float z_far;        // Дальняя плоскость отсечения.
+    float z_near;       // Ближняя плоскость отсечения.
+    bool is_ortho;      // Ортографическая камера.
+    int width;          // Ширина камеры.
+    int height;         // Высота камеры.
+    float _oldfov_;     // Старый угол обзора.
+    float _oldfar_;     // Старая дальняя плоскость отсечения.
+    float _oldnear_;    // Старая ближняя плоскость отсечения.
 };
 
 
@@ -103,8 +105,32 @@ void Camera3D_update(Camera3D *self);
 // Изменить размер камеры:
 void Camera3D_resize(Camera3D *self, int width, int height, bool ortho);
 
+// Установить поворот камеры:
+void Camera3D_set_euler(Camera3D *self, Vec3d rotation);
+
 // Посмотреть на указанную точку:
-void Camera3D_look_at(Camera3D *self, Vec3d target);
+void Camera3D_look_at(Camera3D *self, Vec3d target, Vec3d up_dir);
+
+// Повернуть камеру по оси X:
+void Camera3D_rotate_pitch(Camera3D *self, float angle);
+
+// Повернуть камеру по оси Y:
+void Camera3D_rotate_yaw(Camera3D *self, float angle);
+
+// Повернуть камеру по оси Z:
+void Camera3D_rotate_roll(Camera3D *self, float angle);
+
+// Получить поворот камеры (только для UI/debug!):
+Vec3d Camera3D_get_euler(Camera3D *self);
+
+// Получить вектор вперед:
+Vec3d Camera3D_get_forward(Camera3D *self);
+
+// Получить вектор вправо:
+Vec3d Camera3D_get_right(Camera3D *self);
+
+// Получить вектор вверх:
+Vec3d Camera3D_get_up(Camera3D *self);
 
 // Установить проверку глубины:
 void Camera3D_set_depth_test(Camera3D *self, bool enabled);

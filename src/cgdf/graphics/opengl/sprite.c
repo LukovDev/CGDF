@@ -61,6 +61,8 @@ void Sprite2D_render(
     float x, float y, float width, float height,
     float angle, Vec4f color, bool custom_shader
 ) {
+    if (!renderer || is_inf(x) || is_inf(y)) return;
+
     // Настраиваем матрицу модели:
     mat4 model;
     glm_mat4_identity(model);
@@ -146,6 +148,8 @@ void Sprite3D_render(
     float width, float height,
     Vec4f color, bool custom_shader
 ) {
+    if (!renderer || is_inf(position.x) || is_inf(position.y) || is_inf(position.z)) return;
+
     // Настраиваем матрицу модели:
     mat4 model;
     glm_mat4_identity(model);

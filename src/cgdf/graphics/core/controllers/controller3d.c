@@ -30,9 +30,10 @@ CameraController3D* CameraController3D_create(
     ctrl->friction = friction;
     ctrl->up_is_forward = up_is_forward;
 
-    ctrl->up_dir = (Vec3f){0.0f, 1.0f, 0.0f};  // TODO сделать правильно для планет и кастомных направлений пола.
+    ctrl->euler = (Vec3d){0.0f, 0.0f, 0.0f};
     ctrl->target_pos = (Vec3d){camera->position.x, camera->position.y, camera->position.z};
     ctrl->target_fov = camera->fov;
+
     ctrl->pressed_pass = false;
     ctrl->is_pressed = false;
     ctrl->is_movement = false;
@@ -61,10 +62,8 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     const int k_right   = K_d;
     const int k_up      = K_e;
     const int k_down    = K_q;
-
-    // const int k_roll_left  = K_LEFT;
-    // const int k_roll_right = K_RIGHT;
     const int k_zoom = K_LALT;
+
     const float m_whl_factor   = 0.1f;  // Фактор уменьшения чувствительности колесика мыши.
     const int mouse_pos_offset = 16;    // Область от края окна для телепортации мыши.
 
@@ -90,102 +89,76 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
         self->is_pressed = false;
     }
 
-    // Управление камерой в случае если мы не попали на интерфейс и зажали ПКМ:
+    // Вращение камеры:
     if (self->is_pressed && !self->pressed_pass) {
-        // Управление клавиатурой:
-        {
-            float speed = self->speed * dtime;
+        self->euler.y -= mouse_rel.x * self->mouse_sensitivity;
+        self->euler.x -= mouse_rel.y * self->mouse_sensitivity;
+        self->euler.x = glm_clamp(self->euler.x, -89.9f, 89.9f);
+        _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
+        Camera3D_set_euler(camera, (Vec3d){self->euler.x, self->euler.y, 0.0});
+    }
 
-            // Если нажимают на левый или правый шифт, ускорить перемещение:
-            if (keys[K_LSHIFT] || keys[K_RSHIFT]) {
-                speed = self->shift_speed * dtime;
-            } else if (keys[K_LCTRL] || keys[K_RCTRL]) {
-                speed = self->ctrl_speed * dtime;
-            }
+    // Базис камеры:
+    vec3 world_up = { 0.0, 1.0, 0.0 };  // Можно менять на другой вектор, но результат нестабилен.
+    Vec3d f = Camera3D_get_forward(camera);
+    Vec3d r = Camera3D_get_right(camera);
+    Vec3d u = Camera3D_get_up(camera);
+    vec3 forward = {f.x, f.y, f.z};
+    vec3 right   = {r.x, r.y, r.z};
+    vec3 up      = {u.x, u.y, u.z};
 
-            // Углы камеры:
-            float pitch = radians(camera->rotation.x), yaw = radians(camera->rotation.y);
-            vec3 forward = {0.0f, 0.0f, 0.0f};
-            vec3 right = {1.0f, 0.0f, 0.0f};
-            vec3 up = {self->up_dir.x, self->up_dir.y, self->up_dir.z};
+    // Вектор, который мы будем использовать для движения вперед:
+    vec3 move_forward;
 
-            // Направление по осям:
-            // forward:
-            glm_vec3_copy((vec3){cosf(pitch) * sinf(-yaw), sinf(pitch), cosf(pitch) * cosf(-yaw)}, forward);
-            glm_vec3_normalize(forward);
+    // Свободный полёт:
+    if (self->up_is_forward) {
+        glm_vec3_copy(forward, move_forward);
+    } else {
+        glm_vec3_cross(right, world_up, move_forward);
+        glm_vec3_normalize(move_forward);
+        glm_vec3_copy(world_up, up);
+        glm_vec3_inv(move_forward);
+    }
 
-            // right:
-            glm_vec3_cross((vec3){self->up_dir.x, self->up_dir.y, self->up_dir.z}, forward, right);
-            glm_vec3_normalize(right);
+    // Перемещение камеры:
+    float speed = self->speed * dtime;
+    if (keys[K_LSHIFT] || keys[K_RSHIFT])    speed = self->shift_speed * dtime;
+    else if (keys[K_LCTRL] || keys[K_RCTRL]) speed = self->ctrl_speed * dtime;
 
-            // up:
-            if (self->up_is_forward) {
-                // Это надо чтобы повернуть вектор up относительно вектора forward.
-                glm_vec3_inv(forward);
-                glm_vec3_cross(right, forward, up);
-                glm_vec3_normalize(up);
-            } else {
-                // Иначе просто делаем так чтобы камера не двигалась по вертикали в зависимости от направления камеры.
-                glm_vec3_cross((vec3){self->up_dir.x, self->up_dir.y, self->up_dir.z}, right, forward);
-                glm_vec3_normalize(forward);
-            }
+    // Вперед/Назад:
+    if (keys[k_forward]) {
+        self->target_pos.x += move_forward[0] * speed;
+        self->target_pos.y += move_forward[1] * speed;
+        self->target_pos.z += move_forward[2] * speed;
+    }
+    if (keys[k_back]) {
+        self->target_pos.x -= move_forward[0] * speed;
+        self->target_pos.y -= move_forward[1] * speed;
+        self->target_pos.z -= move_forward[2] * speed;
+    }
 
-            // Управление движением:
-            if (keys[k_forward]) {  // Вперед:
-                self->target_pos.x += forward[0] * speed;
-                self->target_pos.y += forward[1] * speed;
-                self->target_pos.z += forward[2] * speed;
-            } if (keys[k_back]) {  // Назад:
-                self->target_pos.x -= forward[0] * speed;
-                self->target_pos.y -= forward[1] * speed;
-                self->target_pos.z -= forward[2] * speed;
-            } if (keys[k_left]) {  // Влево:
-                self->target_pos.x -= right[0] * speed;
-                self->target_pos.y -= right[1] * speed;
-                self->target_pos.z -= right[2] * speed;
-            } if (keys[k_right]) {  // Вправо:
-                self->target_pos.x += right[0] * speed;
-                self->target_pos.y += right[1] * speed;
-                self->target_pos.z += right[2] * speed;
-            } if (keys[k_up]) {  // Вверх:
-                self->target_pos.x += up[0] * speed;
-                self->target_pos.y += up[1] * speed;
-                self->target_pos.z += up[2] * speed;
-            } if (keys[k_down]) {  // Вниз:
-                self->target_pos.x -= up[0] * speed;
-                self->target_pos.y -= up[1] * speed;
-                self->target_pos.z -= up[2] * speed;
-            }
+    // Влево/Вправо:
+    if (keys[k_left]) {
+        self->target_pos.x -= right[0] * speed;
+        self->target_pos.y -= right[1] * speed;
+        self->target_pos.z -= right[2] * speed;
+    }
+    if (keys[k_right]) {
+        self->target_pos.x += right[0] * speed;
+        self->target_pos.y += right[1] * speed;
+        self->target_pos.z += right[2] * speed;
+    }
 
-            // Управление вращением крена TODO правильно применить крен к векторам направлений:
-            // if (keys[k_roll_left])  camera->rotation.z -= 90.0f * dtime;
-            // if (keys[k_roll_right]) camera->rotation.z += 90.0f * dtime;
-        }
-
-        // Управление мышью:
-        {
-            float roll = radians(camera->rotation.z);
-            float cam_dx = cosf(roll) * (float)mouse_rel.x - sinf(roll) * (float)mouse_rel.y;
-            float cam_dy = sinf(roll) * (float)mouse_rel.x + cosf(roll) * (float)mouse_rel.y;
-
-            // По горизонтали:
-            if (camera->rotation.x < -89.9f || camera->rotation.x > +89.9f) {
-                camera->rotation.y -= cam_dx * self->mouse_sensitivity;  // Противоположный диапазон.
-            } else camera->rotation.y += cam_dx * self->mouse_sensitivity;  // Обычный диапазон.
-            camera->rotation.x += cam_dy * self->mouse_sensitivity;  // По вертикали.
-            _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
-
-            // Ограничиваем вращение камеры до -180/180 градусов:
-            camera->rotation.x = wrap_float(camera->rotation.x, -180.0f, +180.0f);
-            camera->rotation.y = wrap_float(camera->rotation.y, -180.0f, +180.0f);
-            camera->rotation.z = wrap_float(camera->rotation.z, -180.0f, +180.0f);
-
-            // Ограничиваем вращение камеры вверх-вниз до -89/89 градусов:
-            // (Если установить 90 градусов, могут быть проблемы в рассчетах вектора направления).
-            if (!self->up_is_forward) {
-                camera->rotation.x = glm_clamp(camera->rotation.x, -89.9f, +89.9f);
-            }
-        }
+    // Вверх/Вниз:
+    if (keys[k_up]) {
+        self->target_pos.x += world_up[0] * speed;
+        self->target_pos.y += world_up[1] * speed;
+        self->target_pos.z += world_up[2] * speed;
+    }
+    if (keys[k_down]) {
+        self->target_pos.x -= world_up[0] * speed;
+        self->target_pos.y -= world_up[1] * speed;
+        self->target_pos.z -= world_up[2] * speed;
     }
 
     // Управление обзором камеры:
@@ -199,21 +172,24 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
         }
     }
 
-    // Плавное перемещение и масштабирование:
+    // Плавное перемещение камеры:
     float fr = 1.0f - self->friction;
     if (fr > 0.0f) {
-        camera->position.x += ((self->target_pos.x - camera->position.x) * 1.0f/fr) * dtime;
-        camera->position.y += ((self->target_pos.y - camera->position.y) * 1.0f/fr) * dtime;
-        camera->position.z += ((self->target_pos.z - camera->position.z) * 1.0f/fr) * dtime;
+        camera->position.x += ((self->target_pos.x - camera->position.x) * (1.0f / fr)) * dtime;
+        camera->position.y += ((self->target_pos.y - camera->position.y) * (1.0f / fr)) * dtime;
+        camera->position.z += ((self->target_pos.z - camera->position.z) * (1.0f / fr)) * dtime;
         camera->fov += ((self->target_fov - camera->fov) * 1.0f/fr) * dtime;
     } else {
         camera->position = self->target_pos;
         camera->fov = self->target_fov;
     }
 
-    // Проверяем перемещается камера или нет:
+    // Проверка на перемещение камеры:
     vec3 diff;
-    glm_vec3_sub((vec3){ self->target_pos.x, self->target_pos.y, self->target_pos.z },
-                 (vec3){ camera->position.x, camera->position.y, camera->position.z }, diff);
-    self->is_movement = (roundf(glm_vec3_norm(diff)*10000.0f)/10000.0f > 0.001f);
+    glm_vec3_sub(
+        (vec3){ self->target_pos.x, self->target_pos.y, self->target_pos.z },
+        (vec3){ camera->position.x, camera->position.y, camera->position.z },
+        diff
+    );
+    self->is_movement = (glm_vec3_norm(diff) > 0.001f);
 }

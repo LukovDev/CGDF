@@ -659,7 +659,7 @@ FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...)
 
 // Отрисовать текст:
 void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const char *text, ...) {
-    if (!self || !text) return;
+    if (!self || !text || is_inf(x) || is_inf(y)) return;
 
     // Форматируем text как f-строку:
     char stack_text[1024];   // 1024 байт-символов текста в стеке для быстроты.

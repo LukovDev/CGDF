@@ -43,7 +43,7 @@ struct CameraController3D {
     float shift_speed;   // Скорость камеры при зажатом SHIFT (ед/сек).
     float friction;      // Коэффициент скольжения камеры.
     bool up_is_forward;  // Вверх - вперед.
-    Vec3f up_dir;        // Направление вверх.
+    Vec3d euler;         // Поворот камеры.
     Vec3d target_pos;    // Целевая позиция камеры.
     float target_fov;    // Целевой угол обзора.
     bool pressed_pass;   // Пропуск нажатия (внутренняя логика).
@@ -59,8 +59,7 @@ struct CameraOrbitController3D {
     float mouse_sensitivity;  // Коэффициент чувствительности мыши.
     float distance;      // Дистанция камеры от цели.
     float friction;      // Коэффициент скольжения камеры.
-    bool up_is_forward;  // Вверх - вперед.
-    Vec3d rotation;      // Поворот камеры.
+    Vec3d euler;         // Поворот камеры.
     Vec3d target_pos;    // Целевая позиция камеры.
     Vec3d target_rot;    // Целевой поворот камеры.
     float target_dst;    // Целевая дистанция камеры.
@@ -123,7 +122,7 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
 // Создать орбитальный 3D контроллер:
 CameraOrbitController3D* CameraOrbitController3D_create(
     Window *window, Camera3D *camera, Vec3d target_pos, float mouse_sensitivity,
-    float distance, float friction, bool up_is_forward
+    float distance, float friction
 );
 
 // Уничтожить орбитальный 3D контроллер:

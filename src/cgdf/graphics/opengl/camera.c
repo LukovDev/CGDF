@@ -66,6 +66,9 @@ void Camera2D_update(Camera2D *self) {
     glm_rotate(self->view, glm_rad(self->angle), (vec3){0, 0, 1.0f});
     glm_translate(self->view, (vec3){-self->position.x, -self->position.y, 0.0f});
 
+    // Высчитываем матрицу взгляда:
+    glm_mat4_mul(self->proj, self->view, self->view_proj);
+
     // Устанавливаем активную камеру:
     renderer->camera = (void*)self;
     renderer->camera_type = RENDERER_CAMERA_2D;
@@ -149,7 +152,6 @@ Camera3D* Camera3D_create(
     // Заполняем поля:
     camera->window = window;
     camera->position = position;
-    camera->rotation = rotation;
     camera->size = size;
     camera->fov = fov;
     camera->z_far = z_far;
@@ -164,6 +166,8 @@ Camera3D* Camera3D_create(
 
     // Матрица вида:
     glm_mat4_identity(camera->view);
+    glm_quat_identity(camera->quaternion);
+    Camera3D_set_euler(camera, rotation);
 
     // Матрица проекции:
     glm_mat4_identity(camera->proj);
@@ -176,6 +180,7 @@ Camera3D* Camera3D_create(
     Camera3D_set_depth_mask(camera, true);  // Включаем запись в буфер глубины.
     Camera3D_set_blending(camera, true);    // Включаем смешивание.
     Camera3D_set_cull_faces(camera, true);  // Включаем отсечение граней.
+
     Camera3D_set_back_face_culling(camera);
     Camera3D_set_front_face_onleft(camera);
 
@@ -212,13 +217,38 @@ void Camera3D_update(Camera3D *self) {
         self->_oldnear_ = self->z_near;
     }
 
-    // Обновляем матрицу вида:
+    // Сбрасываем матрицу вида:
     glm_mat4_identity(self->view);
-    if (self->is_ortho) glm_scale(self->view, (vec3){1.0f/self->size.x, 1.0f/self->size.y, 1.0f/self->size.z});
-    glm_rotate(self->view, radians(self->rotation.z), (vec3){false, false, true});
-    glm_rotate(self->view, radians(self->rotation.x), (vec3){true, false, false});
-    glm_rotate(self->view, radians(self->rotation.y), (vec3){false, true, false});
-    glm_translate(self->view, (vec3){-self->position.x, -self->position.y, -self->position.z});
+
+    // Инвертируем ориентацию камеры:
+    versor inv;
+    glm_quat_conjugate(self->quaternion, inv);
+
+    // Превращаем в матрицу вращения:
+    mat4 rot;
+    glm_quat_mat4(inv, rot);
+
+    // Применяем rotation:
+    glm_mat4_mul(rot, self->view, self->view);
+
+    // Масштаб для ortho:
+    if (self->is_ortho) {
+        glm_scale(self->view, (vec3){
+            1.0f/self->size.x,
+            1.0f/self->size.y,
+            1.0f/self->size.z
+        });
+    }
+
+    // Перенос (обратный позиции камеры):
+    glm_translate(self->view, (vec3){
+        -self->position.x,
+        -self->position.y,
+        -self->position.z
+    });
+
+    // Высчитываем матрицу взгляда:
+    glm_mat4_mul(self->proj, self->view, self->view_proj);
 
     // Устанавливаем активную камеру:
     renderer->camera = (void*)self;
@@ -254,14 +284,110 @@ void Camera3D_resize(Camera3D *self, int width, int height, bool ortho) {
     }
 }
 
-// Посмотреть на указанную точку:
-void Camera3D_look_at(Camera3D *self, Vec3d target) {
+// Установить поворот камеры:
+void Camera3D_set_euler(Camera3D *self, Vec3d rotation) {
     if (!self) return;
-    double dx = self->position.x - target.x;
-    double dy = self->position.y - target.y;
-    double dz = self->position.z - target.z;
-    self->rotation.x = degrees(atan2(dy, sqrt(dx*dx + dz*dz)));      // Pitch.
-    self->rotation.y = normalize_deg(degrees(atan2(dz, dx))-90.0f);  // Yaw.
+
+    versor qx, qy, qz, tmp;
+    glm_quatv(qx, radians(rotation.x), (vec3){1, 0, 0});
+    glm_quatv(qy, radians(rotation.y), (vec3){0, 1, 0});
+    glm_quatv(qz, radians(rotation.z), (vec3){0, 0, 1});
+    glm_quat_mul(qy, qx, tmp);
+    glm_quat_mul(tmp, qz, self->quaternion);
+    glm_quat_normalize(self->quaternion);
+}
+
+// Посмотреть на указанную точку:
+void Camera3D_look_at(Camera3D *self, Vec3d target, Vec3d up_dir) {
+    if (!self) return;
+
+    // Вектор направления камеры:
+    vec3 dir = {
+        target.x - self->position.x,
+        target.y - self->position.y,
+        target.z - self->position.z
+    };
+
+    if (glm_vec3_norm(dir) < 1e-6f) return;  // Проверка на нулевой вектор.
+    glm_vec3_normalize(dir);  // Нормализуем.
+
+    vec3 up = {up_dir.x, up_dir.y, up_dir.z};
+    glm_vec3_normalize(up);
+    if (glm_vec3_norm(up) < 1e-6f || fabs(glm_vec3_dot(dir, up)) > 0.999999f) {
+        up[0] = 0; up[1] = 1; up[2] = 0;
+    }
+
+    // Смотрим в указанную точку:
+    glm_quat_for(dir, up, self->quaternion);
+}
+
+// Повернуть камеру по оси X:
+void Camera3D_rotate_pitch(Camera3D *self, float angle) {
+    if (!self) return;
+
+    versor q;
+    glm_quatv(q, radians(angle), (vec3){1, 0, 0});
+    glm_quat_mul(self->quaternion, q, self->quaternion);
+    glm_quat_normalize(self->quaternion);
+}
+
+// Повернуть камеру по оси Y:
+void Camera3D_rotate_yaw(Camera3D *self, float angle) {
+    if (!self) return;
+
+    versor q;
+    glm_quatv(q, radians(angle), (vec3){0, 1, 0});
+    glm_quat_mul(q, self->quaternion, self->quaternion);
+    glm_quat_normalize(self->quaternion);
+}
+
+// Повернуть камеру по оси Z:
+void Camera3D_rotate_roll(Camera3D *self, float angle) {
+    if (!self) return;
+
+    versor q;
+    glm_quatv(q, radians(angle), (vec3){0, 0, 1});
+    glm_quat_mul(self->quaternion, q, self->quaternion);
+    glm_quat_normalize(self->quaternion);
+}
+
+// Получить поворот камеры (только для UI/debug!):
+Vec3d Camera3D_get_euler(Camera3D *self) {
+    if (!self) return (Vec3d){0.0f, 0.0f, 0.0f};
+
+    mat4 m;
+    glm_quat_mat4(self->quaternion, m);
+    float pitch = degrees(asinf(-m[2][1]));
+    float yaw   = degrees(atan2f(m[2][0], m[2][2]));
+    float roll  = degrees(atan2f(m[0][1], m[1][1]));
+    return (Vec3d){pitch, yaw, roll};
+}
+
+// Получить вектор вперед:
+Vec3d Camera3D_get_forward(Camera3D *self) {
+    if (!self) return (Vec3d){0.0f, 0.0f, -1.0f};
+
+    vec3 f = {0, 0, -1};
+    glm_quat_rotatev(self->quaternion, f, f);
+    return (Vec3d){f[0], f[1], f[2]};
+}
+
+// Получить вектор вправо:
+Vec3d Camera3D_get_right(Camera3D *self) {
+    if (!self) return (Vec3d){1.0f, 0.0f, 0.0f};
+
+    vec3 r = {1, 0, 0};
+    glm_quat_rotatev(self->quaternion, r, r);
+    return (Vec3d){r[0], r[1], r[2]};
+}
+
+// Получить вектор вверх:
+Vec3d Camera3D_get_up(Camera3D *self) {
+    if (!self) return (Vec3d){0.0f, 1.0f, 0.0f};
+
+    vec3 u = {0, 1, 0};
+    glm_quat_rotatev(self->quaternion, u, u);
+    return (Vec3d){u[0], u[1], u[2]};
 }
 
 // Установить проверку глубины:

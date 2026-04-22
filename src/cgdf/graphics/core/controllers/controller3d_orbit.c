@@ -1,5 +1,5 @@
 //
-// controller3d_orbit.c - Реализует контроллер для управления 3D камеры орбитально.
+// controller3d_orbit.c - Реализует контроллер для управления 3D камеры орбитально (вокруг).
 //
 
 
@@ -15,7 +15,7 @@
 // Создать орбитальный 3D контроллер:
 CameraOrbitController3D* CameraOrbitController3D_create(
     Window *window, Camera3D *camera, Vec3d target_pos, float mouse_sensitivity,
-    float distance, float friction, bool up_is_forward
+    float distance, float friction
 ) {
     if (!window || !camera) return NULL;
     CameraOrbitController3D *ctrl = (CameraOrbitController3D*)mm_alloc(sizeof(CameraOrbitController3D));
@@ -26,13 +26,13 @@ CameraOrbitController3D* CameraOrbitController3D_create(
     ctrl->mouse_sensitivity = mouse_sensitivity;
     ctrl->distance = distance;
     ctrl->friction = friction;
-    ctrl->up_is_forward = up_is_forward;
 
-    ctrl->rotation = (Vec3d){camera->rotation.x, camera->rotation.y, camera->rotation.z};
+    ctrl->euler = (Vec3d){0.0f, 0.0f, 0.0f};
     ctrl->target_pos = target_pos;
-    ctrl->target_rot = (Vec3d){camera->rotation.x, camera->rotation.y, camera->rotation.z};
+    ctrl->target_rot = ctrl->euler;
     ctrl->target_dst = distance;
     ctrl->target_fov = camera->fov;
+
     ctrl->pressed_pass = false;
     ctrl->is_pressed = false;
     ctrl->is_movement = false;
@@ -55,8 +55,6 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     bool *keys = Input_get_key_pressed(window);
 
     // Константы управления:
-    // const int k_roll_left  = K_LEFT;
-    // const int k_roll_right = K_RIGHT;
     const int k_zoom = K_LALT;
     const float m_whl_factor   = 0.1f;  // Фактор уменьшения чувствительности колесика мыши.
     const int mouse_pos_offset = 16;    // Область от края окна для телепортации мыши.
@@ -85,33 +83,21 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
 
     // Управление камерой в случае если мы не попали на интерфейс и зажали ПКМ:
     if (self->is_pressed && !self->pressed_pass) {
-        // Управление с помощью клавиатуры:
-        {
-            // Управление вращением крена TODO правильно реализовать крен ко вращению камеры:
-            // if (keys[k_roll_left])  self->rotation.z -= 90.0f * dtime;
-            // if (keys[k_roll_right]) self->rotation.z += 90.0f * dtime;
-        }
-
         // Управление с помощью мыши:
-        {
-            float roll = radians(self->rotation.z);
-            float cam_dx = cosf(roll) * (float)mouse_rel.x - sinf(roll) * (float)mouse_rel.y;
-            float cam_dy = sinf(roll) * (float)mouse_rel.x + cosf(roll) * (float)mouse_rel.y;
+        float roll = radians(self->euler.z);
+        float cam_dx = cosf(roll) * (float)mouse_rel.x - sinf(roll) * (float)mouse_rel.y;
+        float cam_dy = sinf(roll) * (float)mouse_rel.x + cosf(roll) * (float)mouse_rel.y;
 
-            // По горизонтали:
-            float rot_x = wrap_float(self->rotation.x, -180.0f, 180.0f);
-            if (rot_x < -89.9f || rot_x > 89.9f) {
-                self->rotation.y -= cam_dx * self->mouse_sensitivity;  // Противоположный диапазон.
-            } else self->rotation.y += cam_dx * self->mouse_sensitivity;  // Обычный диапазон.
-            self->rotation.x += cam_dy * self->mouse_sensitivity;  // По вертикали.
-            _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
+        // По горизонтали:
+        float rot_x = wrap_float(self->euler.x, -180.0f, 180.0f);
+        if (rot_x < -89.9f || rot_x > 89.9f) {
+            self->euler.y -= cam_dx * self->mouse_sensitivity;     // Противоположный диапазон.
+        } else self->euler.y += cam_dx * self->mouse_sensitivity;  // Обычный диапазон.
+        self->euler.x += cam_dy * self->mouse_sensitivity;  // По вертикали.
+        _check_mouse_pos_(window, camera->width, camera->height, mouse_pos_offset, mouse_pos_offset);
 
-            // Ограничиваем вращение камеры вверх-вниз до -89/89 градусов:
-            // (Если установить 90 градусов, могут быть проблемы в рассчетах вектора направления).
-            if (!self->up_is_forward) {
-                self->rotation.x = glm_clamp(self->rotation.x, -89.9f, +89.9f);
-            }
-        }
+        // Ограничиваем вращение камеры вверх-вниз до -89/89 градусов:
+        self->euler.x = glm_clamp(self->euler.x, -89.9f, +89.9f);
     }
 
     // Управление обзором камеры:
@@ -135,13 +121,13 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     float fr = 1.0f - self->friction;
     if (fr > 0.0f) {
         self->distance += ((self->target_dst - self->distance) * 1.0f/fr) * dtime;
-        self->target_rot.x += ((self->rotation.x - self->target_rot.x) * 1.0f/fr) * dtime;
-        self->target_rot.y += ((self->rotation.y - self->target_rot.y) * 1.0f/fr) * dtime;
-        self->target_rot.z += ((self->rotation.z - self->target_rot.z) * 1.0f/fr) * dtime;
+        self->target_rot.x += ((self->euler.x - self->target_rot.x) * 1.0f/fr) * dtime;
+        self->target_rot.y += ((self->euler.y - self->target_rot.y) * 1.0f/fr) * dtime;
+        self->target_rot.z += ((self->euler.z - self->target_rot.z) * 1.0f/fr) * dtime;
         camera->fov += ((self->target_fov - camera->fov) * 1.0f/fr) * dtime;
     } else {
         self->distance = self->target_dst;
-        self->target_rot = (Vec3d){self->rotation.x, self->rotation.y, self->rotation.z};
+        self->target_rot = (Vec3d){self->euler.x, self->euler.y, self->euler.z};
         camera->fov = self->target_fov;
     }
 
@@ -159,18 +145,18 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     camera->position.x = self->target_pos.x + forward[0] * self->distance;
     camera->position.y = self->target_pos.y + forward[1] * self->distance;
     camera->position.z = self->target_pos.z + forward[2] * self->distance;
-    camera->rotation = self->target_rot;
 
-    // Ограничиваем вращение камеры:
-    camera->rotation.x = wrap_float(camera->rotation.x, -180.0f, 180.0f);
-    camera->rotation.y = wrap_float(camera->rotation.y, -180.0f, 180.0f);
-    camera->rotation.z = wrap_float(camera->rotation.z, -180.0f, 180.0f);
+    // Вращаем камеру:
+    Camera3D_look_at(camera, self->target_pos, (Vec3d){0.0f, 1.0f, 0.0f});
 
     // Проверяем перемещается камера или нет:
     vec3 diff;
-    glm_vec3_sub((vec3){ self->rotation.x, self->rotation.y, self->rotation.z },
-                 (vec3){ camera->rotation.x, camera->rotation.y, camera->rotation.z }, diff);
-    if (roundf(glm_vec3_norm(diff)*1000.0f)/1000.0f > 0.05f || fabs(self->target_dst - self->distance) > 0.001f) {
-        self->is_movement = true;
-    } else {  self->is_movement = false; }
+    glm_vec3_sub(
+        (vec3){ self->target_pos.x, self->target_pos.y, self->target_pos.z },
+        (vec3){ camera->position.x, camera->position.y, camera->position.z },
+        diff
+    );
+    float pos_delta = glm_vec3_norm(diff);
+    float dst_delta = fabs(self->target_dst - self->distance);
+    self->is_movement = (pos_delta > 0.001f || dst_delta > 0.001f);
 }

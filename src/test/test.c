@@ -15,6 +15,7 @@ static Texture *blue_noise;
 static CameraController3D *ctrl3d;
 static CameraOrbitController3D *ctrl_orbit;
 static Camera3D *camera3d;
+static Camera2D *camera2d;
 static SpriteBatch *batch;
 static SimpleDraw *draw;
 static Shader *grid;
@@ -59,6 +60,8 @@ void start(Window *self) {
     Window_set_title(self, "CGDF Window");
     Pixmap_destroy(&icon);
 
+    camera2d = Camera2D_create(self, Window_get_width(self), Window_get_height(self), (Vec2d){0.0f, 0.0f}, 0.0f, 1.0f);
+    // Camera2D_set_meter(camera2d, 1.0f);
     camera3d = Camera3D_create(
         self, Window_get_width(self), Window_get_height(self),
         (Vec3d){0.0f, 0.0f, 10.0f},
@@ -71,7 +74,7 @@ void start(Window *self) {
     Camera3D_set_cull_faces(camera3d, false);
     Camera3D_set_depth_test(camera3d, false);
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
-    ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f, true);
+    ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f);
 
     printf("Loading data...\n");
 
@@ -108,6 +111,7 @@ void destroy(Window *self) {
     Shader_destroy(&grid);
     Shader_destroy(&atmosphere);
     FontPixmap_destroy(&font);
+    Camera2D_destroy(&camera2d);
     Camera3D_destroy(&camera3d);
     CameraController3D_destroy(&ctrl3d);
     CameraOrbitController3D_destroy(&ctrl_orbit);
@@ -121,13 +125,19 @@ void update(Window *self, float dtime) {
         log_msg("[I] Atmosphere shader reloaded.\n");
     }
 
+    Vec3d planet_pos = (Vec3d){0.0f, 0.0f, 0.0f};
+    // ctrl3d->up_dir = Vec3f_norm((Vec3f){
+    //     camera3d->position.x-planet_pos.x,
+    //     camera3d->position.y-planet_pos.y,
+    //     camera3d->position.z-planet_pos.z
+    // });
     static bool orbit_enabled = false;
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
     if (orbit_enabled) {
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
     } else {
         CameraController3D_update(ctrl3d, dtime, false);
-    }    
+    }
     Camera3D_update(camera3d);
 }
 
@@ -161,10 +171,11 @@ void render(Window *self, float dtime) {
     }
 
     if (true) {
+        mat4 inv_view;
+        glm_mat4_inv(camera3d->view, inv_view);
         Shader_begin(atmosphere);
         Shader_set_vec2(atmosphere, "u_resolution", (Vec2f){Window_get_width(self), Window_get_height(self)});
-        Shader_set_vec3(atmosphere, "u_camera_pos", (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z});
-        Shader_set_vec3(atmosphere, "u_camera_rot", (Vec3f){camera3d->rotation.x, camera3d->rotation.y, camera3d->rotation.z});
+        Shader_set_mat4(atmosphere, "u_inv_view", inv_view);
         Shader_set_float(atmosphere, "u_camera_fov", camera3d->fov);
 
         Shader_set_vec3(atmosphere, "u_planet_pos", (Vec3f){0, 0, 0});
@@ -175,7 +186,7 @@ void render(Window *self, float dtime) {
         Shader_set_float(atmosphere, "u_atm_height", 5.0f);
 
         Shader_set_int(atmosphere, "u_num_in_scatter_points", 10);
-        Shader_set_int(atmosphere, "u_num_optical_depth_points", 10);
+        Shader_set_int(atmosphere, "u_num_optical_depth_points", 5);
         Shader_set_float(atmosphere, "u_density_falloff", 3.0f);
         Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){720, 530, 440});
         Shader_set_float(atmosphere, "u_scattering_strength", 1.0f);
@@ -184,10 +195,24 @@ void render(Window *self, float dtime) {
         Shader_end(atmosphere);
     }
 
-    // Vec2f text_pos = {0.0f, 16.0f};
-    // FontPixmap_set_align(font, FONT_ALIGN_BOTTOM_LEFT);
-    // FontPixmap_set_scale_factor(font, (Vec2f){1.0f/100.0f, 1.0f/100.0f});
-    // FontPixmap_render(font, text_pos.x, text_pos.y, 0, "CameraPos: x%.3f y%.3f z%.3f", camera3d->position.x, camera3d->position.y, camera3d->position.z);
+    Vec2d screen_pos = world3d_to_screen(camera3d, (Vec3d){0, 0, 0});
+    Vec2f text_pos = {screen_pos.x, screen_pos.y};
+    FontPixmap_set_align(font, FONT_ALIGN_CENTER_CENTER);
+    float scale = 0.5f;
+    FontPixmap_set_scale_factor(font, (Vec2f){scale, scale});
+    FontPixmap_set_color(font, (Vec4f){0, 0.75, 0, 1});
+    FontPixmap_set_bg_color(font, (Vec4f){0, 0, 0, 0.5f});
+    FontPixmap_set_bg_padding(font, (Vec4f){8, 8, 8, 8});
+
+    Camera2D_update(camera2d);
+    Camera2D_ui_begin(camera2d);
+    Vec3d rot = Camera3D_get_euler(camera3d);
+    FontPixmap_render(font, text_pos.x, text_pos.y, 0, "CameraPos: x%.3f y%.3f z%.3f\nCameraRot: x%.3f y%.3f z%.3f\nCameraFov: %.3f",
+        camera3d->position.x, camera3d->position.y, camera3d->position.z,
+        rot.x, rot.y, rot.z,
+        camera3d->fov
+    );
+    Camera2D_ui_end(camera2d);
 
     Window_display(self);
 }
@@ -197,6 +222,7 @@ void render(Window *self, float dtime) {
 void resize(Window *self, int width, int height) {
     printf("Resize called.\n");
     Camera3D_resize(camera3d, width, height, false);
+    Camera2D_resize(camera2d, width, height);
 }
 
 
