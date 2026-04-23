@@ -52,6 +52,7 @@ void CameraPlanetController3D_destroy(CameraPlanetController3D **ctrl) {
 // Обновление контроллера:
 void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime, bool pressed_pass) {
     if (!self) return;
+    /*
     Window *window = self->window;
     Camera3D *camera = self->camera;
     Vec2i mouse_rel = Input_get_mouse_rel(window);
@@ -90,12 +91,13 @@ void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime
 
     // Управление камерой в случае если мы не попали на интерфейс и зажали ПКМ:
     if (self->is_pressed && !self->pressed_pass) {
-
+        // Вращение головой:
+        self->euler.y -= mouse_rel.x * self->mouse_sensitivity;
+        self->euler.x -= mouse_rel.y * self->mouse_sensitivity;
+        self->euler.x = glm_clamp(self->euler.x, -89.0f, 89.0f);
         _check_mouse_pos_(window, camera->width, camera->height);
 
-        // -------------------------
-        // UP (нормаль планеты)
-        // -------------------------
+        // Вектор вверх на планете:
         vec3 up;
         glm_vec3_sub(
             (vec3){camera->position.x, camera->position.y, camera->position.z},
@@ -104,138 +106,11 @@ void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime
         );
         glm_vec3_normalize(up);
 
-
-        // -------------------------
-        // INPUT ROTATION (euler)
-        // -------------------------
-        self->euler.y -= mouse_rel.x * self->mouse_sensitivity;
-        self->euler.x -= mouse_rel.y * self->mouse_sensitivity;
-
-        self->euler.x = glm_clamp(self->euler.x, -89.0f, 89.0f);
-
-
-        // -------------------------
-        // БАЗИС ПОВЕРХНОСТИ
-        // -------------------------
-        vec3 world_forward = {0, 0, -1};
-
-        vec3 right;
-        glm_vec3_cross(world_forward, up, right);
-
-        if (glm_vec3_norm(right) < 1e-6f) {
-            vec3 alt = {1, 0, 0};
-            glm_vec3_cross(alt, up, right);
-        }
-
-        glm_vec3_normalize(right);
-
-        vec3 forward;
-        glm_vec3_cross(up, right, forward);
-        glm_vec3_normalize(forward);
-
-
-        // -------------------------
-        // YAW (по поверхности)
-        // -------------------------
-        float yaw = glm_rad(self->euler.y);
-
-        vec3 yaw_dir;
-        for (int i = 0; i < 3; i++) {
-            yaw_dir[i] = forward[i] * cosf(yaw) + right[i] * sinf(yaw);
-        }
-        glm_vec3_normalize(yaw_dir);
-
-
-        // -------------------------
-        // PITCH (относительно up)
-        // -------------------------
-        float pitch = glm_rad(self->euler.x);
-
-        vec3 look_dir;
-        for (int i = 0; i < 3; i++) {
-            look_dir[i] = yaw_dir[i] * cosf(pitch) + up[i] * sinf(pitch);
-        }
-        glm_vec3_normalize(look_dir);
-
-
-        // -------------------------
-        // ПРИМЕНЯЕМ ВРАЩЕНИЕ
-        // -------------------------
-        Vec3d target_point = {
-            camera->position.x + look_dir[0],
-            camera->position.y + look_dir[1],
-            camera->position.z + look_dir[2]
-        };
-
-        Camera3D_look_at(camera, target_point, (Vec3d){up[0], up[1], up[2]});
-
-
-        // -------------------------
-        // ДВИЖЕНИЕ (от взгляда)
-        // -------------------------
-        vec3 move_forward;
-
-        float d = glm_vec3_dot(look_dir, up);
-        vec3 tmp;
-        glm_vec3_scale(up, d, tmp);
-        glm_vec3_sub(look_dir, tmp, move_forward);
-
-        if (glm_vec3_norm(move_forward) > 1e-6f)
-            glm_vec3_normalize(move_forward);
-
-
-        vec3 move_right;
-        glm_vec3_cross(move_forward, up, move_right);
-        glm_vec3_normalize(move_right);
-
-
-        float speed = self->speed * dtime;
-        if (keys[K_LSHIFT] || keys[K_RSHIFT])    speed = self->shift_speed * dtime;
-        else if (keys[K_LCTRL] || keys[K_RCTRL]) speed = self->ctrl_speed * dtime;
-
-        vec3 move_vec = {0, 0, 0};
-
-        if (keys[k_forward]) glm_vec3_add(move_vec, move_forward, move_vec);
-        if (keys[k_back])    glm_vec3_sub(move_vec, move_forward, move_vec);
-
-        if (keys[k_right])   glm_vec3_add(move_vec, move_right, move_vec);
-        if (keys[k_left])    glm_vec3_sub(move_vec, move_right, move_vec);
-
-
-        if (glm_vec3_norm(move_vec) > 1e-6f) {
-            glm_vec3_normalize(move_vec);
-
-            self->target_pos.x += move_vec[0] * speed;
-            self->target_pos.y += move_vec[1] * speed;
-            self->target_pos.z += move_vec[2] * speed;
-        }
-
-
-        // -------------------------
-        // ALTITUDE
-        // -------------------------
-        if (keys[k_up])   self->altitude += speed;
-        if (keys[k_down]) self->altitude -= speed;
-
-        if (self->altitude < 2.0f) self->altitude = 2.0f;
-
-
-        // -------------------------
-        // ПРИЖАТИЕ К СФЕРЕ
-        // -------------------------
-        vec3 to_target;
-
-        glm_vec3_sub(
-            (vec3){self->target_pos.x, self->target_pos.y, self->target_pos.z},
-            (vec3){self->center.x, self->center.y, self->center.z},
-            to_target
-        );
-
-        glm_vec3_normalize(to_target);
-
-        self->target_pos.x = self->center.x + to_target[0] * self->altitude;
-        self->target_pos.y = self->center.y + to_target[1] * self->altitude;
-        self->target_pos.z = self->center.z + to_target[2] * self->altitude;
+        // Тут надо реализовать код который будет вращать камеру относительно центра планеты
+        // а также позволять смотреть на небо и на землю (то есть вращать эйлеровые углы)
+        // А также чтобы мы могли летать туда куда смотрим. Вверх вниз это у нас будет
+        // поднятие вверх и вниз по вектору к центру планеты
+        // Мы всегда должны летать по касательной сферы радиусом альтитуды
     }
 
     // Управление обзором камеры:
@@ -269,4 +144,5 @@ void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime
         diff
     );
     self->is_movement = (glm_vec3_norm(diff) > 0.001f);
+    */
 }

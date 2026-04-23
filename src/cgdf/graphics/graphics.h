@@ -19,6 +19,7 @@ extern "C" {
 #include "core/input.h"
 #include "core/light.h"
 #include "core/mesh.h"
+#include "core/node.h"
 #include "core/renderer.h"
 #include "core/scene.h"
 #include "core/shader.h"

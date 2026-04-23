@@ -24,6 +24,8 @@ static Shader *atmosphere;
 static FontPixmap *font;
 static Mesh *sphere;
 static float planet_rad = 10.0f;
+Vertex *vertices;
+uint32_t *indices;
 
 
 void generate_sphere(float radius, int sectors, int stacks, Vertex** vertices, unsigned int** indices, int* numVertices, int* numIndices) {
@@ -172,8 +174,6 @@ void start(Window *self) {
     blue_noise = Texture_create(self->renderer);
     Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
 
-    Vertex *vertices;
-    uint32_t *indices;
     int vert_count, idx_count;
     generate_sphere(planet_rad, 36, 18, &vertices, &indices, &vert_count, &idx_count);
     sphere = Mesh_create(vertices, vert_count, indices, idx_count, false);
@@ -199,6 +199,8 @@ void destroy(Window *self) {
     CameraOrbitController3D_destroy(&ctrl_orbit);
     CameraPlanetController3D_destroy(&ctrl_planet);
     Mesh_destroy(&sphere);
+    mm_free(vertices);
+    mm_free(indices);
 }
 
 
@@ -209,12 +211,6 @@ void update(Window *self, float dtime) {
         log_msg("[I] Atmosphere shader reloaded.\n");
     }
 
-    Vec3d planet_pos = (Vec3d){0.0f, 0.0f, 0.0f};
-    // ctrl3d->up_dir = Vec3f_norm((Vec3f){
-    //     camera3d->position.x-planet_pos.x,
-    //     camera3d->position.y-planet_pos.y,
-    //     camera3d->position.z-planet_pos.z
-    // });
     static bool orbit_enabled = false;
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
     if (orbit_enabled) {
@@ -257,6 +253,15 @@ void render(Window *self, float dtime) {
         Shader_end(grid);
     }
 
+    // Нарисовать линии:
+    SimpleDraw_line(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){1000, 0, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0.25, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){-1000, 0, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 1000, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 0.25, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, -1000, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 0, 1, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 1000}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 0, 0.25, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, -1000}, 3.0f);
+
+    /*
     if (true) {
         mat4 inv_view;
         glm_mat4_inv(camera3d->view, inv_view);
@@ -301,11 +306,6 @@ void render(Window *self, float dtime) {
     FontPixmap_set_bg_color(font, (Vec4f){0, 0, 0, 0.5f});
     FontPixmap_set_bg_padding(font, (Vec4f){8, 8, 8, 8});
 
-    // Нарисовать линию:
-    SimpleDraw_line(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){1000, 0, 0}, 3.0f);
-    SimpleDraw_line(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 1000, 0}, 3.0f);
-    SimpleDraw_line(draw, (Vec4f){0, 0, 1, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 1000}, 3.0f);
-
     Camera2D_update(camera2d);
     Camera2D_ui_begin(camera2d);
     Vec3d rot = Camera3D_get_euler(camera3d);
@@ -315,6 +315,7 @@ void render(Window *self, float dtime) {
         camera3d->fov
     );
     Camera2D_ui_end(camera2d);
+    */
 
     Window_display(self);
 }

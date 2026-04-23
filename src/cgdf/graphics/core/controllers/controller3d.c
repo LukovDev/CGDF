@@ -30,7 +30,7 @@ CameraController3D* CameraController3D_create(
     ctrl->friction = friction;
     ctrl->up_is_forward = up_is_forward;
 
-    ctrl->euler = (Vec3d){0.0f, 0.0f, 0.0f};
+    ctrl->euler = (Vec3d){0.0, 0.0, 0.0};
     ctrl->target_pos = (Vec3d){camera->position.x, camera->position.y, camera->position.z};
     ctrl->target_fov = camera->fov;
 
