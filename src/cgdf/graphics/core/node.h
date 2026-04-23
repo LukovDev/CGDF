@@ -1,7 +1,5 @@
 //
-// node.h - Нод. Позволяет организовывать объекты в сцене. Может иметь родительский нод и дочерние.
-//
-// Работает на ленивых
+// node.h - Граф сцены. Определяет функционал системы дерева из узлов. Работает на основе ленивого дерева.
 //
 
 #pragma once
@@ -14,7 +12,7 @@
 
 
 // Определения:
-#define NODE_DEFAULT_CHILDREN_COUNT 16  // Количество дочерних узлов по умолчанию.
+#define NODE_DEFAULT_CHILDREN_COUNT 32  // Количество дочерних узлов по умолчанию.
 
 
 // Объявление структур:
@@ -59,8 +57,20 @@ void Node_set_quaternion(Node *self, versor quaternion);
 // Установить масштаб:
 void Node_set_scale(Node *self, Vec3d scale);
 
+// Вращать узел:
+void Node_rotate(Node *self, Vec3d axis, float angle);
+
 // Получить матрицу трансформации:
 void Node_get_transform(Node *self, mat4 dest);
+
+// Получить позицию в мире:
+Vec3d Node_get_world_position(Node *self);
+
+// Получить поворот в мире:
+void Node_get_world_quaternion(Node *self, versor dest);
+
+// Получить масштаб в мире:
+Vec3d Node_get_world_scale(Node *self);
 
 // Копировать нод в том же месте (в родителе оригинала):
 Node* Node_copy(Node *self);

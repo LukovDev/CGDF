@@ -1,5 +1,5 @@
 //
-// node.c - Реализация функционала нода.
+// node.c - Граф сцены. Реализует функционал системы дерева из узлов. Работает на основе ленивого дерева.
 //
 
 
@@ -18,7 +18,7 @@ Node* Node_create(Node *parent) {
 
     // Если передали родителя, записываем себя в потомки:
     if (parent) {
-        Array_push(parent->children, node);
+        Array_push(parent->children, &node);
     }
 
     // Заполняем поля:
@@ -46,7 +46,7 @@ void Node_destroy(Node **node) {
     // Рекурсивно удаляем потомков:
     if ((*node)->children) {
         for (int i = 0; i < Array_len((*node)->children); i++) {
-            Node *child = *(Node**)Array_get((*node)->children, i);
+            Node *child = (Node*)Array_get_ptr((*node)->children, i);
             child->parent = NULL;  // Чтобы потомок не пытался удалить себя из нас.
             Node_destroy(&child);
         }
@@ -93,11 +93,59 @@ void Node_set_scale(Node *self, Vec3d scale) {
     Node_invalidate_parent(self);  // Проход потомков в глубину и установка флага parent_changed.
 }
 
+// Вращать узел:
+void Node_rotate(Node *self, Vec3d axis, float angle) {
+    if (!self) return;
+    versor step;
+    glm_quat(step, radians(angle), axis.x, axis.y, axis.z);
+    glm_quat_mul(self->quaternion, step, self->quaternion);
+    self->changed = true;          // Флаг о изменении нода.
+    Node_invalidate_parent(self);  // Проход потомков в глубину и установка флага parent_changed.
+}
+
 // Получить матрицу трансформации:
 void Node_get_transform(Node *self, mat4 dest) {
     if (!self) return;
     Node_recalculate_matrix(self);  // Если требуется, пересчитаем матрицу.
     glm_mat4_copy(self->result_transform, dest);
+}
+
+// Получить позицию в мире:
+Vec3d Node_get_world_position(Node *self) {
+    if (!self) return (Vec3d){0.0, 0.0, 0.0};
+    Node_recalculate_matrix(self);  // Гарантируем актуальность.
+    // В cglm матрица 4x4, позиция лежит в элементах [3][0], [3][1], [3][2]:
+    Vec3d pos;
+    pos.x = self->result_transform[3][0];
+    pos.y = self->result_transform[3][1];
+    pos.z = self->result_transform[3][2];
+    return pos;
+}
+
+// Получить поворот в мире:
+void Node_get_world_quaternion(Node *self, versor dest) {
+    if (!self) return;
+    Node_recalculate_matrix(self);  // Гарантируем актуальность.
+    mat4 pure_rot;
+    glm_mat4_copy(self->result_transform, pure_rot);
+    // Убираем масштаб из матрицы, чтобы осталось только вращение:
+    glm_vec3_normalize(pure_rot[0]);
+    glm_vec3_normalize(pure_rot[1]);
+    glm_vec3_normalize(pure_rot[2]);
+    // Конвертируем очищенную матрицу в кватернион:
+    glm_mat4_quat(pure_rot, dest);
+}
+
+// Получить масштаб в мире:
+Vec3d Node_get_world_scale(Node *self) {
+    if (!self) return (Vec3d){0.0, 0.0, 0.0};
+    Node_recalculate_matrix(self);  // Гарантируем актуальность.
+    // Извлекаем длину каждого вектора оси (X, Y, Z):
+    Vec3d scale;
+    scale.x = glm_vec3_norm(self->result_transform[0]);
+    scale.y = glm_vec3_norm(self->result_transform[1]);
+    scale.z = glm_vec3_norm(self->result_transform[2]);
+    return scale;
 }
 
 // Копировать нод в то же место (в родителе оригинала):
@@ -116,7 +164,7 @@ Node* Node_copy(Node *self) {
 
     // Если есть родитель, записываем себя в потомки:
     if (self->parent) {
-        Array_push(self->parent->children, node);
+        Array_push(self->parent->children, &node);
     }
 
     // Если у оригинала не было изменений, то копируем матрицу трансформации:
@@ -135,7 +183,7 @@ Node* Node_copy(Node *self) {
 
     // Копируем потомков:
     for (int i = 0; i < Array_len(self->children); i++) {
-        Node *child_original = *(Node**)Array_get(self->children, i);
+        Node *child_original = (Node*)Array_get_ptr(self->children, i);
         Node *child_copy = Node_copy(child_original);  // Рекурсия.
         Node_set_parent(child_copy, node);  // Привязываем копию ребенка к копии родителя.
     }
@@ -150,7 +198,7 @@ void Node_remove_child(Node *self, Node *child) {
     // Ищем, под каким индексом лежит ребенок:
     int index = -1;
     for (int i = 0; i < Array_len(self->children); i++) {
-        if (*(Node**)Array_get(self->children, i) == child) {
+        if ((Node*)Array_get_ptr(self->children, i) == child) {
             index = i; break;
         }
     }
@@ -187,7 +235,7 @@ void Node_set_parent(Node *self, Node *parent) {
 
     // Если новый родитель существует, добавляемся к нему в список:
     if (parent) {
-        Array_push(parent->children, self);
+        Array_push(parent->children, &self);
     }
 
     // Инвалидация (сброс) матриц для всей ветки вниз:
@@ -232,7 +280,7 @@ void Node_invalidate_parent(Node *self) {
 
     // Цикл по потомкам:
     for (int i = 0; i < Array_len(self->children); i++) {
-        Node *child = *(Node**)Array_get(self->children, i);
+        Node *child = (Node*)Array_get_ptr(self->children, i);
         if (!child->parent_changed) {       // Если еще не помечен.
             child->parent_changed = true;   // Флаг о изменении родителя.
             Node_invalidate_parent(child);  // Рекурсивный вызов для потомков выбранного потомка.

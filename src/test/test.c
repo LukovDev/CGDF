@@ -23,9 +23,10 @@ static Shader *grid;
 static Shader *atmosphere;
 static FontPixmap *font;
 static Mesh *sphere;
-static float planet_rad = 10.0f;
+static float planet_rad = 1.0f;
 Vertex *vertices;
 uint32_t *indices;
+Node *sun, *earth, *moon;
 
 
 void generate_sphere(float radius, int sectors, int stacks, Vertex** vertices, unsigned int** indices, int* numVertices, int* numIndices) {
@@ -178,6 +179,17 @@ void start(Window *self) {
     generate_sphere(planet_rad, 36, 18, &vertices, &indices, &vert_count, &idx_count);
     sphere = Mesh_create(vertices, vert_count, indices, idx_count, false);
 
+    sun = Node_create(NULL);
+    Node_set_scale(sun, (Vec3d){10.0f, 10.0f, 10.0f});
+
+    earth = Node_create(sun);
+    Node_set_position(earth, (Vec3d){5.0f, 0.0f, 0.0f});
+    Node_set_scale(earth, (Vec3d){0.25f, 0.25f, 0.25f});
+
+    moon = Node_create(earth);
+    Node_set_position(moon, (Vec3d){5.0f, 0.0f, 0.0f});
+    Node_set_scale(moon, (Vec3d){0.25f, 0.25f, 0.25f});
+
     printf("data loaded\n");
 }
 
@@ -201,6 +213,8 @@ void destroy(Window *self) {
     Mesh_destroy(&sphere);
     mm_free(vertices);
     mm_free(indices);
+
+    Node_destroy(&sun);
 }
 
 
@@ -214,14 +228,19 @@ void update(Window *self, float dtime) {
     static bool orbit_enabled = false;
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
     if (orbit_enabled) {
-        // CameraOrbitController3D_update(ctrl_orbit, dtime, false);
-        CameraPlanetController3D_update(ctrl_planet, dtime, false);
+        CameraOrbitController3D_update(ctrl_orbit, dtime, false);
+        ctrl_orbit->target_pos = Node_get_world_position(moon);
+        // CameraPlanetController3D_update(ctrl_planet, dtime, false);
         ctrl3d->euler = ctrl_planet->euler;
     } else {
         CameraController3D_update(ctrl3d, dtime, false);
         ctrl_planet->euler = ctrl3d->euler;
     }
     Camera3D_update(camera3d);
+
+    Node_rotate(sun, (Vec3d){0.0f, 1.0f, 0.0f}, 1.0f*dtime);
+    Node_rotate(earth, (Vec3d){0.0f, 1.0f, 0.0f}, 10.0f*dtime);
+    Node_rotate(moon, (Vec3d){0.0f, 1.0f, 0.0f}, 25.0f*dtime);
 }
 
 
@@ -232,6 +251,26 @@ void render(Window *self, float dtime) {
     double time = Window_get_time(self);
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
+
+    Camera3D_set_depth_test(camera3d, true);
+    Shader_begin(self->renderer->shader);
+    Shader_set_bool(self->renderer->shader, "u_use_texture", false);
+    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 0, 1});
+    mat4 model;
+    Node_get_transform(sun, model);
+    Shader_set_mat4(self->renderer->shader, "u_model", model);
+    Mesh_render(sphere, true);
+
+    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){0, 0, 1, 1});
+    Node_get_transform(earth, model);
+    Shader_set_mat4(self->renderer->shader, "u_model", model);
+    Mesh_render(sphere, true);
+
+    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 1, 1});
+    Node_get_transform(moon, model);
+    Shader_set_mat4(self->renderer->shader, "u_model", model);
+    Mesh_render(sphere, true);
+    Shader_end(self->renderer->shader);
 
     if (true) {
         Shader_begin(grid);
