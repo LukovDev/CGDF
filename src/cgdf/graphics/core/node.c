@@ -63,12 +63,6 @@ Array* Node_get_children(Node *self) {
     return self->children;
 }
 
-// Возвращает необходимость пересчета матрицы трансформации:
-bool Node_is_changed(Node *self) {
-    if (!self) return false;
-    return self->changed;
-}
-
 // Установить позицию:
 void Node_set_position(Node *self, Vec3d position) {
     if (!self) return;
@@ -105,7 +99,10 @@ void Node_rotate(Node *self, Vec3d axis, float angle) {
 
 // Получить матрицу трансформации:
 void Node_get_transform(Node *self, mat4 dest) {
-    if (!self) return;
+    if (!self) {
+        glm_mat4_identity(dest);
+        return;
+    }
     Node_recalculate_matrix(self);  // Если требуется, пересчитаем матрицу.
     glm_mat4_copy(self->result_transform, dest);
 }
@@ -124,7 +121,10 @@ Vec3d Node_get_world_position(Node *self) {
 
 // Получить поворот в мире:
 void Node_get_world_quaternion(Node *self, versor dest) {
-    if (!self) return;
+    if (!self) {
+        glm_quat_identity(dest);
+        return;
+    }
     Node_recalculate_matrix(self);  // Гарантируем актуальность.
     mat4 pure_rot;
     glm_mat4_copy(self->result_transform, pure_rot);
@@ -148,47 +148,25 @@ Vec3d Node_get_world_scale(Node *self) {
     return scale;
 }
 
-// Копировать нод в то же место (в родителе оригинала):
-Node* Node_copy(Node *self) {
-    if (!self) return NULL;
-    Node *node = (Node*)mm_alloc(sizeof(Node));
+// Копировать нод c потомками в переданный родитель:
+Node* Node_copy(Node *self, Node *parent) {
+    if (!self || !parent) return NULL;
+    Node *copy = (Node*)mm_alloc(sizeof(Node));
+    memcpy(copy, self, sizeof(Node));  // Копируем всё разом.
 
-    // Заполняем поля:
-    node->parent = self->parent;
-    node->children = Array_create(sizeof(Node*), Array_capacity(self->children));
-    node->position = self->position;
-    glm_quat_copy(self->quaternion, node->quaternion);
-    node->scale = self->scale;
-    node->changed = true;
-    node->parent_changed = true;
+    // Настраиваем копию:
+    copy->parent = parent;
+    copy->children = Array_create(sizeof(Node*), Array_capacity(self->children));  // Это обязательно!
+    copy->parent_changed = true;
 
-    // Если есть родитель, записываем себя в потомки:
-    if (self->parent) {
-        Array_push(self->parent->children, &node);
-    }
-
-    // Если у оригинала не было изменений, то копируем матрицу трансформации:
-    if (!self->changed) {
-        glm_mat4_copy(self->transform, node->transform);
-    } else {
-        glm_mat4_identity(node->transform);
-    }
-
-    // Если у родителя не было изменений для оригинала, то копируем итоговую матрицу трансформации:
-    if (!self->parent_changed) {
-        glm_mat4_copy(self->result_transform, node->result_transform);
-    } else {
-        glm_mat4_identity(node->result_transform);
-    }
-
-    // Копируем потомков:
+    // Копируем потомков оригинала, передавая им "себя" как родителя:
     for (int i = 0; i < Array_len(self->children); i++) {
-        Node *child_original = (Node*)Array_get_ptr(self->children, i);
-        Node *child_copy = Node_copy(child_original);  // Рекурсия.
-        Node_set_parent(child_copy, node);  // Привязываем копию ребенка к копии родителя.
+        Node_copy(*(Node**)Array_get(self->children, i), copy);
     }
 
-    return node;
+    // Если новый родитель существует, добавляем копию в его список потомков (после копирования наших потомков!):
+    if (parent) Array_push(parent->children, &copy);
+    return copy;
 }
 
 // Удалить дочерний узел (из списка потомков):
@@ -205,8 +183,9 @@ void Node_remove_child(Node *self, Node *child) {
 
     // Если нашли, удаляем его:
     if (index != -1) {
-        child->parent = NULL;          // Удаляем родителя у потомка.
-        child->parent_changed = true;  // Теперь он сам по себе, матрицы надо пересчитать.
+        child->parent = NULL;           // Удаляем родителя у потомка.
+        child->parent_changed = true;   // Теперь он сам по себе, матрицы надо пересчитать.
+        Node_invalidate_parent(child);  // Помечаем все потомки что родитель изменился.
         Array_remove(self->children, index, NULL);
     }
 }

@@ -45,9 +45,6 @@ void Node_destroy(Node **node);
 // Получить список дочерних нод:
 Array* Node_get_children(Node *self);
 
-// Возвращает необходимость пересчета матрицы трансформации:
-bool Node_is_changed(Node *self);
-
 // Установить позицию:
 void Node_set_position(Node *self, Vec3d position);
 
@@ -72,8 +69,8 @@ void Node_get_world_quaternion(Node *self, versor dest);
 // Получить масштаб в мире:
 Vec3d Node_get_world_scale(Node *self);
 
-// Копировать нод в том же месте (в родителе оригинала):
-Node* Node_copy(Node *self);
+// Копировать нод c потомками в переданный родитель:
+Node* Node_copy(Node *self, Node *parent);
 
 // Удалить дочерний узел (из списка потомков):
 void Node_remove_child(Node *self, Node *child);

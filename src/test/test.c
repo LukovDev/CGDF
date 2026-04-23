@@ -31,7 +31,7 @@ Node *sun, *earth, *moon;
 
 void generate_sphere(float radius, int sectors, int stacks, Vertex** vertices, unsigned int** indices, int* numVertices, int* numIndices) {
     *numVertices = (stacks + 1) * (sectors + 1);
-    *numIndices = stacks * sectors * 6;
+    *numIndices = (stacks - 2) * sectors * 6 + 2 * sectors * 3;
 
     *vertices = (Vertex*)mm_alloc((*numVertices) * sizeof(Vertex));
     *indices = (unsigned int*)mm_alloc((*numIndices) * sizeof(unsigned int));
@@ -231,16 +231,17 @@ void update(Window *self, float dtime) {
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
         ctrl_orbit->target_pos = Node_get_world_position(moon);
         // CameraPlanetController3D_update(ctrl_planet, dtime, false);
-        ctrl3d->euler = ctrl_planet->euler;
+        ctrl3d->euler = Camera3D_get_euler(camera3d);
     } else {
         CameraController3D_update(ctrl3d, dtime, false);
-        ctrl_planet->euler = ctrl3d->euler;
+        ctrl_orbit->euler = Camera3D_get_euler(camera3d);
     }
-    Camera3D_update(camera3d);
 
-    Node_rotate(sun, (Vec3d){0.0f, 1.0f, 0.0f}, 1.0f*dtime);
-    Node_rotate(earth, (Vec3d){0.0f, 1.0f, 0.0f}, 10.0f*dtime);
-    Node_rotate(moon, (Vec3d){0.0f, 1.0f, 0.0f}, 25.0f*dtime);
+    Node_rotate(sun, (Vec3d){1.0f, 1.0f, 1.0f}, 25.0f*dtime);
+    Node_rotate(earth, (Vec3d){0.0f, 1.0f, 0.0f}, 50.0f*dtime);
+    Node_rotate(moon, (Vec3d){0.0f, 0.0f, 1.0f}, 100.0f*dtime);
+
+    Camera3D_update(camera3d);
 }
 
 
