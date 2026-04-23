@@ -237,14 +237,31 @@ void update(Window *self, float dtime) {
         ctrl_orbit->euler = Camera3D_get_euler(camera3d);
     }
 
+    if (Input_get_key_down(self)[K_2]) Node_copy(sun, sun);
+
     Node_rotate(sun, (Vec3d){1.0f, 1.0f, 1.0f}, 25.0f*dtime);
     Node_rotate(earth, (Vec3d){0.0f, 1.0f, 0.0f}, 50.0f*dtime);
     Node_rotate(moon, (Vec3d){0.0f, 0.0f, 1.0f}, 100.0f*dtime);
 
     Camera3D_update(camera3d);
+    int total = Node_count_nodes(sun);
+    printf("total on tree: %d\n", total);
 }
 
+void render_nodes(Window *self, Node *parent) {
+    if (!self || !parent) return;
 
+    mat4 model;
+    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 1, 1});
+    Node_get_transform(parent, model);
+    Shader_set_mat4(self->renderer->shader, "u_model", model);
+    Mesh_render(sphere, true);
+
+    for (int i = 0; i < Array_len(parent->children); i++) {
+        Node *child = (Node*)Array_get_ptr(parent->children, i);
+        render_nodes(self, child);
+    }
+}
 // Вызывается каждый кадр (отрисовка окна):
 void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
@@ -256,21 +273,22 @@ void render(Window *self, float dtime) {
     Camera3D_set_depth_test(camera3d, true);
     Shader_begin(self->renderer->shader);
     Shader_set_bool(self->renderer->shader, "u_use_texture", false);
-    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 0, 1});
-    mat4 model;
-    Node_get_transform(sun, model);
-    Shader_set_mat4(self->renderer->shader, "u_model", model);
-    Mesh_render(sphere, true);
+    // mat4 model;
+    // Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 0, 1});
+    // Node_get_transform(sun, model);
+    // Shader_set_mat4(self->renderer->shader, "u_model", model);
+    // Mesh_render(sphere, true);
 
-    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){0, 0, 1, 1});
-    Node_get_transform(earth, model);
-    Shader_set_mat4(self->renderer->shader, "u_model", model);
-    Mesh_render(sphere, true);
+    // Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){0, 0, 1, 1});
+    // Node_get_transform(earth, model);
+    // Shader_set_mat4(self->renderer->shader, "u_model", model);
+    // Mesh_render(sphere, true);
 
-    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 1, 1});
-    Node_get_transform(moon, model);
-    Shader_set_mat4(self->renderer->shader, "u_model", model);
-    Mesh_render(sphere, true);
+    // Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 1, 1});
+    // Node_get_transform(moon, model);
+    // Shader_set_mat4(self->renderer->shader, "u_model", model);
+    // Mesh_render(sphere, true);
+    render_nodes(self, sun);
     Shader_end(self->renderer->shader);
 
     if (true) {

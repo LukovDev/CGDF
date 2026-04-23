@@ -21,15 +21,15 @@ typedef struct Node Node;  // Структура нода.
 
 // Структура нода:
 struct Node {
-    Node *parent;           // Родительский узел.
-    Array *children;        // Дочерние узлы.
-    Vec3d position;         // Позиция узла.
-    versor quaternion;      // Поворот узла.
-    Vec3d scale;            // Масштаб узла.
-    mat4 transform;         // Матрица локальной трансформации узла.
-    mat4 result_transform;  // Итоговая матрица с учетом родительской трансформации.
-    bool changed;           // Флаг необходимости пересчета матрицы трансформации.
-    bool parent_changed;    // Флаг указывающий на изменения в родительском узле.
+    Node   *parent;           // Родительский узел.
+    Array  *children;         // Дочерние узлы.
+    Vec3d  position;          // Позиция узла.
+    versor quaternion;        // Поворот узла.
+    Vec3d  scale;             // Масштаб узла.
+    mat4   transform;         // Матрица локальной трансформации узла.
+    mat4   result_transform;  // Итоговая матрица с учетом родительской трансформации.
+    bool   changed;           // Флаг необходимости пересчета матрицы трансформации.
+    bool   parent_changed;    // Флаг указывающий на изменения в родительском узле.
 };
 
 
@@ -86,3 +86,9 @@ void Node_recalculate_matrix(Node *self);
 
 // Проход потомков в глубину с изменением флага parent_changed:
 void Node_invalidate_parent(Node *self);
+
+// Получить количество узлов в узле:
+size_t Node_count_nodes(Node *self);
+
+// Количество узлов во всем дереве:
+size_t Node_count_all_nodes(Node *self);

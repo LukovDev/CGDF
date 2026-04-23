@@ -266,3 +266,21 @@ void Node_invalidate_parent(Node *self) {
         }
     }
 }
+
+// Получить количество узлов в узле:
+size_t Node_count_nodes(Node *self) {
+    if (!self) return 0;
+    return Array_len(self->children);
+}
+
+// Количество узлов во всем дереве:
+size_t Node_count_all_nodes(Node *self) {
+    if (!self) return 0;
+    size_t total = Array_len(self->children);
+    // Рекурсивно проходимся по всем потомкам и считаем количество их потомков:
+    for (int i = 0; i < Array_len(self->children); i++) {
+        Node *child = (Node*)Array_get_ptr(self->children, i);
+        total += Node_count_all_nodes(child);
+    }
+    return total;
+}
