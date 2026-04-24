@@ -1,5 +1,5 @@
 //
-// hashtable.h
+// hashtable.h - Хэш-таблица.
 //
 
 #pragma once

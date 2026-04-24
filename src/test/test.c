@@ -400,6 +400,14 @@ WindowScene TestScene = {
 int main(int argc, char *argv[]) {
     CGDF_Init();
 
+    CpuInfo cpu_info = Info_get_cpu();
+    printf("CPU Model: \"%s\"\n", cpu_info.model);
+    printf("Threads: %d\n", cpu_info.threads);
+    MemInfo mem_info = Info_get_mem();
+    printf("Total RAM: %llu MB\n", mem_info.total / 1024 / 1024);
+    printf("Free RAM: %llu MB\n", mem_info.free / 1024 / 1024);
+    printf("Used RAM: %llu MB\n", mem_info.used / 1024 / 1024);
+
     const char* cgdf_version = CGDF_GetVersion();
     log_msg("[I] CGDF version: %s\n", cgdf_version);
 

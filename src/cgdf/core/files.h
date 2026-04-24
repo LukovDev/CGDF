@@ -1,5 +1,5 @@
 //
-// files.h
+// files.h - Реализует работу с файлами.
 //
 
 #pragma once

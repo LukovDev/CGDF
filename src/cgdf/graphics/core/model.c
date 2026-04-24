@@ -62,7 +62,7 @@ void Model_remove_mesh(Model *self, Mesh *mesh) {
     size_t index = Array_find(self->meshes, &mesh);
     if (!index) return;  // index = 0. Сетки нет в массиве.
 
-    // Удаляем по индексу - 1:
+    // Удаляем из массива сеток:
     Array_remove(self->meshes, index-1, NULL);
 }
 
@@ -70,8 +70,8 @@ void Model_remove_mesh(Model *self, Mesh *mesh) {
 void Model_delete_mesh(Model *self, Mesh *mesh) {
     if (!self || !mesh) return;
 
-    Model_remove_mesh(self, mesh);
-    Mesh_destroy(&mesh);
+    Model_remove_mesh(self, mesh);  // Удаляем из массива.
+    Mesh_destroy(&mesh);            // Освобождаем.
 }
 
 // Отрисовать модель:

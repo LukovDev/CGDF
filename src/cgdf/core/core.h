@@ -14,19 +14,19 @@ extern "C" {
 
 // Подключаем:
 #include "std.h"
-#include "libs.h"
 #include "array.h"
 #include "constants.h"
-#include "logger.h"
 #include "files.h"
 #include "hashtable.h"
+#include "info.h"
+#include "libs.h"
+#include "logger.h"
 #include "math.h"
 #include "mm.h"
 #include "node.h"
 #include "pixmap.h"
 #include "platform.h"
 #include "time.h"
-// #include "vector.h"  // Подключается в "math.h".
 
 
 // Инициализация ядра:

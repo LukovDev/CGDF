@@ -1,5 +1,5 @@
 //
-// logger.h
+// logger.h - Логгер событий.
 //
 
 #pragma once

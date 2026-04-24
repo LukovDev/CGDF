@@ -18,7 +18,7 @@
 uint64_t (*hash_func) (const void* data, size_t len) = hash_fnv1a;
 
 
-// Вывод данных для функции HashTable_print(void):
+// Вывод данных для функции HashTable_print():
 static void print_data(FILE *out, void *data, size_t size, HashTablePrintMode mode) {
     if (!data) {
         fprintf(out, "(null)");

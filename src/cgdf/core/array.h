@@ -1,5 +1,5 @@
 //
-// array.h
+// array.h - Динамический массив.
 //
 
 #pragma once
