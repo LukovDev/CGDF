@@ -360,7 +360,33 @@ void render(Window *self, float dtime) {
     Model_render(model, true);
 
     Shader_end(self->renderer->shader);
-    Camera3D_set_depth_test(camera3d, false);
+
+    Camera2D_update(camera2d);
+    Camera2D_ui_begin(camera2d);
+
+    Vec2f text_pos = {16, 16};
+    float scale = 0.5f;
+    FontPixmap_set_scale_factor(font, (Vec2f){scale, scale});
+    FontPixmap_set_align(font, FONT_ALIGN_BOTTOM_LEFT);
+    FontPixmap_set_color(font, (Vec4f){1, 1, 1, 1});
+    FontPixmap_set_bg_color(font, (Vec4f){0, 0, 0, 0.5f});
+    FontPixmap_set_bg_padding(font, (Vec4f){8, 8, 8, 8});
+    FontPixmap_set_line_height(font, 16.0f);
+
+    CpuInfo cpu_info = Info_get_cpu();
+    MemInfo mem_info = Info_get_mem();
+    FontPixmap_render(font, text_pos.x, text_pos.y, 0,
+        "CPU:\n%s [%s]\nThreads: %d\n\n"
+        "RAM:\nUSED: %zu MB\nFREE: %zu MB\nTOTAL: %zu MB\n",
+        cpu_info.model,
+        Info_get_cpu_arch_name(cpu_info.arch),
+        cpu_info.threads,
+        mem_info.used / 1024 / 1024,
+        mem_info.free / 1024 / 1024,
+        mem_info.total / 1024 / 1024
+    );
+    Camera2D_ui_end(camera2d);
+
     Window_display(self);
 }
 
