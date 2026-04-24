@@ -46,7 +46,7 @@ struct WinVars {
 
 
 // Создать конфигурацию окна:
-WinConfig* Window_create_config(WindowScene scene) {
+WinConfig* Window_create_config(const WindowScene *scene) {
     WinConfig* config = (WinConfig*)mm_alloc(sizeof(WinConfig));
 
     // Заполняем поля (значениями по умолчанию):
@@ -67,7 +67,10 @@ WinConfig* Window_create_config(WindowScene scene) {
     config->min_height = 0;
     config->max_width = 0;
     config->max_height = 0;
-    config->scene = scene;
+
+    // Копируем структуру сцены, если передана:
+    if (scene) memcpy(&config->scene, scene, sizeof(WindowScene));
+    else config->scene = (WindowScene){ NULL };
 
     // Версия рендерера по умолчанию:
     config->gl_major = 3;
@@ -184,7 +187,7 @@ static void MainLoop(Window *self, WinConfig *config) {
             Renderer_clear_caches(self->renderer);
 
             // Устанавливаем новую сцену:
-            self->scene = vars->new_scene;  // Делаем новую сцену текущей.
+            memcpy(&self->scene, &vars->new_scene, sizeof(WindowScene));  // Делаем новую сцену текущей.
             vars->new_scene = (WindowScene){ NULL };  // Обнуляем "новую сцену".
 
             // Небольшая настройка для новой сцены:
@@ -196,7 +199,7 @@ static void MainLoop(Window *self, WinConfig *config) {
             // Запускаем новую текущую сцену:
             if (self->scene.start) self->scene.start(self);
         }
-        WindowScene scene = self->scene;  // Получаем текущую сцену (для удобства).
+        const WindowScene *scene = &self->scene;  // Получаем текущую сцену (для удобства).
 
         // Обрабатываем события:
         SDL_Event event;
@@ -210,18 +213,18 @@ static void MainLoop(Window *self, WinConfig *config) {
                 // Если размер окна изменился:
                 case SDL_EVENT_WINDOW_RESIZED: {
                     if (event.window.data1 > 0 && event.window.data2 > 0 && vars->context) {
-                        if (scene.resize) scene.resize(self, event.window.data1, event.window.data2);
+                        if (scene->resize) scene->resize(self, event.window.data1, event.window.data2);
                     }
                 } break;
 
                 // Окно развернули:
                 case SDL_EVENT_WINDOW_RESTORED: {
-                    if (scene.show) scene.show(self);
+                    if (scene->show) scene->show(self);
                 } break;
 
                 // Окно свернули:
                 case SDL_EVENT_WINDOW_MINIMIZED: {
-                    if (scene.hide) scene.hide(self);
+                    if (scene->hide) scene->hide(self);
                 } break;
 
                 // Окно стало активным:
@@ -299,8 +302,8 @@ static void MainLoop(Window *self, WinConfig *config) {
         }
 
         // Обработка основных функций (обновление и отрисовка):
-        if (scene.update) scene.update(self, Window_get_dtime(self));
-        if (scene.render) scene.render(self, Window_get_dtime(self));
+        if (scene->update) scene->update(self, Window_get_dtime(self));
+        if (scene->render) scene->render(self, Window_get_dtime(self));
 
         // Очищаем все буфера (массивное удаление всех буферов за раз):
         Renderer_buffers_flush(self->renderer);
@@ -456,7 +459,7 @@ bool Window_open(Window *self) {
     Window_set_visible(self, cfg->visible);  // Применяем видимость только после применения других настроек.
 
     // Устанавливаем сцену:
-    Window_set_scene(self, cfg->scene);
+    Window_set_scene(self, &cfg->scene);
 
     // Запускаем главный цикл:
     MainLoop(self, cfg);
@@ -861,20 +864,21 @@ double Window_get_time(Window *self) {
 }
 
 // Установить сцену окна:
-void Window_set_scene(Window *self, WindowScene scene) {
+void Window_set_scene(Window *self, const WindowScene *scene) {
     if (!self) return;
     WinVars *vars = self->vars;
     if (!vars) return;
 
     // Устанавливаем новую сцену:
-    vars->new_scene = scene;    // Помещаем сцену в буфер новой сцены.
+    if (scene) memcpy(&vars->new_scene, scene, sizeof(WindowScene));  // Помещаем сцену в буфер новой сцены.
+    else vars->new_scene = (WindowScene){ NULL };
     vars->is_new_scene = true;  // Поднимаем флаг что устанавливается новая сцена.
 }
 
 // Получить сцену окна:
-WindowScene Window_get_scene(Window *self) {
-    if (!self) return (WindowScene){ NULL };
-    return self->scene;
+const WindowScene* Window_get_scene(Window *self) {
+    if (!self) return NULL;
+    return &self->scene;
 }
 
 // Очистить окно:

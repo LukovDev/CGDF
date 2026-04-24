@@ -81,7 +81,7 @@ struct WinConfig {
 
 
 // Создать конфигурацию окна:
-WinConfig* Window_create_config(WindowScene scene);
+WinConfig* Window_create_config(const WindowScene *scene);
 
 // Уничтожить конфигурацию окна:
 void Window_destroy_config(WinConfig **config);
@@ -232,10 +232,10 @@ double Window_get_dtime(Window *self);
 double Window_get_time(Window *self);
 
 // Установить сцену окна:
-void Window_set_scene(Window *self, WindowScene scene);
+void Window_set_scene(Window *self, const WindowScene *scene);
 
 // Получить сцену окна:
-WindowScene Window_get_scene(Window *self);
+const WindowScene* Window_get_scene(Window *self);
 
 // Очистить окно:
 void Window_clear(Window *self, float r, float g, float b);

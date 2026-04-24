@@ -60,7 +60,7 @@ void Game_update(Window *self, float dtime) {
     if (keys[K_d]) camera->position.x += 100.0f * speed * dtime;
 
     if (Input_get_key_down(self)[K_0]) {
-        Window_set_scene(self, TestScene);
+        Window_set_scene(self, &TestScene);
         return;
     }
 

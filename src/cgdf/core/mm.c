@@ -24,15 +24,53 @@ void* (*_m_realloc) (void *p, size_t s)  = realloc;
 void  (*_m_free)    (void *p)            = free;
 
 
-// Сколько памяти используется в байтах:
-static const size_t _header_size = sizeof(size_t) * 8;  // Выравнивание по 8 байт для SSE, AVX/2, кэша и чётных адресов.
-static atomic_size_t mm_allocated_blocks = 0;           // Количество выделенных блоков.
-static atomic_size_t mm_used_size = 0;                  // Количество используемой виртуальной памяти.
-static atomic_size_t mm_last_request_size = 0;          // Размер последнего запроса на выделение (в байтах).
+// Структура заголовка блока памяти:
+typedef struct MM_BlockHeader {
+    void *base_ptr;    // Сырой указатель от аллокатора.
+    size_t size;       // Размер выделяемого блока.
+    size_t alignment;  // Выравнивание.
+} MM_BlockHeader;
+
+
+// Локальные переменные:
+static const size_t _header_size_ = sizeof(MM_BlockHeader);  // Размер заголовка блока.
+static atomic_size_t mm_allocated_blocks = 0;                // Количество выделенных блоков.
+static atomic_size_t mm_used_size = 0;                       // Количество используемой виртуальной памяти.
+static atomic_size_t mm_last_request_size = 0;               // Размер последнего запроса на выделение (в байтах).
+
+
+// -------- Вспомогательные функции: --------
+
+
+// Возвращает минимально безопасное выравнивание:
+static inline size_t mm_required_alignment(void) {
+    size_t a = alignof(max_align_t);
+    #if defined(__AVX512F__)
+        if (a < 64u) a = 64u;
+    #elif defined(__AVX__) || defined(__AVX2__)
+        if (a < 32u) a = 32u;
+    #elif defined(__SSE__) || defined(__SSE2__) || defined(__ARM_NEON)
+        if (a < 16u) a = 16u;
+    #endif
+    return a;
+}
+
+// Округляет адрес вверх до ближайшей границы alignment:
+static inline uintptr_t mm_align_up_uintptr(uintptr_t p, size_t alignment) {
+    return (p + (uintptr_t)(alignment - 1u)) & ~((uintptr_t)alignment - 1u);
+}
+
+// Возвращает указатель на заголовок блока, который лежит непосредственно перед ptr:
+static inline MM_BlockHeader* mm_get_header(void *ptr) {
+    return (MM_BlockHeader*)((char*)ptr - sizeof(MM_BlockHeader));
+}
+
+
+// -------- Основной код: --------
 
 
 // Получить размер заголовка блока в байтах:
-size_t mm_get_block_header_size(void) { return _header_size; }
+size_t mm_get_block_header_size(void) { return _header_size_; }
 
 
 // Получить количество выделенных блоков:
@@ -40,7 +78,7 @@ size_t mm_get_allocated_blocks(void) { return mm_allocated_blocks; }
 
 
 // Получить абсолютный размер используемой памяти в байтах с учётом заголовков блоков:
-size_t mm_get_absolute_used_size(void) { return mm_used_size + _header_size * mm_allocated_blocks; }
+size_t mm_get_absolute_used_size(void) { return mm_used_size + _header_size_ * mm_allocated_blocks; }
 
 
 // Получить сколько всего используется памяти в байтах этим менеджером памяти:
@@ -62,7 +100,7 @@ double mm_get_used_size_gb(void) { return mm_get_used_size() / 1024.0 / 1024.0 /
 // Получить размер блока в байтах:
 size_t mm_get_block_size(void *ptr) {
     if (!ptr) return 0;
-    return *(size_t*)((char*)ptr - _header_size);
+    return mm_get_header(ptr)->size;
 }
 
 
@@ -78,57 +116,83 @@ void mm_used_size_sub(size_t size) {
 }
 
 
-// Выделение памяти:
-void* mm_alloc(size_t size) {
-    // Выделяем с запасом под данные размера блока с учетом выравнивания:
-    // [размер блока в size_t|сам блок] <- весь блок.
-    // ptr = (void*)(raw_ptr + _header_size) -> получить сам блок.
-    // raw_ptr = (void*)(ptr - _header_size) -> получить весь блок.
-    mm_last_request_size = _header_size + size;
-    char *raw_ptr = NULL;
+// Выделение памяти с явным выравниванием:
+void* mm_alloc_aligned(size_t size, size_t alignment) {
+        if (!(alignment && ((alignment & (alignment - 1u)) == 0u))) {
+        mm_last_request_size = alignment;
+        mm_alloc_error();
+        return NULL;
+    }
+
+    size_t min_align = alignof(max_align_t);
+    if (alignment < min_align) alignment = min_align;
+
+    /* Если хочешь не дать пользователю случайно попросить меньше SIMD-минимума */
+    size_t simd_align = mm_required_alignment();
+    if (alignment < simd_align) alignment = simd_align;
+
+    if (size > SIZE_MAX - sizeof(MM_BlockHeader) - (alignment - 1u)) {
+        mm_last_request_size = size;
+        mm_alloc_error();
+        return NULL;
+    }
+
+    size_t total = sizeof(MM_BlockHeader) + size + (alignment - 1u);
+    mm_last_request_size = total;
+
+    char *base_ptr = NULL;
     if (MM_RETRY_ALLOC_AGAIN) {
-        while (!raw_ptr) { raw_ptr = _m_alloc(_header_size + size); }
-    } else { raw_ptr = _m_alloc(_header_size + size); }
-    if (!raw_ptr) { mm_alloc_error(); return NULL; }
-    *(size_t*)raw_ptr = size;  // Сохраняем размер.
-    void *ptr = raw_ptr + _header_size;
-    mm_used_size_add(mm_get_block_size(ptr));
+        while (!base_ptr) base_ptr = (char*)_m_alloc(total);
+    } else {
+        base_ptr = (char*)_m_alloc(total);
+    }
+    if (!base_ptr) { mm_alloc_error(); return NULL; }
+
+    uintptr_t aligned_up = mm_align_up_uintptr((uintptr_t)base_ptr + sizeof(MM_BlockHeader), alignment);
+    void *ptr = (void*)aligned_up;
+
+    MM_BlockHeader *header = mm_get_header(ptr);
+    header->base_ptr = base_ptr;
+    header->size = size;
+    header->alignment = alignment;
+
+    mm_used_size_add(size);
     mm_allocated_blocks++;
     return ptr;
 }
 
 
+// Выделение памяти:
+void* mm_alloc(size_t size) {
+    return mm_alloc_aligned(size, mm_required_alignment());
+}
+
+
 // Выделение памяти с обнулением:
 void* mm_calloc(size_t count, size_t size) {
-    mm_last_request_size = _header_size + count * size;
-    char *raw_ptr = NULL;
-    if (MM_RETRY_ALLOC_AGAIN) {
-        while (!raw_ptr) { raw_ptr = _m_calloc(1, _header_size + count * size); }
-    } else { raw_ptr = _m_calloc(1, _header_size + count * size); }
-    if (!raw_ptr) { mm_alloc_error(); return NULL; }
-    *(size_t*)raw_ptr = count * size;  // Сохраняем размер.
-    void *ptr = raw_ptr + _header_size;
-    mm_used_size_add(mm_get_block_size(ptr));
-    mm_allocated_blocks++;
+    if (count != 0 && size > SIZE_MAX / count) {
+        mm_last_request_size = SIZE_MAX;
+        mm_alloc_error();
+        return NULL;
+    }
+    void *ptr = mm_alloc(count * size);
+    if (ptr) memset(ptr, 0, count * size);
     return ptr;
 }
 
 
 // Расширение блока памяти:
 void* mm_realloc(void *ptr, size_t new_size) {
-    if (!ptr) return mm_alloc(new_size);  // Если NULL -> обычный alloc.
-    mm_last_request_size = _header_size + new_size;
-    void *raw_ptr = (char*)ptr - _header_size;
-    size_t old_size = *(size_t*)raw_ptr;
-    char *new_raw_ptr = NULL;
-    if (MM_RETRY_ALLOC_AGAIN) {
-        while (!new_raw_ptr) { new_raw_ptr = _m_realloc(raw_ptr, _header_size + new_size); }
-    } else { new_raw_ptr = _m_realloc(raw_ptr, _header_size + new_size); }
-    if (!new_raw_ptr) { mm_alloc_error(); return NULL; }
-    if (new_size > old_size) { mm_used_size_add(new_size - old_size); }
-    else if (old_size > new_size) { mm_used_size_sub(old_size - new_size); }
-    *(size_t*)new_raw_ptr = new_size;
-    return (char*)new_raw_ptr + _header_size;
+    if (!ptr) return mm_alloc(new_size);
+    if (new_size == 0) { mm_free(ptr); return NULL; }
+    MM_BlockHeader *old_h = mm_get_header(ptr);
+    size_t old_size = old_h->size;
+    size_t old_alignment = old_h->alignment;
+    void *new_ptr = mm_alloc_aligned(new_size, old_alignment);
+    if (!new_ptr) return NULL;
+    memcpy(new_ptr, ptr, old_size < new_size ? old_size : new_size);
+    mm_free(ptr);
+    return new_ptr;
 }
 
 
@@ -136,7 +200,8 @@ void* mm_realloc(void *ptr, size_t new_size) {
 char* mm_strdup(const char *str) {
     if (!str) return NULL;
     size_t len = strlen(str) + 1;
-    char *copy = mm_alloc(len);
+    char *copy = (char*)mm_alloc(len);
+    if (!copy) { mm_alloc_error(); return NULL; }
     memcpy(copy, str, len);
     return copy;
 }
@@ -145,9 +210,10 @@ char* mm_strdup(const char *str) {
 // Освобождение памяти:
 void mm_free(void *ptr) {
     if (!ptr) return;
-    mm_used_size_sub(mm_get_block_size(ptr));
+    MM_BlockHeader *header = mm_get_header(ptr);
+    mm_used_size_sub(header->size);
     mm_allocated_blocks--;
-    _m_free((char*)ptr - _header_size);
+    _m_free(header->base_ptr);
 }
 
 

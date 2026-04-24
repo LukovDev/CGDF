@@ -11,6 +11,7 @@ data/textures/snow.png
 data/animation/
 data/fonts/
 data/shaders/
+data/obj/
 
 __pycache__
 metadata.json

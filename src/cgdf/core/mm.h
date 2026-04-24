@@ -39,6 +39,9 @@ void mm_used_size_add(size_t size);
 // Вычесть байты из использованной памяти (атомарно):
 void mm_used_size_sub(size_t size);
 
+// Выделение памяти с явным выравниванием:
+void* mm_alloc_aligned(size_t size, size_t alignment);
+
 // Выделение памяти:
 void* mm_alloc(size_t size);
 

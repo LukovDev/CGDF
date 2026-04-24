@@ -152,7 +152,7 @@ void update(Window *self, float dtime) {
     // }
 
     if (Input_get_key_down(self)[K_0]) {
-        Window_set_scene(self, GameScene);
+        Window_set_scene(self, &GameScene);
         return;
     }
 
@@ -402,7 +402,7 @@ int main(int argc, char *argv[]) {
     const char* cgdf_version = CGDF_GetVersion();
     log_msg("[I] CGDF version: %s\n", cgdf_version);
 
-    WinConfig *config = Window_create_config(TestScene);
+    WinConfig *config = Window_create_config(&TestScene);
     config->gl_major = 3;
     config->gl_minor = 3;
     Window *window = Window_create(config);

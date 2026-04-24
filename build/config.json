@@ -13,7 +13,7 @@
     "libs-output":   "",
     "build-logging": true,
     "multi-threads": true,
-    "strip":         true,
+    "strip":         false,
     "progress-percent": false,
     "console-disabled": false,
     "defines":       [],
@@ -29,7 +29,7 @@
     "libnames":      [
         "SDL3"
     ],
-    "optimization":  "-O",
+    "optimization":  "-O3",
     "std-c":         "c17",
     "std-cpp":       "c++17",
     "compiler-s":    "gcc",
@@ -39,8 +39,8 @@
     "ld-file":       "",
     "warnings":      ["-Wall"],
     "compile-flags-s": [],
-    "compile-flags-c": [],
-    "compile-flags-cpp": [],
+    "compile-flags-c": ["-march=native", "-g"],
+    "compile-flags-cpp": ["-march=native", "-g"],
     "linker-flags":  [],
     "commands-after-build": []
 }

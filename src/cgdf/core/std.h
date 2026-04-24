@@ -18,3 +18,4 @@
 #include <stdatomic.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdalign.h>

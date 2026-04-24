@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
 
     // Теперь нам надо создать конфигурацию окна (настройки окна):
     // При создании, надо передать нашу сцену.
-    WinConfig *config = Window_create_config(MainScene);
+    WinConfig *config = Window_create_config(&MainScene);
 
     // Конфигурацию можно настраивать, меняя её поля:
     config->title = "My first game!";

@@ -195,6 +195,7 @@ void start(Window *self) {
     Model_add_mesh(model, sphere);
 
     printf("data loaded\n");
+    // tinyobj_parse_mtl_file
 }
 
 
@@ -349,15 +350,15 @@ void render(Window *self, float dtime) {
 
     Node_get_transform(sun, model->transform);
     Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
-    Model_render(model, true);
+    Model_render(model, false);
 
     Node_get_transform(earth, model->transform);
     Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
-    Model_render(model, true);
+    Model_render(model, false);
 
     Node_get_transform(moon, model->transform);
     Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
-    Model_render(model, true);
+    Model_render(model, false);
 
     Shader_end(self->renderer->shader);
 
@@ -373,17 +374,28 @@ void render(Window *self, float dtime) {
     FontPixmap_set_bg_padding(font, (Vec4f){8, 8, 8, 8});
     FontPixmap_set_line_height(font, 16.0f);
 
+    static float fps = 0.0f;
+    static float timer = 0.0f;
+    if (timer >= 0.5f) {
+        timer = 0.0f;
+        fps = Window_get_current_fps(self);
+    } else {
+        timer += dtime;
+    }
+
     CpuInfo cpu_info = Info_get_cpu();
     MemInfo mem_info = Info_get_mem();
     FontPixmap_render(font, text_pos.x, text_pos.y, 0,
         "CPU:\n%s [%s]\nThreads: %d\n\n"
-        "RAM:\nUSED: %zu MB\nFREE: %zu MB\nTOTAL: %zu MB\n",
+        "RAM:\nUSED: %zu MB\nFREE: %zu MB\nTOTAL: %zu MB\n\n"
+        "FPS: %.2f\n",
         cpu_info.model,
         Info_get_cpu_arch_name(cpu_info.arch),
         cpu_info.threads,
         mem_info.used / 1024 / 1024,
         mem_info.free / 1024 / 1024,
-        mem_info.total / 1024 / 1024
+        mem_info.total / 1024 / 1024,
+        fps
     );
     Camera2D_ui_end(camera2d);
 
@@ -438,7 +450,7 @@ int main(int argc, char *argv[]) {
     const char* cgdf_version = CGDF_GetVersion();
     log_msg("[I] CGDF version: %s\n", cgdf_version);
 
-    WinConfig *config = Window_create_config(TestScene);
+    WinConfig *config = Window_create_config(&TestScene);
     config->gl_major = 3;
     config->gl_minor = 3;
     Window *window = Window_create(config);
