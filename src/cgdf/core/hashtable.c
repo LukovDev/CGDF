@@ -18,7 +18,7 @@
 uint64_t (*hash_func) (const void* data, size_t len) = hash_fnv1a;
 
 
-// Вывод данных для функции HashTable_print():
+// Вывод данных для функции HashTable_print(void):
 static void print_data(FILE *out, void *data, size_t size, HashTablePrintMode mode) {
     if (!data) {
         fprintf(out, "(null)");
@@ -188,7 +188,7 @@ static inline void check_maybe_problimit(HashTable *table) {
 
 
 // Создать хэш-таблицу:
-HashTable* HashTable_create() {
+HashTable* HashTable_create(void) {
     size_t capacity = HASHTABLE_DEFAULT_CAPACITY;
     HashTable *table = (HashTable*)mm_alloc(sizeof(HashTable));
     table->data = mm_calloc(capacity, sizeof(HashSlot));

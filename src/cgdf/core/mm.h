@@ -10,25 +10,25 @@
 
 
 // Получить размер заголовка блока в байтах:
-size_t mm_get_block_header_size();
+size_t mm_get_block_header_size(void);
 
 // Получить количество выделенных блоков:
-size_t mm_get_allocated_blocks();
+size_t mm_get_allocated_blocks(void);
 
 // Получить абсолютный размер используемой памяти в байтах с учётом заголовков блоков:
-size_t mm_get_absolute_used_size();
+size_t mm_get_absolute_used_size(void);
 
 // Получить сколько всего используется памяти в байтах этим менеджером памяти:
-size_t mm_get_used_size();
+size_t mm_get_used_size(void);
 
 // Получить сколько всего используется памяти в килобайтах этим менеджером памяти:
-double mm_get_used_size_kb();
+double mm_get_used_size_kb(void);
 
 // Получить сколько всего используется памяти в мегабайтах этим менеджером памяти:
-double mm_get_used_size_mb();
+double mm_get_used_size_mb(void);
 
 // Получить сколько всего используется памяти в гигабайтах этим менеджером памяти:
-double mm_get_used_size_gb();
+double mm_get_used_size_gb(void);
 
 // Получить размер блока в байтах:
 size_t mm_get_block_size(void *ptr);
@@ -55,4 +55,4 @@ char* mm_strdup(const char *str);
 void mm_free(void *ptr);
 
 // Вызовите если получите проблему при выделении памяти:
-void mm_alloc_error();
+void mm_alloc_error(void);

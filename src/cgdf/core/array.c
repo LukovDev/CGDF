@@ -92,7 +92,7 @@ void Array_set(Array *arr, size_t index, const void *element) {
 }
 
 
-// Получение элемента по индексу (адрес ячейки):
+// Получение элемента по индексу (адрес ячейки в памяти):
 void* Array_get(Array *arr, size_t index) {
     if (!arr || index >= arr->len) return NULL;
     return (char*)arr->data + (index * arr->item_size);
@@ -178,6 +178,16 @@ void Array_fill(Array *arr, const void *element, size_t count) {
         memcpy(dst + filled * arr->item_size, dst, copy_count * arr->item_size);
         filled += copy_count;
     }
+}
+
+
+// Найти элемент и вернуть его индекс + 1 (счет не с нуля). 0 = нет такого элемента:
+size_t Array_find(Array *arr, const void *element) {
+    if (!arr || !element) return 0;
+    for (size_t i = 0; i < arr->len; i++) {
+        if (memcmp(Array_get(arr, i), element, arr->item_size) == 0) return i+1;
+    }
+    return 0;
 }
 
 

@@ -62,7 +62,7 @@ void Array_push(Array *arr, const void *element);
 // Перезаписать элемент в массиве:
 void Array_set(Array *arr, size_t index, const void *element);
 
-// Получение элемента по индексу (адрес ячейки):
+// Получение элемента по индексу (адрес ячейки в памяти):
 void* Array_get(Array *arr, size_t index);
 
 // Получение элемента по индексу (сам указатель):
@@ -79,6 +79,9 @@ void Array_reverse(Array *arr);
 
 // Заполнить массив элементами:
 void Array_fill(Array *arr, const void *element, size_t count);
+
+// Найти элемент и вернуть его индекс + 1 (счет не с нуля). 0 = нет такого элемента:
+size_t Array_find(Array *arr, const void *element);
 
 // Копировать массив:
 void Array_copy(Array *dst, Array *src);

@@ -24,9 +24,10 @@ static Shader *atmosphere;
 static FontPixmap *font;
 static Mesh *sphere;
 static float planet_rad = 1.0f;
-Vertex *vertices;
-uint32_t *indices;
-Node *sun, *earth, *moon;
+static Vertex *vertices;
+static uint32_t *indices;
+static Node *sun, *earth, *moon;
+static Model *model;
 
 
 void generate_sphere(float radius, int sectors, int stacks, Vertex** vertices, unsigned int** indices, int* numVertices, int* numIndices) {
@@ -176,7 +177,7 @@ void start(Window *self) {
     Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
 
     int vert_count, idx_count;
-    generate_sphere(planet_rad, 36, 18, &vertices, &indices, &vert_count, &idx_count);
+    generate_sphere(planet_rad, 16, 8, &vertices, &indices, &vert_count, &idx_count);
     sphere = Mesh_create(vertices, vert_count, indices, idx_count, false);
 
     sun = Node_create(NULL);
@@ -189,6 +190,9 @@ void start(Window *self) {
     moon = Node_create(earth);
     Node_set_position(moon, (Vec3d){5.0f, 0.0f, 0.0f});
     Node_set_scale(moon, (Vec3d){0.25f, 0.25f, 0.25f});
+
+    model = Model_create(self->renderer);
+    Model_add_mesh(model, sphere);
 
     printf("data loaded\n");
 }
@@ -210,11 +214,13 @@ void destroy(Window *self) {
     CameraController3D_destroy(&ctrl3d);
     CameraOrbitController3D_destroy(&ctrl_orbit);
     CameraPlanetController3D_destroy(&ctrl_planet);
-    Mesh_destroy(&sphere);
+    // Mesh_destroy(&sphere);
     mm_free(vertices);
     mm_free(indices);
 
     Node_destroy(&sun);
+
+    Model_destroy(&model);
 }
 
 
@@ -229,7 +235,6 @@ void update(Window *self, float dtime) {
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
     if (orbit_enabled) {
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
-        ctrl_orbit->target_pos = Node_get_world_position(moon);
         // CameraPlanetController3D_update(ctrl_planet, dtime, false);
         ctrl3d->euler = Camera3D_get_euler(camera3d);
     } else {
@@ -237,31 +242,14 @@ void update(Window *self, float dtime) {
         ctrl_orbit->euler = Camera3D_get_euler(camera3d);
     }
 
-    if (Input_get_key_down(self)[K_2]) Node_copy(sun, sun);
-
     Node_rotate(sun, (Vec3d){1.0f, 1.0f, 1.0f}, 25.0f*dtime);
     Node_rotate(earth, (Vec3d){0.0f, 1.0f, 0.0f}, 50.0f*dtime);
     Node_rotate(moon, (Vec3d){0.0f, 0.0f, 1.0f}, 100.0f*dtime);
 
+    ctrl_orbit->target_pos = Node_get_world_position(moon);
     Camera3D_update(camera3d);
-    int total = Node_count_nodes(sun);
-    printf("total on tree: %d\n", total);
 }
 
-void render_nodes(Window *self, Node *parent) {
-    if (!self || !parent) return;
-
-    mat4 model;
-    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 1, 1});
-    Node_get_transform(parent, model);
-    Shader_set_mat4(self->renderer->shader, "u_model", model);
-    Mesh_render(sphere, true);
-
-    for (int i = 0; i < Array_len(parent->children); i++) {
-        Node *child = (Node*)Array_get_ptr(parent->children, i);
-        render_nodes(self, child);
-    }
-}
 // Вызывается каждый кадр (отрисовка окна):
 void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
@@ -269,27 +257,6 @@ void render(Window *self, float dtime) {
     double time = Window_get_time(self);
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
-
-    Camera3D_set_depth_test(camera3d, true);
-    Shader_begin(self->renderer->shader);
-    Shader_set_bool(self->renderer->shader, "u_use_texture", false);
-    // mat4 model;
-    // Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 0, 1});
-    // Node_get_transform(sun, model);
-    // Shader_set_mat4(self->renderer->shader, "u_model", model);
-    // Mesh_render(sphere, true);
-
-    // Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){0, 0, 1, 1});
-    // Node_get_transform(earth, model);
-    // Shader_set_mat4(self->renderer->shader, "u_model", model);
-    // Mesh_render(sphere, true);
-
-    // Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1, 1, 1, 1});
-    // Node_get_transform(moon, model);
-    // Shader_set_mat4(self->renderer->shader, "u_model", model);
-    // Mesh_render(sphere, true);
-    render_nodes(self, sun);
-    Shader_end(self->renderer->shader);
 
     if (true) {
         Shader_begin(grid);
@@ -375,6 +342,25 @@ void render(Window *self, float dtime) {
     Camera2D_ui_end(camera2d);
     */
 
+    Camera3D_set_depth_test(camera3d, true);
+    Shader_begin(self->renderer->shader);
+    Shader_set_bool(self->renderer->shader, "u_use_texture", false);
+    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1.0f, 1.0f, 1.0f, 1.0f});
+
+    Node_get_transform(sun, model->transform);
+    Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
+    Model_render(model, true);
+
+    Node_get_transform(earth, model->transform);
+    Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
+    Model_render(model, true);
+
+    Node_get_transform(moon, model->transform);
+    Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
+    Model_render(model, true);
+
+    Shader_end(self->renderer->shader);
+    Camera3D_set_depth_test(camera3d, false);
     Window_display(self);
 }
 

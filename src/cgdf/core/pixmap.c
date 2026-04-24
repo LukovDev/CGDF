@@ -120,7 +120,7 @@ Pixmap* Pixmap_copy(const Pixmap *source) {
 
 
 // Создать стандартную картинку:
-Pixmap* Pixmap_create_default() {
+Pixmap* Pixmap_create_default(void) {
     if (Pixmap_default_icon_size == 0) return NULL;
 
     Pixmap *pixmap = mm_alloc(sizeof(Pixmap));

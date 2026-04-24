@@ -99,7 +99,7 @@ static inline void Time_delay(double seconds) {
 
 
 // Узнать у устройства смещение часового времени:
-static inline TimeOffsetUTC Time_get_utc_offset() {
+static inline TimeOffsetUTC Time_get_utc_offset(void) {
     // Вычисляем:
     time_t now = time(NULL);
     struct tm gmt;
@@ -181,7 +181,7 @@ static inline TimeCurrent Time_get_current(bool local_time) {
 
 
 // Инициализация времени:
-static inline void Time_init() {
+static inline void Time_init(void) {
     #if defined(_WIN32)
         _tzset();
     #else

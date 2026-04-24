@@ -11,7 +11,7 @@
 
 // Код для исправления путей для OS X:
 #ifdef __APPLE__
-void Files_fix_apple_path();
+void Files_fix_apple_path(void);
 #endif
 
 // Получить текущую директорию:
@@ -21,7 +21,7 @@ char *Files_get_cwd(char *buf, size_t size);
 bool Files_chdir(const char *path);
 
 // Получить путь домашнего каталога:
-char *Files_get_home();
+char *Files_get_home(void);
 
 // Загружаем файл в строку:
 char* Files_load(const char* file_path, const char* mode);

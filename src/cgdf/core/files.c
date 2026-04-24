@@ -23,7 +23,7 @@
 #define PATH_MAX 4096
 #endif
 
-static bool set_cwd_to_prog_dir() {
+static bool set_cwd_to_prog_dir(void) {
     uint32_t size = PATH_MAX;
     char path[PATH_MAX];
     char *buf = path;
@@ -60,7 +60,7 @@ static bool set_cwd_to_prog_dir() {
     return ok;
 }
 
-void Files_fix_apple_path() {
+void Files_fix_apple_path(void) {
     char cwd[PATH_MAX];
     const char *home = Files_get_home();
     if (Files_get_cwd(cwd, sizeof(cwd))) {
@@ -97,7 +97,7 @@ bool Files_chdir(const char *path) {
 
 
 // Получить путь домашнего каталога:
-char *Files_get_home() {
+char *Files_get_home(void) {
     char *dir = getenv("HOME");
 
     // Если HOME не задан (Windows), пробуем USERPROFILE:

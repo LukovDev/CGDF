@@ -1,14 +1,14 @@
 //
-// node.h - Граф сцены. Определяет функционал системы дерева из узлов. Работает на основе ленивого дерева.
+// node.h - Определяет функционал системы дерева из узлов. Работает на основе ленивого дерева.
 //
 
 #pragma once
 
 
 // Подключаем:
-#include <cgdf/core/std.h>
-#include <cgdf/core/math.h>
-#include <cgdf/core/array.h>
+#include "std.h"
+#include "math.h"
+#include "array.h"
 
 
 // Определения:
@@ -21,15 +21,15 @@ typedef struct Node Node;  // Структура нода.
 
 // Структура нода:
 struct Node {
-    Node   *parent;           // Родительский узел.
-    Array  *children;         // Дочерние узлы.
-    Vec3d  position;          // Позиция узла.
-    versor quaternion;        // Поворот узла.
-    Vec3d  scale;             // Масштаб узла.
-    mat4   transform;         // Матрица локальной трансформации узла.
-    mat4   result_transform;  // Итоговая матрица с учетом родительской трансформации.
-    bool   changed;           // Флаг необходимости пересчета матрицы трансформации.
-    bool   parent_changed;    // Флаг указывающий на изменения в родительском узле.
+    Node *parent;           // Родительский узел.
+    Array *children;        // Дочерние узлы.
+    Vec3d position;         // Позиция узла.
+    versor quaternion;      // Поворот узла.
+    Vec3d scale;            // Масштаб узла.
+    mat4 transform;         // Матрица локальной трансформации узла.
+    mat4 result_transform;  // Итоговая матрица с учетом родительской трансформации.
+    bool changed;           // Флаг необходимости пересчета матрицы трансформации.
+    bool parent_changed;    // Флаг указывающий на изменения в родительском узле.
 };
 
 

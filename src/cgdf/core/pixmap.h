@@ -53,7 +53,7 @@ bool Pixmap_save(Pixmap *pixmap, const char *filepath, const char *format);
 Pixmap* Pixmap_copy(const Pixmap *source);
 
 // Создать стандартную картинку:
-Pixmap* Pixmap_create_default();
+Pixmap* Pixmap_create_default(void);
 
 // Получить размер картинки в байтах:
 size_t Pixmap_get_size(Pixmap *pixmap);

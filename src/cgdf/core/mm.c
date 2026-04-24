@@ -32,31 +32,31 @@ static atomic_size_t mm_last_request_size = 0;          // Размер посл
 
 
 // Получить размер заголовка блока в байтах:
-size_t mm_get_block_header_size() { return _header_size; }
+size_t mm_get_block_header_size(void) { return _header_size; }
 
 
 // Получить количество выделенных блоков:
-size_t mm_get_allocated_blocks() { return mm_allocated_blocks; }
+size_t mm_get_allocated_blocks(void) { return mm_allocated_blocks; }
 
 
 // Получить абсолютный размер используемой памяти в байтах с учётом заголовков блоков:
-size_t mm_get_absolute_used_size() { return mm_used_size + _header_size * mm_allocated_blocks; }
+size_t mm_get_absolute_used_size(void) { return mm_used_size + _header_size * mm_allocated_blocks; }
 
 
 // Получить сколько всего используется памяти в байтах этим менеджером памяти:
-size_t mm_get_used_size() { return mm_used_size; }
+size_t mm_get_used_size(void) { return mm_used_size; }
 
 
 // Получить сколько всего используется памяти в килобайтах этим менеджером памяти:
-double mm_get_used_size_kb() { return mm_get_used_size() / 1024.0; }  // b -> kb.
+double mm_get_used_size_kb(void) { return mm_get_used_size() / 1024.0; }  // b -> kb.
 
 
 // Получить сколько всего используется памяти в мегабайтах этим менеджером памяти:
-double mm_get_used_size_mb() { return mm_get_used_size() / 1024.0 / 1024.0; }  // b -> kb -> mb.
+double mm_get_used_size_mb(void) { return mm_get_used_size() / 1024.0 / 1024.0; }  // b -> kb -> mb.
 
 
 // Получить сколько всего используется памяти в гигабайтах этим менеджером памяти:
-double mm_get_used_size_gb() { return mm_get_used_size() / 1024.0 / 1024.0 / 1024.0; }  // b -> kb -> mb -> gb.
+double mm_get_used_size_gb(void) { return mm_get_used_size() / 1024.0 / 1024.0 / 1024.0; }  // b -> kb -> mb -> gb.
 
 
 // Получить размер блока в байтах:
@@ -152,7 +152,7 @@ void mm_free(void *ptr) {
 
 
 // Вызовите если получите проблему при выделении памяти:
-void mm_alloc_error() {
+void mm_alloc_error(void) {
     log_msg("----------------\n");
     log_msg("[E] Memory Allocation Error!\n");
     log_msg("Memory used: %g kb (%zu b).\n", mm_get_used_size_kb(), mm_get_used_size());

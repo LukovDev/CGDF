@@ -62,7 +62,7 @@ static inline void crash_handler(int sig) {
 
 
 // Инициализация логгера:
-void logger_init() {
+void logger_init(void) {
     // Инициализируем лог-файл:
     #ifndef CGDF_DISABLE_LOG_FILE
     TimeCurrent tc = Time_get_current(true);

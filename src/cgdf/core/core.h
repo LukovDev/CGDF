@@ -22,6 +22,7 @@ extern "C" {
 #include "hashtable.h"
 #include "math.h"
 #include "mm.h"
+#include "node.h"
 #include "pixmap.h"
 #include "platform.h"
 #include "time.h"

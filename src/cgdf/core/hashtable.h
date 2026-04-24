@@ -74,7 +74,7 @@ static inline uint64_t hash_fnv1a(const void* data, size_t len) {
 
 
 // Создать хэш-таблицу:
-HashTable* HashTable_create();
+HashTable* HashTable_create(void);
 
 // Уничтожить хэш-таблицу (не удаляет блоки по указателям):
 void HashTable_destroy(HashTable **table);

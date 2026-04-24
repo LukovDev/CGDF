@@ -1,14 +1,14 @@
 //
-// node.c - Граф сцены. Реализует функционал системы дерева из узлов. Работает на основе ленивого дерева.
+// node.c - Реализует функционал системы дерева из узлов. Работает на основе ленивого дерева.
 //
 
 
 // Подключаем:
-#include <cgdf/core/std.h>
-#include <cgdf/core/math.h>
-#include <cgdf/core/array.h>
-#include <cgdf/core/mm.h>
-#include <cgdf/core/logger.h>
+#include "std.h"
+#include "mm.h"
+#include "math.h"
+#include "array.h"
+#include "logger.h"
 #include "node.h"
 
 
@@ -173,20 +173,15 @@ Node* Node_copy(Node *self, Node *parent) {
 void Node_remove_child(Node *self, Node *child) {
     if (!self || !child) return;
 
-    // Ищем, под каким индексом лежит ребенок:
-    int index = -1;
-    for (int i = 0; i < Array_len(self->children); i++) {
-        if ((Node*)Array_get_ptr(self->children, i) == child) {
-            index = i; break;
-        }
-    }
+    // Ищем, под каким индексом лежит потомок (0 = не нашли):
+    size_t index = Array_find(self->children, &child);
 
     // Если нашли, удаляем его:
-    if (index != -1) {
+    if (index) {
         child->parent = NULL;           // Удаляем родителя у потомка.
         child->parent_changed = true;   // Теперь он сам по себе, матрицы надо пересчитать.
         Node_invalidate_parent(child);  // Помечаем все потомки что родитель изменился.
-        Array_remove(self->children, index, NULL);
+        Array_remove(self->children, index-1, NULL);  // index-1 потому что в find счет не с нуля.
     }
 }
 
