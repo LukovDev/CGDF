@@ -243,14 +243,24 @@ void update(Window *self, float dtime) {
         ctrl_orbit->euler = Camera3D_get_euler(camera3d);
     }
 
-    Node_rotate(sun, (Vec3d){1.0f, 1.0f, 1.0f}, 25.0f*dtime);
-    Node_rotate(earth, (Vec3d){0.0f, 1.0f, 0.0f}, 50.0f*dtime);
-    Node_rotate(moon, (Vec3d){0.0f, 0.0f, 1.0f}, 100.0f*dtime);
+    if (Input_get_key_down(self)[K_2]) Node_copy(sun, sun);
 
-    ctrl_orbit->target_pos = Node_get_world_position(moon);
+    Node_rotate(sun, (Vec3d){1.0f, 1.0f, 1.0f}, 5.0f*dtime);
+    Node_rotate(earth, (Vec3d){0.0f, 1.0f, 0.0f}, 10.0f*dtime);
+    Node_rotate(moon, (Vec3d){0.0f, 0.0f, 1.0f}, 25.0f*dtime);
+
+    ctrl_orbit->target_pos = Node_get_world_position(earth);
     Camera3D_update(camera3d);
 }
+void node_render(Window *self, Node *parent) {
+    Node_get_transform(parent, model->transform);
+    Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
+    Model_render(model, false);
 
+    for (int i=0; i<Node_count_nodes(parent); i++) {
+        node_render(self, Array_get_ptr(Node_get_children(parent), i));
+    }
+}
 // Вызывается каждый кадр (отрисовка окна):
 void render(Window *self, float dtime) {
     Window_clear(self, 0.0f, 0.0f, 0.0f);
@@ -259,33 +269,6 @@ void render(Window *self, float dtime) {
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
 
-    if (true) {
-        Shader_begin(grid);
-        mat4 gridmodel;
-        glm_mat4_identity(gridmodel);
-        float grid_size = 100.0f;
-        glm_scale(gridmodel, (vec3){grid_size, grid_size, grid_size});
-        // glm_translate(gridmodel, (vec3){camera3d->position.x, camera3d->position.y, camera3d->position.z});
-        Shader_set_mat4(grid, "u_model", gridmodel);
-        Shader_set_mat4(grid, "u_view", view);
-        Shader_set_mat4(grid, "u_proj", proj);
-        Shader_set_float(grid, "u_grid_size", 1.0f);
-        Shader_set_float(grid, "u_line_width", 1.0f);
-        Shader_set_float(grid, "u_fade_radius", grid_size*0.25f);
-        Shader_set_float(grid, "u_fade_softness", grid_size*0.75f);
-        Shader_set_vec3(grid, "u_grid_color", (Vec3f){0.5f, 0.5f, 0.5f});
-        Shader_set_vec3(grid, "u_camera_pos", (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z});
-        Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
-        Shader_end(grid);
-    }
-
-    // Нарисовать линии:
-    SimpleDraw_line(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){1000, 0, 0}, 3.0f);
-    SimpleDraw_line(draw, (Vec4f){0.25, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){-1000, 0, 0}, 3.0f);
-    SimpleDraw_line(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 1000, 0}, 3.0f);
-    SimpleDraw_line(draw, (Vec4f){0, 0.25, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, -1000, 0}, 3.0f);
-    SimpleDraw_line(draw, (Vec4f){0, 0, 1, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 1000}, 3.0f);
-    SimpleDraw_line(draw, (Vec4f){0, 0, 0.25, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, -1000}, 3.0f);
 
     /*
     if (true) {
@@ -343,6 +326,53 @@ void render(Window *self, float dtime) {
     Camera2D_ui_end(camera2d);
     */
 
+    if (true) {
+        mat4 inv_view;
+        glm_mat4_inv(camera3d->view, inv_view);
+        Shader_begin(atmosphere);
+        Shader_set_vec2(atmosphere, "u_resolution", (Vec2f){Window_get_width(self), Window_get_height(self)});
+        Shader_set_mat4(atmosphere, "u_inv_view", inv_view);
+        Shader_set_float(atmosphere, "u_camera_fov", camera3d->fov);
+
+        Shader_set_int(atmosphere, "u_num_in_scatter_points", 10);
+        Shader_set_int(atmosphere, "u_num_optical_depth_points", 5);
+        Shader_set_float(atmosphere, "u_density_falloff", 3.0f);
+        Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){700, 530, 440});
+        Shader_set_float(atmosphere, "u_scattering_strength", 1.0f);
+        Shader_set_tex2d(atmosphere, "u_blue_noise", blue_noise->id);
+
+        Vec3d _sun_pos = Node_get_world_position(sun);
+        Vec3f sun_pos = (Vec3f){_sun_pos.x, _sun_pos.y, _sun_pos.z};
+        Shader_set_vec3(atmosphere, "u_planet_pos", sun_pos);
+        Shader_set_float(atmosphere, "u_planet_rad", Vec3d_len(Node_get_world_scale(sun))/2.0);
+        Shader_set_vec3(atmosphere, "u_sun_dir", Vec3f_norm((Vec3f){0, 0, 0}));
+        Shader_set_float(atmosphere, "u_floor_rad", Vec3d_len(Node_get_world_scale(sun))/2.0);
+        Shader_set_float(atmosphere, "u_atm_height", 5.0f);
+        Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){440, 530, 700});
+        Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
+
+        Vec3d _earth_pos = Node_get_world_position(earth);
+        Vec3f earth_pos = (Vec3f){_earth_pos.x, _earth_pos.y, _earth_pos.z};
+        Shader_set_vec3(atmosphere, "u_planet_pos", earth_pos);
+        Shader_set_float(atmosphere, "u_planet_rad", Vec3d_len(Node_get_world_scale(earth))/2.0);
+        Shader_set_vec3(atmosphere, "u_sun_dir", Vec3f_norm((Vec3f){0.0-earth_pos.x, 0.0-earth_pos.y, 0.0-earth_pos.z}));
+        Shader_set_float(atmosphere, "u_floor_rad", Vec3d_len(Node_get_world_scale(earth))/2.0);
+        Shader_set_float(atmosphere, "u_atm_height", 3.0f);
+        Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){700, 530, 440});
+        Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
+
+        Vec3d _moon_pos = Node_get_world_position(moon);
+        Vec3f moon_pos = (Vec3f){_moon_pos.x, _moon_pos.y, _moon_pos.z};
+        Shader_set_vec3(atmosphere, "u_planet_pos", moon_pos);
+        Shader_set_float(atmosphere, "u_planet_rad", Vec3d_len(Node_get_world_scale(moon))/2.0);
+        Shader_set_vec3(atmosphere, "u_sun_dir", Vec3f_norm((Vec3f){0.0-moon_pos.x, 0.0-moon_pos.y, 0.0-moon_pos.z}));
+        Shader_set_float(atmosphere, "u_floor_rad", Vec3d_len(Node_get_world_scale(moon))/2.0);
+        Shader_set_float(atmosphere, "u_atm_height", 1.0f);
+        Shader_set_vec3(atmosphere, "u_wavelenghts", (Vec3f){500, 500, 500});
+        Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
+
+        Shader_end(atmosphere);
+    }
     Camera3D_set_depth_test(camera3d, true);
     Shader_begin(self->renderer->shader);
     Shader_set_bool(self->renderer->shader, "u_use_texture", false);
@@ -359,8 +389,39 @@ void render(Window *self, float dtime) {
     Node_get_transform(moon, model->transform);
     Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
     Model_render(model, false);
+    // node_render(self, sun);
 
     Shader_end(self->renderer->shader);
+
+
+    if (true) {
+        Shader_begin(grid);
+        mat4 gridmodel;
+        glm_mat4_identity(gridmodel);
+        float grid_size = 100.0f;
+        glm_scale(gridmodel, (vec3){grid_size, grid_size, grid_size});
+        // glm_translate(gridmodel, (vec3){camera3d->position.x, camera3d->position.y, camera3d->position.z});
+        Shader_set_mat4(grid, "u_model", gridmodel);
+        Shader_set_mat4(grid, "u_view", view);
+        Shader_set_mat4(grid, "u_proj", proj);
+        Shader_set_float(grid, "u_grid_size", 1.0f);
+        Shader_set_float(grid, "u_line_width", 1.0f);
+        Shader_set_float(grid, "u_fade_radius", grid_size*0.25f);
+        Shader_set_float(grid, "u_fade_softness", grid_size*0.75f);
+        Shader_set_vec3(grid, "u_grid_color", (Vec3f){0.5f, 0.5f, 0.5f});
+        Shader_set_vec3(grid, "u_camera_pos", (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z});
+        Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
+        Shader_end(grid);
+    }
+
+    // Нарисовать линии:
+    float line_dist = 1000;
+    SimpleDraw_line(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){line_dist, 0, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0.25, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){-line_dist, 0, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, line_dist, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 0.25, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, -line_dist, 0}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 0, 1, 1}, (Vec3f){0, 0, 0}, (Vec3f){line_dist}, 3.0f);
+    SimpleDraw_line(draw, (Vec4f){0, 0, 0.25, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, -line_dist}, 3.0f);
 
     Camera2D_update(camera2d);
     Camera2D_ui_begin(camera2d);
@@ -388,6 +449,7 @@ void render(Window *self, float dtime) {
     FontPixmap_render(font, text_pos.x, text_pos.y, 0,
         "CPU:\n%s [%s]\nThreads: %d\n\n"
         "RAM:\nUSED: %zu MB\nFREE: %zu MB\nTOTAL: %zu MB\n\n"
+        "MEM:\n%.2f MB\n\n"
         "FPS: %.2f\n",
         cpu_info.model,
         Info_get_cpu_arch_name(cpu_info.arch),
@@ -395,6 +457,7 @@ void render(Window *self, float dtime) {
         mem_info.used / 1024 / 1024,
         mem_info.free / 1024 / 1024,
         mem_info.total / 1024 / 1024,
+        mm_get_used_size_mb(),
         fps
     );
     Camera2D_ui_end(camera2d);

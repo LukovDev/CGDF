@@ -39,8 +39,8 @@
     "ld-file":       "",
     "warnings":      ["-Wall"],
     "compile-flags-s": [],
-    "compile-flags-c": ["-march=native", "-g"],
-    "compile-flags-cpp": ["-march=native", "-g"],
+    "compile-flags-c": ["-march=native", "-mtune=native", "-ftree-vectorize", "-funroll-loops", "-g"],
+    "compile-flags-cpp": ["-march=native", "-mtune=native", "-ftree-vectorize", "-funroll-loops", "-g"],
     "linker-flags":  [],
     "commands-after-build": []
 }
