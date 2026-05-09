@@ -13,6 +13,10 @@
 #include "../core/camera.h"
 #include "../core/renderer.h"
 #include "../core/texture.h"
+#include "shaders/default_shader.h"
+#include "shaders/model_shader.h"
+#include "shaders/spritebatch_shader.h"
+#include "shaders/light2d_shader.h"
 #include "buffer_gc.h"
 #include "texunit.h"
 #include "gl.h"
@@ -35,151 +39,6 @@ RendererDebugConfig Renderer_debug_config = {
     .level_medium = true,
     .level_high = true
 };
-
-
-// -------- Стандартные шейдеры рендеринга: --------
-
-
-static const char* DEFAULT_SHADER_VERT = "\
-#version 330 core\n\
-\n\
-uniform mat4 u_model;\n\
-uniform mat4 u_view;\n\
-uniform mat4 u_proj;\n\
-layout (location = 0) in vec3 a_position;\n\
-layout (location = 1) in vec3 a_normal;\n\
-layout (location = 2) in vec4 a_color;\n\
-layout (location = 3) in vec2 a_texcoord;\n\
-out vec2 v_texcoord;\n\
-out vec3 v_normal;\n\
-out vec3 v_normal_world;\n\
-out vec4 v_color;\n\
-out vec3 v_frag_pos;\n\
-\n\
-void main(void) {\n\
-    v_texcoord = a_texcoord;\n\
-    v_normal = a_normal;\n\
-    v_normal_world = mat3(u_model) * a_normal;\n\
-    v_color = a_color;\n\
-    v_frag_pos = vec3(u_model * vec4(a_position, 1.0f));\n\
-    gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0f);\n\
-}";
-
-static const char* DEFAULT_SHADER_FRAG = "\
-#version 330 core\n\
-\n\
-uniform bool u_use_points = false;\n\
-uniform bool u_use_texture;\n\
-uniform bool u_use_normals;\n\
-uniform bool u_use_vcolor;\n\
-uniform vec4 u_color = vec4(1.0);\n\
-uniform sampler2D u_texture;\n\
-in vec2 v_texcoord;\n\
-in vec3 v_normal;\n\
-in vec3 v_normal_world;\n\
-in vec4 v_color;\n\
-in vec3 v_frag_pos;\n\
-out vec4 FragColor;\n\
-\n\
-void main(void) {\n\
-    // Если мы используем точки для рисования:\n\
-    if (u_use_points) {\n\
-        vec2 coord = gl_PointCoord*2.0f-1.0f;\n\
-        if (dot(coord, coord) > 1.0f) discard;  // Отбрасываем всё за пределами круга.\n\
-    }\n\
-    // Если мы используем текстуру, рисуем с ней, иначе только цвет:\n\
-    if (u_use_texture) {\n\
-        FragColor = u_color * texture(u_texture, v_texcoord);\n\
-    } else if (u_use_normals) {\n\
-        FragColor = vec4(normalize(v_normal.rgb), 1.0f);\n\
-    } else if (u_use_vcolor) {\n\
-        FragColor = v_color;\n\
-    } else {\n\
-        vec3 light_pos = vec3(1, 0, 0);\n\
-        vec3 light_color = vec3(1, 1, 1);\n\
-        float light_radius = 15.0f;\n\
-        vec3 normal = normalize(v_normal_world);\n\
-        vec3 light_dir = normalize(light_pos - v_frag_pos);\n\
-        float distance = length(light_pos - v_frag_pos);\n\
-        float diff = max(dot(normal, light_dir), 0.0);\n\
-        vec3 diffuse = diff * light_color;\n\
-        vec3 ambient = 0.1 * u_color.rgb;\n\
-        vec3 result = (ambient + diffuse) * u_color.rgb;\n\
-        if (distance <= light_radius) result = u_color.rgb;\n\
-        FragColor = vec4(result, 1.0);\n\
-    }\n\
-}";
-
-
-// -------- Шейдеры пакетной отрисовки спрайтов: --------
-
-
-static const char* SPRITEBATCH_SHADER_VERT = "\
-#version 330 core\n\
-\n\
-uniform mat4 u_view;\n\
-uniform mat4 u_proj;\n\
-layout (location = 0) in vec3 a_position;\n\
-layout (location = 1) in vec2 a_texcoord;\n\
-layout (location = 2) in vec4 a_color;\n\
-out vec2 v_texcoord;\n\
-out vec4 v_color;\n\
-\n\
-void main() {\n\
-    gl_Position = u_proj * u_view * vec4(a_position, 1.0f);\n\
-    v_texcoord = a_texcoord;\n\
-    v_color = a_color;\n\
-}";
-
-static const char* SPRITEBATCH_SHADER_FRAG = "\
-#version 330 core\n\
-uniform bool u_use_texture;\n\
-uniform sampler2D u_texture;\n\
-in vec2 v_texcoord;\n\
-in vec4 v_color;\n\
-out vec4 FragColor;\n\
-\n\
-void main() {\n\
-    vec4 color = v_color;\n\
-    if (u_use_texture) {\n\
-        color *= texture(u_texture, v_texcoord);\n\
-    }\n\
-    FragColor = color;\n\
-}";
-
-
-// -------- Шейдеры 2D освещения: --------
-
-
-static const char* LIGHT2D_SHADER_VERT = "\
-#version 330 core\n\
-\n\
-layout (location = 0) in vec3 a_position;\n\
-\n\
-void main() {\n\
-    gl_Position = vec4(a_position, 1.0f);\n\
-}";
-
-static const char* LIGHT2D_SHADER_FRAG = "\
-#version 330 core\n\
-\n\
-uniform sampler2D u_albedo_texture;\n\
-uniform sampler2D u_light_texture;\n\
-uniform vec3      u_ambient;\n\
-uniform float     u_intensity;\n\
-uniform vec2      u_resolution;\n\
-\n\
-out vec4 FragColor;\n\
-\n\
-void main(void) {\n\
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;\n\
-    vec4 albedo = texture(u_albedo_texture, uv);\n\
-    vec3 light  = texture(u_light_texture, uv).rgb;\n\
-    \n\
-    // 2D lighting: final = albedo * (ambient + light * intensity):\n\
-    vec3 lit = albedo.rgb * (u_ambient + light * max(u_intensity, 0.0));\n\
-    FragColor = vec4(lit, albedo.a);\n\
-}";
 
 
 // -------- Вспомогательные функции: --------
@@ -316,6 +175,7 @@ Renderer* Renderer_create() {
 
     // Создаём шейдеры:
     rnd->shader = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
+    rnd->shader_model = create_shader(rnd, MODEL_SHADER_VERT, MODEL_SHADER_FRAG, NULL);
     rnd->shader_spritebatch = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
     rnd->shader_light2d = create_shader(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
     return rnd;
@@ -327,6 +187,7 @@ void Renderer_destroy(Renderer **rnd) {
 
     // Освобождаем память шейдеров:
     if ((*rnd)->shader) { Shader_destroy(&(*rnd)->shader); }
+    if ((*rnd)->shader_model) { Shader_destroy(&(*rnd)->shader_model); }
     if ((*rnd)->shader_spritebatch) { Shader_destroy(&(*rnd)->shader_spritebatch); }
     if ((*rnd)->shader_light2d) { Shader_destroy(&(*rnd)->shader_light2d); }
 
@@ -415,6 +276,7 @@ void Renderer_init(Renderer *self) {
 
     // Компилируем шейдеры:
     if (self->shader) Shader_compile(self->shader);
+    if (self->shader_model) Shader_compile(self->shader_model);
     if (self->shader_spritebatch) Shader_compile(self->shader_spritebatch);
     if (self->shader_light2d) Shader_compile(self->shader_light2d);
 

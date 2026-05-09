@@ -58,6 +58,7 @@ struct Renderer {
     bool initialized;   // Флаг инициализации контекста OpenGL.
     RendererInfo info;  // Информация рендерера.
     Shader *shader;              // Дефолтная шейдерная программа.
+    Shader *shader_model;        // Шейдер модели.
     Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
     Shader *shader_light2d;      // Шейдер 2D освещения.
 

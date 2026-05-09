@@ -374,24 +374,26 @@ void render(Window *self, float dtime) {
         Shader_end(atmosphere);
     }
     Camera3D_set_depth_test(camera3d, true);
-    Shader_begin(self->renderer->shader);
-    Shader_set_bool(self->renderer->shader, "u_use_texture", false);
-    Shader_set_vec4(self->renderer->shader, "u_color", (Vec4f){1.0f, 1.0f, 1.0f, 1.0f});
+    Shader_begin(self->renderer->shader_model);
+    Shader_set_mat4(self->renderer->shader_model, "u_view", view);
+    Shader_set_mat4(self->renderer->shader_model, "u_proj", proj);
+    Shader_set_bool(self->renderer->shader_model, "u_use_texture", false);
+    Shader_set_vec4(self->renderer->shader_model, "u_color", (Vec4f){1.0f, 1.0f, 1.0f, 1.0f});
 
     Node_get_transform(sun, model->transform);
-    Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
+    Shader_set_mat4(self->renderer->shader_model, "u_model", model->transform);
     Model_render(model, false);
 
     Node_get_transform(earth, model->transform);
-    Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
+    Shader_set_mat4(self->renderer->shader_model, "u_model", model->transform);
     Model_render(model, false);
 
     Node_get_transform(moon, model->transform);
-    Shader_set_mat4(self->renderer->shader, "u_model", model->transform);
+    Shader_set_mat4(self->renderer->shader_model, "u_model", model->transform);
     Model_render(model, false);
     // node_render(self, sun);
 
-    Shader_end(self->renderer->shader);
+    Shader_end(self->renderer->shader_model);
 
 
     if (true) {
