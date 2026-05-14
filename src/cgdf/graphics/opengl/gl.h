@@ -8,6 +8,6 @@
 #include "glad/glad.h"
 
 // Инициализация OpenGL (true = ошибка, false = успех):
-static inline bool gl_init() {
+static inline bool gl_init(void) {
     return !gladLoadGL();
 }

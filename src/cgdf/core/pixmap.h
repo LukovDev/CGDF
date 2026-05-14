@@ -17,10 +17,10 @@
 
 
 // Определяем глобальные переменные стандартной картинки:
-extern const unsigned char Pixmap_default_icon[];
-extern const size_t Pixmap_default_icon_size;
-extern const int Pixmap_default_icon_width;
-extern const int Pixmap_default_icon_height;
+extern const unsigned char g_Pixmap_default_icon[];
+extern const size_t g_Pixmap_default_icon_size;
+extern const int g_Pixmap_default_icon_width;
+extern const int g_Pixmap_default_icon_height;
 
 
 // Объявление структур:

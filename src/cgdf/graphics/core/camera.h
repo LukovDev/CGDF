@@ -132,30 +132,6 @@ Vec3d Camera3D_get_right(Camera3D *self);
 // Получить вектор вверх:
 Vec3d Camera3D_get_up(Camera3D *self);
 
-// Установить проверку глубины:
-void Camera3D_set_depth_test(Camera3D *self, bool enabled);
-
-// Включить или отключить запись глубины:
-void Camera3D_set_depth_mask(Camera3D *self, bool enabled);
-
-// Включить или отключить смешивание:
-void Camera3D_set_blending(Camera3D *self, bool enabled);
-
-// Установить отсечение граней:
-void Camera3D_set_cull_faces(Camera3D *self, bool enabled);
-
-// Отсекать только задние грани:
-void Camera3D_set_back_face_culling(Camera3D *self);
-
-// Отсекать только передние грани:
-void Camera3D_set_front_face_culling(Camera3D *self);
-
-// Передняя грань против часовой стрелки (CCW):
-void Camera3D_set_front_face_onleft(Camera3D *self);
-
-// Передняя грань по часовой стрелке (CW):
-void Camera3D_set_front_face_onright(Camera3D *self);
-
 // Установить ортографическую проекцию:
 void Camera3D_set_ortho(Camera3D *self, bool enabled);
 

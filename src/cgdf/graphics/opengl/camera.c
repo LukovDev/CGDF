@@ -74,7 +74,7 @@ void Camera2D_update(Camera2D *self) {
     renderer->camera_type = RENDERER_CAMERA_2D;
 
     // Обновляем данные матриц в шейдере по умолчанию:
-    glDisable(GL_DEPTH_TEST);
+    Renderer_set_depth_test(renderer, false);
     Shader *shader = renderer->shader;
     if (!shader) return;
     Shader_begin(shader);
@@ -89,7 +89,7 @@ void Camera2D_resize(Camera2D *self, int width, int height) {
 
     self->width = width;
     self->height = height;
-    glViewport(0, 0, width, height);
+    Renderer_set_viewport(self->window->renderer, 0, 0, width, height);
 
     glm_mat4_identity(self->proj);
     float wdth = ((float)self->width)*0.5f * self->meter/100.0f;
@@ -176,13 +176,14 @@ Camera3D* Camera3D_create(
     Camera3D_resize(camera, width, height, ortho);
 
     // Установка настроек отображения геометрии:
-    Camera3D_set_depth_test(camera, true);  // Включаем тест глубины.
-    Camera3D_set_depth_mask(camera, true);  // Включаем запись в буфер глубины.
-    Camera3D_set_blending(camera, true);    // Включаем смешивание.
-    Camera3D_set_cull_faces(camera, true);  // Включаем отсечение граней.
+    Renderer_set_depth_test(window->renderer, true);  // Включаем тест глубины.
+    Renderer_set_depth_mask(window->renderer, true);  // Включаем запись в буфер глубины.
+    Renderer_set_blending(window->renderer, true);    // Включаем смешивание.
+    Renderer_set_cull_faces(window->renderer, true);  // Включаем отсечение граней.
 
-    Camera3D_set_back_face_culling(camera);
-    Camera3D_set_front_face_onleft(camera);
+    // Отсекаем задние грани и рисуем те треугольники которые против часовой стрелки:
+    Renderer_set_back_face_culling(window->renderer);
+    Renderer_set_front_face_onleft(window->renderer);
 
     // Масштабирование и перемещение:
     Camera3D_update(camera);
@@ -269,7 +270,7 @@ void Camera3D_resize(Camera3D *self, int width, int height, bool ortho) {
 
     self->width = width;
     self->height = height;
-    glViewport(0, 0, width, height);
+    Renderer_set_viewport(self->window->renderer, 0, 0, width, height);
     glm_mat4_identity(self->proj);
     float aspect = (float)self->width / (float)self->height;
 
@@ -388,54 +389,6 @@ Vec3d Camera3D_get_up(Camera3D *self) {
     vec3 u = {0, 1, 0};
     glm_quat_rotatev(self->quaternion, u, u);
     return (Vec3d){u[0], u[1], u[2]};
-}
-
-// Установить проверку глубины:
-void Camera3D_set_depth_test(Camera3D *self, bool enabled) {
-    if (!self) return;
-    enabled ? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST);
-}
-
-// Включить или отключить запись глубины:
-void Camera3D_set_depth_mask(Camera3D *self, bool enabled) {
-    if (!self) return;
-    enabled ? glDepthMask(GL_TRUE) : glDepthMask(GL_FALSE);
-}
-
-// Включить или отключить смешивание:
-void Camera3D_set_blending(Camera3D *self, bool enabled) {
-    if (!self) return;
-    enabled ? glEnable(GL_BLEND) : glDisable(GL_BLEND);
-}
-
-// Установить отсечение граней:
-void Camera3D_set_cull_faces(Camera3D *self, bool enabled) {
-    if (!self) return;
-    enabled ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
-}
-
-// Отсекать только задние грани:
-void Camera3D_set_back_face_culling(Camera3D *self) {
-    if (!self) return;
-    glCullFace(GL_BACK);
-}
-
-// Отсекать только передние грани:
-void Camera3D_set_front_face_culling(Camera3D *self) {
-    if (!self) return;
-    glCullFace(GL_FRONT);
-}
-
-// Передняя грань против часовой стрелки (CCW):
-void Camera3D_set_front_face_onleft(Camera3D *self) {
-    if (!self) return;
-    glFrontFace(GL_CCW);  // Против часовой стрелки.
-}
-
-// Передняя грань по часовой стрелке (CW):
-void Camera3D_set_front_face_onright(Camera3D *self) {
-    if (!self) return;
-    glFrontFace(GL_CW);  // По часовой стрелке.
 }
 
 // Установить ортографическую проекцию:

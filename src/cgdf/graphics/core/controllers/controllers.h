@@ -13,7 +13,7 @@
 
 
 // Константы:
-static const int   DEFAULT_MOUSE_POS_OFFSET  = 16;  // Область от края окна для телепортации мыши.
+static const int DEFAULT_MOUSE_POS_OFFSET = 16;  // Область от края окна для телепортации мыши.
 
 
 // Объявление структур:

@@ -8,6 +8,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include "vertex.h"
+#include "material.h"
 
 
 // Объявление структур:
@@ -25,11 +26,15 @@ Mesh* Mesh_create(
     uint32_t vertex_count,
     const uint32_t* indices,
     uint32_t index_count,
-    bool is_dynamic
+    bool is_dynamic,
+    Material *material
 );
 
 // Уничтожить сетку:
 void Mesh_destroy(Mesh **mesh);
+
+// Получить материал из сетки:
+Material* Mesh_get_material(Mesh *self);
 
 // Простой способ отрисовать сетку через forward rendering:
 void Mesh_render(Mesh *self, bool wireframe);

@@ -8,10 +8,12 @@
 #include "mm.h"
 #include "logger.h"
 #include "files.h"
-#ifdef _WIN32
+#if defined(_WIN32)
     #include <direct.h>
+    #define getcwd_os _getcwd
 #else
     #include <unistd.h>
+    #define getcwd_os getcwd
 #endif
 
 
@@ -77,12 +79,9 @@ void Files_fix_apple_path(void) {
 
 
 // Получить текущую директорию:
-char *Files_get_cwd(char *buf, size_t size) {
-    #ifdef _WIN32
-        return _getcwd(buf, size);
-    #else
-        return getcwd(buf, size);
-    #endif
+char* Files_get_cwd(char *buf, size_t size) {
+    if (buf != NULL && size == 0) return NULL;
+    return getcwd_os(buf, size);
 }
 
 
@@ -97,7 +96,7 @@ bool Files_chdir(const char *path) {
 
 
 // Получить путь домашнего каталога:
-char *Files_get_home(void) {
+char* Files_get_home(void) {
     char *dir = getenv("HOME");
 
     // Если HOME не задан (Windows), пробуем USERPROFILE:
@@ -105,6 +104,41 @@ char *Files_get_home(void) {
         dir = getenv("USERPROFILE");
     }
     return dir;
+}
+
+
+// Получить директорию файла (требуется освободить память):
+char* Files_dirname_dup(const char *filepath) {
+    const char *slash = strrchr(filepath, '/');
+    const char *backslash = strrchr(filepath, '\\');
+    const char *sep = slash > backslash ? slash : backslash;
+    if (!sep) return mm_strdup(".");
+
+    size_t len = (size_t)(sep - filepath);
+    char *dir = (char*)mm_alloc(len + 1);
+    memcpy(dir, filepath, len);
+    dir[len] = '\0';
+    return dir;
+}
+
+
+// Склеить пути (требуется освободить память):
+char* Files_path_join(const char *dir, const char *path) {
+    if (!path || !path[0]) return NULL;
+    if (path[0] == '/' || path[0] == '\\' || (path[1] == ':' &&
+            ((path[0] >= 'A' && path[0] <= 'Z') ||
+            (path[0] >= 'a' && path[0] <= 'z')))) {
+        return mm_strdup(path);
+    }
+
+    size_t dir_len = strlen(dir);
+    size_t path_len = strlen(path);
+    bool needs_sep = dir_len > 0 && dir[dir_len - 1] != '/' && dir[dir_len - 1] != '\\';
+    char *out = (char*)mm_alloc(dir_len + (needs_sep ? 1 : 0) + path_len + 1);
+    memcpy(out, dir, dir_len);
+    if (needs_sep) out[dir_len++] = '/';
+    memcpy(out + dir_len, path, path_len + 1);
+    return out;
 }
 
 

@@ -37,7 +37,7 @@ struct TexUnit {
 
 
 // Создаём единую глобальную структуру:
-extern TextureUnits texunits_gl;
+extern TextureUnits g_texunits_gl;
 
 
 // Инициализировать текстурные юниты (вызывается автоматически):

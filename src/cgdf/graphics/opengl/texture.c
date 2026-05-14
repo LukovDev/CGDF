@@ -152,7 +152,7 @@ void Texture_begin(Texture *self) {
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &self->_id_before_begin_);
     glGetIntegerv(GL_ACTIVE_TEXTURE, &self->_active_id_before_begin_);
     glActiveTexture(GL_TEXTURE0);
-    if (self->_id_before_begin_ != self->id) {
+    if ((uint32_t)self->_id_before_begin_ != self->id) {
         glBindTexture(GL_TEXTURE_2D, self->id);
     }
     self->_is_begin_ = true;
@@ -164,7 +164,7 @@ void Texture_end(Texture *self) {
     if (self->_active_id_before_begin_ != 0) {
         glActiveTexture(self->_active_id_before_begin_);
     }
-    if (self->_id_before_begin_ != self->id) {
+    if ((uint32_t)self->_id_before_begin_ != self->id) {
         glBindTexture(GL_TEXTURE_2D, (uint32_t)self->_id_before_begin_);
     }
     self->_is_begin_ = false;

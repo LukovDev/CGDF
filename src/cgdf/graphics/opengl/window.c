@@ -282,7 +282,7 @@ static void MainLoop(Window *self, WinConfig *config) {
                 // Если нажимают кнопку на клавиатуре:
                 case SDL_EVENT_KEY_DOWN: {
                     Input_Scancode scancode = ConvertScancode(event.key.scancode);
-                    if (scancode < input->keyboard->max_keys) {
+                    if ((int)scancode < input->keyboard->max_keys) {
                         if (!input->keyboard->pressed[scancode]) {
                             input->keyboard->pressed[scancode] = true;
                             input->keyboard->down[scancode] = true;
@@ -293,7 +293,7 @@ static void MainLoop(Window *self, WinConfig *config) {
                 // Если отпускают кнопку на клавиатуре:
                 case SDL_EVENT_KEY_UP: {
                     Input_Scancode scancode = ConvertScancode(event.key.scancode);
-                    if (scancode < input->keyboard->max_keys) {
+                    if ((int)scancode < input->keyboard->max_keys) {
                         input->keyboard->pressed[scancode] = false;
                         input->keyboard->up[scancode] = true;
                     }
@@ -338,9 +338,8 @@ static void MainLoop(Window *self, WinConfig *config) {
 
 // Этап закрытия окна:
 static void ClosingStage(Window *self) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
 
     // Вызываем уничтожение:
     if (self->scene.destroy) {
@@ -468,9 +467,8 @@ bool Window_open(Window *self) {
 
 // Вызовите для закрытия окна:
 bool Window_close(Window *self) {
-    if (!self || !self->config) return false;
+    if (!self || !self->config || !self->vars || !self->vars->window) return false;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return false;
     vars->closing = true;
     return true;
 }
@@ -488,9 +486,8 @@ bool Window_quit(Window *self) {
 
 // Установить заголовок окна:
 void Window_set_title(Window *self, const char *title, ...) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
 
     va_list args;
     va_start(args, title);
@@ -502,17 +499,15 @@ void Window_set_title(Window *self, const char *title, ...) {
 
 // Получить заголовок окна:
 const char* Window_get_title(Window *self) {
-    if (!self) return NULL;
+    if (!self || !self->vars || !self->vars->window) return NULL;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return NULL;
     return SDL_GetWindowTitle(vars->window);
 }
 
 // Установить иконку окна:
 void Window_set_icon(Window *self, Pixmap *icon) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
 
     if (self->config->icon) Pixmap_destroy(&self->config->icon);
     self->config->icon = Pixmap_copy(icon);
@@ -543,9 +538,8 @@ Pixmap* Window_get_icon(Window *self) {
 
 // Установить размер окна:
 void Window_set_size(Window *self, int width, int height) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowSize(vars->window, width, height);
     self->config->width = width;
     self->config->height = height;
@@ -553,26 +547,23 @@ void Window_set_size(Window *self, int width, int height) {
 
 // Получить размер окна:
 void Window_get_size(Window *self, int *width, int *height) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_GetWindowSize(vars->window, width, height);
 }
 
 // Установить ширину окна:
 void Window_set_width(Window *self, int width) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowSize(vars->window, width, self->config->height);
     self->config->width = width;
 }
 
 // Получить ширину окна:
 int Window_get_width(Window *self) {
-    if (!self) return 0;
+    if (!self || !self->vars || !self->vars->window) return 0;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return 0;
     int width;
     SDL_GetWindowSize(vars->window, &width, NULL);
     return width;
@@ -580,18 +571,16 @@ int Window_get_width(Window *self) {
 
 // Установить высоту окна:
 void Window_set_height(Window *self, int height) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowSize(vars->window, self->config->width, height);
     self->config->height = height;
 }
 
 // Получить высоту окна:
 int Window_get_height(Window *self) {
-    if (!self) return 0;
+    if (!self || !self->vars || !self->vars->window) return 0;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return 0;
     int height;
     SDL_GetWindowSize(vars->window, NULL, &height);
     return height;
@@ -599,9 +588,8 @@ int Window_get_height(Window *self) {
 
 // Получить центр окна:
 void Window_get_center(Window *self, int *x, int *y) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     int w, h;
     SDL_GetWindowSize(vars->window, &w, &h);
     *x = w / 2;
@@ -610,9 +598,8 @@ void Window_get_center(Window *self, int *x, int *y) {
 
 // Установить позицию окна:
 void Window_set_position(Window *self, int x, int y) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
 
     // Обрабатываем позицию окна (координаты -1 означают выравнивание по центру экрана):
     int pos_x = x, pos_y = y;
@@ -629,9 +616,8 @@ void Window_set_position(Window *self, int x, int y) {
 
 // Получить позицию окна:
 void Window_get_position(Window *self, int *x, int *y) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_GetWindowPosition(vars->window, x, y);
 }
 
@@ -662,9 +648,8 @@ int Window_get_target_fps(Window *self) {
 
 // Установить видимость окна:
 void Window_set_visible(Window *self, bool visible) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     if (visible) { SDL_ShowWindow(vars->window); }
     else { SDL_HideWindow(vars->window); }
     self->config->visible = visible;
@@ -678,9 +663,8 @@ bool Window_get_visible(Window *self) {
 
 // Установить видимость заголовка окна:
 void Window_set_titlebar(Window *self, bool titlebar) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowBordered(vars->window, titlebar);
     self->config->titlebar = titlebar;
 }
@@ -693,9 +677,8 @@ bool Window_get_titlebar(Window *self) {
 
 // Установить масштабируемость окна:
 void Window_set_resizable(Window *self, bool resizable) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowResizable(vars->window, resizable);
     self->config->resizable = resizable;
 }
@@ -708,9 +691,8 @@ bool Window_get_resizable(Window *self) {
 
 // Установить полноэкранный режим:
 void Window_set_fullscreen(Window *self, bool fullscreen) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowFullscreen(vars->window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
     self->config->fullscreen = fullscreen;
 }
@@ -723,9 +705,8 @@ bool Window_get_fullscreen(Window *self) {
 
 // Установить минимальный размер окна:
 void Window_set_min_size(Window *self, int width, int height) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowMinimumSize(vars->window, width, height);
     self->config->min_width = width;
     self->config->min_height = height;
@@ -733,17 +714,15 @@ void Window_set_min_size(Window *self, int width, int height) {
 
 // Получить минимальный размер окна:
 void Window_get_min_size(Window *self, int *width, int *height) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_GetWindowMinimumSize(vars->window, width, height);
 }
 
 // Установить максимальный размер окна:
 void Window_set_max_size(Window *self, int width, int height) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowMaximumSize(vars->window, width, height);
     self->config->max_width = width;
     self->config->max_height = height;
@@ -751,17 +730,15 @@ void Window_set_max_size(Window *self, int width, int height) {
 
 // Получить максимальный размер окна:
 void Window_get_max_size(Window *self, int *width, int *height) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_GetWindowMaximumSize(vars->window, width, height);
 }
 
 // Установить всегда на переднем плане или нет:
 void Window_set_always_top(Window *self, bool on_top) {
-    if (!self || !self->config) return;
+    if (!self || !self->config || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_SetWindowAlwaysOnTop(vars->window, on_top);
     self->config->always_top = on_top;
 }
@@ -774,25 +751,22 @@ bool Window_get_always_top(Window *self) {
 
 // Получить фокус окна:
 bool Window_get_is_focused(Window *self) {
-    if (!self) return false;
+    if (!self || !self->vars) return false;
     WinVars *vars = self->vars;
-    if (!vars) return false;
     return vars->focused;
 }
 
 // Получить расфокус окна:
 bool Window_get_is_defocused(Window *self) {
-    if (!self) return false;
+    if (!self || !self->vars) return false;
     WinVars *vars = self->vars;
-    if (!vars) return false;
     return vars->defocused;
 }
 
 // Получить айди дисплея в котором это окно:
 uint32_t Window_get_window_display_id(Window *self) {
-    if (!self) return 0;
+    if (!self || !self->vars || !self->vars->window) return 0;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return 0;
     return (uint32_t)SDL_GetDisplayForWindow(vars->window);
 }
 
@@ -808,66 +782,58 @@ bool Window_get_display_size(Window *self, uint32_t id, int *width, int *height)
 
 // Развернуть окно на весь экран:
 void Window_maximize(Window *self) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_MaximizeWindow(vars->window);
 }
 
 // Свернуть окно в панель задач:
 void Window_minimize(Window *self) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_MinimizeWindow(vars->window);
 }
 
 // Восстановить обычное состояние окна:
 void Window_restore(Window *self) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_RestoreWindow(vars->window);
 }
 
 // Перенести окно на передний план:
 void Window_raise(Window *self) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_RaiseWindow(vars->window);
 }
 
 // Получить текущий фпс:
 float Window_get_current_fps(Window *self) {
-    if (!self) return 0.0f;
+    if (!self || !self->vars) return 0.0f;
     WinVars *vars = self->vars;
-    if (!vars) return 0.0f;
     return (float)((vars->dtime > 0.0f) ? (1.0f / vars->dtime) : 0.0f);
 }
 
 // Получить дельту времени:
 double Window_get_dtime(Window *self) {
-    if (!self) return 0.0f;
+    if (!self || !self->vars) return 0.0f;
     WinVars *vars = self->vars;
-    if (!vars) return 0.0f;
     return vars->dtime;
 }
 
 // Получить время со старта окна:
 double Window_get_time(Window *self) {
-    if (!self) return 0.0;
+    if (!self || !self->vars) return 0.0;
     WinVars *vars = self->vars;
-    if (!vars) return 0.0;
     // Получаем время с начала создания окна в секундах:
     return ((double)SDL_GetPerformanceCounter() / (double)vars->perf_freq) - vars->start_time;
 }
 
 // Установить сцену окна:
 void Window_set_scene(Window *self, const WindowScene *scene) {
-    if (!self) return;
+    if (!self || !self->vars) return;
     WinVars *vars = self->vars;
-    if (!vars) return;
 
     // Устанавливаем новую сцену:
     if (scene) memcpy(&vars->new_scene, scene, sizeof(WindowScene));  // Помещаем сцену в буфер новой сцены.
@@ -891,9 +857,8 @@ void Window_clear(Window *self, float r, float g, float b) {
 
 // Отрисовка содержимого окна:
 void Window_display(Window *self) {
-    if (!self) return;
+    if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_GL_SwapWindow(vars->window);
 }
 
@@ -1035,9 +1000,8 @@ static Input_Scancode ConvertScancode(SDL_Scancode scancode) {
 }
 
 static void Impl_set_mouse_pos(Window *self, int x, int y) {
-    if (!self || !self->input || !self->input->keyboard) return;
+    if (!self || !self->input || !self->input->keyboard || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    if (!vars || !vars->window) return;
     SDL_WarpMouseInWindow(vars->window, x, y);
 }
 

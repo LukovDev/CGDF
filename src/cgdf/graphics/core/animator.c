@@ -42,7 +42,7 @@ void FrameAnimator2D_update(FrameAnimator2D *self, float dtime) {
     }
 
     // Если счётчик превысил количество кадров, обнуляем его:
-    if ((int)self->count >= self->frames) {
+    if ((uint32_t)self->count >= self->frames) {
         self->count = 0.0f;
     }
 }

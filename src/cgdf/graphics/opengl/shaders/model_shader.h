@@ -35,6 +35,7 @@ static const char* MODEL_SHADER_FRAG = "\
 \n\
 uniform vec4 u_color;\n\
 uniform bool u_use_texture;\n\
+uniform bool u_use_normals;\n\
 uniform sampler2D u_texture;\n\
 in vec2 v_texcoord;\n\
 in vec3 v_normal;\n\
@@ -44,20 +45,21 @@ in vec3 v_frag_pos;\n\
 out vec4 FragColor;\n\
 \n\
 void main(void) {\n\
+    vec4 color = u_color;\n\
     if (u_use_texture) {\n\
-        FragColor = u_color * texture(u_texture, v_texcoord);\n\
-    } else {\n\
-        vec3 light_pos = vec3(1, 0, 0);\n\
-        vec3 light_color = vec3(1, 1, 1);\n\
-        float light_radius = 15.0f;\n\
-        vec3 normal = normalize(v_normal_world);\n\
-        vec3 light_dir = normalize(light_pos - v_frag_pos);\n\
-        float distance = length(light_pos - v_frag_pos);\n\
-        float diff = max(dot(normal, light_dir), 0.0);\n\
-        vec3 diffuse = diff * light_color;\n\
-        vec3 ambient = 0.1 * u_color.rgb;\n\
-        vec3 result = (ambient + diffuse) * u_color.rgb;\n\
-        if (distance <= light_radius) result = u_color.rgb;\n\
-        FragColor = vec4(result, 1.0);\n\
+        color *= texture(u_texture, v_texcoord);\n\
     }\n\
+    vec3 light_pos = vec3(100, 500, 100);\n\
+    vec3 light_color = vec3(1, 1, 1);\n\
+    float light_radius = 1.0f;\n\
+    vec3 normal = normalize(v_normal_world);\n\
+    vec3 light_dir = normalize(light_pos - v_frag_pos);\n\
+    float distance = length(light_pos - v_frag_pos);\n\
+    float diff = max(dot(normal, light_dir), 0.0);\n\
+    vec3 diffuse = diff * light_color;\n\
+    vec3 ambient = 0.1 * color.rgb;\n\
+    vec3 result = (ambient + diffuse) * color.rgb;\n\
+    if (distance <= light_radius) result = color.rgb;\n\
+    FragColor = vec4(result, 1.0);\n\
+    if (u_use_normals) FragColor = vec4(normalize(v_normal_world), 1.0);\n\
 }";

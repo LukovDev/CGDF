@@ -46,7 +46,7 @@ struct BufferGC_GL {
 
 
 // Создаём единую глобальную структуру:
-extern BufferGC_GL buffer_gc_gl;
+extern BufferGC_GL g_buffer_gc_gl;
 
 
 // Инициализация стеков буферов:

@@ -8,7 +8,7 @@
 static const char* LIGHT2D_SHADER_VERT = "\
 #version 330 core\n\
 layout (location = 0) in vec3 a_position;\n\
-void main() {\n\
+void main(void) {\n\
     gl_Position = vec4(a_position, 1.0f);\n\
 }";
 

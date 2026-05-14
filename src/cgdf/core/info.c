@@ -23,8 +23,8 @@
 
 
 // Глобальные переменные:
-bool _Info_cpu_cached_ = false;
-CpuInfo _Info_cpu_info_cache_ = {0};
+bool g_Info_cpu_cached_ = false;
+CpuInfo g_Info_cpu_info_cache_ = {0};
 
 
 // Получить архитектуру процессора в виде строки:
@@ -40,8 +40,8 @@ const char* Info_get_cpu_arch_name(Info_cpu_arch arch) {
 
 
 // Функция для получения информации о процессоре:
-CpuInfo Info_get_cpu() {
-    if (_Info_cpu_cached_) return _Info_cpu_info_cache_;  // Используем кэш.
+CpuInfo Info_get_cpu(void) {
+    if (g_Info_cpu_cached_) return g_Info_cpu_info_cache_;  // Используем кэш.
 
     CpuInfo info = {.threads = 1, .arch = INFO_UNKNOWN};
     memset(info.model, 0, sizeof(info.model));  // Обнуляем строку модели процессора.
@@ -134,16 +134,16 @@ CpuInfo Info_get_cpu() {
     #endif
 
     // Кэширование результата:
-    if (!_Info_cpu_cached_) {
-        _Info_cpu_cached_ = true;
-        _Info_cpu_info_cache_ = info;
+    if (!g_Info_cpu_cached_) {
+        g_Info_cpu_cached_ = true;
+        g_Info_cpu_info_cache_ = info;
     }
     return info;
 }
 
 
 // Функция для получения ОЗУ (в байтах):
-MemInfo Info_get_mem() {
+MemInfo Info_get_mem(void) {
     MemInfo info = {.total = 0, .free = 0, .used = 0};
     #if defined(_WIN32)
         MEMORYSTATUSEX status;

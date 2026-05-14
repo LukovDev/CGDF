@@ -339,7 +339,7 @@ const char* Shader_get_error(Shader *self) {
 void Shader_begin(Shader *self) {
     if (!self) return;
     glGetIntegerv(GL_CURRENT_PROGRAM, &self->_id_before_begin_);
-    if (self->_id_before_begin_ != self->id) {
+    if ((uint32_t)self->_id_before_begin_ != self->id) {
         glUseProgram(self->id);
     }
     self->_is_begin_ = true;
@@ -348,7 +348,7 @@ void Shader_begin(Shader *self) {
 // Деактивация программы:
 void Shader_end(Shader *self) {
     if (!self) return;
-    if (self->_id_before_begin_ != self->id) {
+    if ((uint32_t)self->_id_before_begin_ != self->id) {
         glUseProgram((uint32_t)self->_id_before_begin_);
     }
     self->_is_begin_ = false;

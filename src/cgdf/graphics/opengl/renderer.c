@@ -44,14 +44,6 @@ RendererDebugConfig Renderer_debug_config = {
 // -------- Вспомогательные функции: --------
 
 
-static inline Shader* create_shader(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
-    Shader *shader = Shader_create(rnd, vert, frag, geom);
-    if (!shader || Shader_get_error(shader)) {
-        log_msg("[E] Renderer_create: Creating shader failed: %s\n", shader->error);
-    }
-    return shader;
-}
-
 static void get_memory_info(int *total, int *used, int *free) {
     int total_kb = 0;
     int free_kb = 0;
@@ -154,30 +146,61 @@ static void gl_setup_debug_output(bool sync, bool notify, bool low, bool medium,
     }
 }
 
+static inline Shader* create_shader(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
+    Shader *shader = Shader_create(rnd, vert, frag, geom);
+    if (!shader || Shader_get_error(shader)) {
+        log_msg("[E] Renderer_create: Creating shader failed: %s\n", shader->error);
+    }
+    return shader;
+}
+
+// Создать шейдеры:
+static inline void create_shaders(Renderer *rnd) {
+    rnd->shader             = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
+    rnd->shader_model       = create_shader(rnd, MODEL_SHADER_VERT, MODEL_SHADER_FRAG, NULL);
+    rnd->shader_spritebatch = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
+    rnd->shader_light2d     = create_shader(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
+}
+
+// Скомпилировать шейдеры:
+static inline void compile_shaders(Renderer *rnd) {
+    if (rnd->shader)             Shader_compile(rnd->shader);
+    if (rnd->shader_model)       Shader_compile(rnd->shader_model);
+    if (rnd->shader_spritebatch) Shader_compile(rnd->shader_spritebatch);
+    if (rnd->shader_light2d)     Shader_compile(rnd->shader_light2d);
+}
+
+// Освободить шейдеры:
+static inline void destroy_shaders(Renderer *rnd) {
+    if (rnd->shader)             Shader_destroy(&rnd->shader);
+    if (rnd->shader_model)       Shader_destroy(&rnd->shader_model);
+    if (rnd->shader_spritebatch) Shader_destroy(&rnd->shader_spritebatch);
+    if (rnd->shader_light2d)     Shader_destroy(&rnd->shader_light2d);
+}
+
 
 // -------- API рендерера: --------
 
 
 // Создать рендерер:
-Renderer* Renderer_create() {
+Renderer* Renderer_create(void) {
     Renderer *rnd = (Renderer*)mm_alloc(sizeof(Renderer));
 
     // Заполняем поля:
     rnd->initialized = false;
     rnd->info = (RendererInfo){ NULL };
-    rnd->shader = NULL;
-    rnd->shader_spritebatch = NULL;
-    rnd->shader_light2d = NULL;
     rnd->camera = NULL;
     rnd->camera_type = RENDERER_CAMERA_2D;
     rnd->sprite_mesh = NULL;
     rnd->fallback_texture = NULL;
 
+    rnd->shader = NULL;
+    rnd->shader_model = NULL;
+    rnd->shader_spritebatch = NULL;
+    rnd->shader_light2d = NULL;
+
     // Создаём шейдеры:
-    rnd->shader = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
-    rnd->shader_model = create_shader(rnd, MODEL_SHADER_VERT, MODEL_SHADER_FRAG, NULL);
-    rnd->shader_spritebatch = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
-    rnd->shader_light2d = create_shader(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
+    create_shaders(rnd);
     return rnd;
 }
 
@@ -186,10 +209,7 @@ void Renderer_destroy(Renderer **rnd) {
     if (!rnd || !*rnd) return;
 
     // Освобождаем память шейдеров:
-    if ((*rnd)->shader) { Shader_destroy(&(*rnd)->shader); }
-    if ((*rnd)->shader_model) { Shader_destroy(&(*rnd)->shader_model); }
-    if ((*rnd)->shader_spritebatch) { Shader_destroy(&(*rnd)->shader_spritebatch); }
-    if ((*rnd)->shader_light2d) { Shader_destroy(&(*rnd)->shader_light2d); }
+    destroy_shaders(*rnd);
 
     // Удаляем сетку спрайта:
     Mesh_destroy(&(*rnd)->sprite_mesh);
@@ -275,10 +295,7 @@ void Renderer_init(Renderer *self) {
     BufferGC_GL_init();
 
     // Компилируем шейдеры:
-    if (self->shader) Shader_compile(self->shader);
-    if (self->shader_model) Shader_compile(self->shader_model);
-    if (self->shader_spritebatch) Shader_compile(self->shader_spritebatch);
-    if (self->shader_light2d) Shader_compile(self->shader_light2d);
+    compile_shaders(self);
 
     // Квадрат с текстурой для спрайта:
     const float texcoord[] = {0.0f, 0.0f, 1.0f, 1.0f};
@@ -298,7 +315,7 @@ void Renderer_init(Renderer *self) {
     self->sprite_mesh = Mesh_create(
         sprite_vertices, sizeof(sprite_vertices)/sizeof(Vertex),
         sprite_indices, sizeof(sprite_indices)/sizeof(uint32_t),
-        false
+        false, NULL
     );
 
     // Текстура-заглушка:
@@ -433,4 +450,58 @@ int Renderer_get_free_memory(Renderer *self) {
     int free;
     get_memory_info(NULL, NULL, &free);
     return free;
+}
+
+// Установить проверку глубины:
+void Renderer_set_depth_test(Renderer *self, bool enabled) {
+    if (!self) return;
+    enabled ? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST);
+}
+
+// Включить или отключить запись глубины:
+void Renderer_set_depth_mask(Renderer *self, bool enabled) {
+    if (!self) return;
+    enabled ? glDepthMask(GL_TRUE) : glDepthMask(GL_FALSE);
+}
+
+// Включить или отключить смешивание:
+void Renderer_set_blending(Renderer *self, bool enabled) {
+    if (!self) return;
+    enabled ? glEnable(GL_BLEND) : glDisable(GL_BLEND);
+}
+
+// Установить отсечение граней:
+void Renderer_set_cull_faces(Renderer *self, bool enabled) {
+    if (!self) return;
+    enabled ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
+}
+
+// Отсекать только задние грани:
+void Renderer_set_back_face_culling(Renderer *self) {
+    if (!self) return;
+    glCullFace(GL_BACK);
+}
+
+// Отсекать только передние грани:
+void Renderer_set_front_face_culling(Renderer *self) {
+    if (!self) return;
+    glCullFace(GL_FRONT);
+}
+
+// Передняя грань против часовой стрелки (CCW):
+void Renderer_set_front_face_onleft(Renderer *self) {
+    if (!self) return;
+    glFrontFace(GL_CCW);  // Против часовой стрелки.
+}
+
+// Передняя грань по часовой стрелке (CW):
+void Renderer_set_front_face_onright(Renderer *self) {
+    if (!self) return;
+    glFrontFace(GL_CW);  // По часовой стрелке.
+}
+
+// Установить размер viewport:
+void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height) {
+    if (!self) return;
+    glViewport(x, y, width, height);
 }

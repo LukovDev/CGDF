@@ -58,6 +58,7 @@ struct HashTable {
     size_t   capacity;    // Всего выделенных ячеек в памяти (вместимость).
     size_t   prob_count[HASHTABLE_PROBING_COUNT];  // Количество пробирований (поиск слота).
     size_t   prob_index;  // Индекс (счетчик) в массиве prob_count.
+    uint64_t (*hash_func)(const void* data, size_t len);  // Функция хэша. Можно сменить.
 };
 
 

@@ -9,6 +9,7 @@
 #include <cgdf/core/logger.h>
 #include "../core/vertex.h"
 #include "../core/mesh.h"
+#include "../core/material.h"
 #include "buffers/buffers.h"
 #include "gl.h"
 
@@ -20,6 +21,7 @@ struct Mesh {
     BufferEBO *ebo;  // Буфер индексов.
     uint32_t index_count;  // Количество индексов.
     bool is_dynamic;       // Динамическая ли сетка.
+    Material *material;    // Материал сетки.
 };
 
 
@@ -29,7 +31,8 @@ Mesh* Mesh_create(
     uint32_t vertex_count,
     const uint32_t* indices,
     uint32_t index_count,
-    bool is_dynamic
+    bool is_dynamic,
+    Material *material
 ) {
     if (!vertices || !indices) {
         log_msg("[E] Mesh_create: \"vertices\" or \"indices\" is NULL.\n");
@@ -45,6 +48,7 @@ Mesh* Mesh_create(
     mesh->ebo = BufferEBO_create(indices, index_count * sizeof(uint32_t), mode);
     mesh->index_count = index_count;
     mesh->is_dynamic = is_dynamic;
+    mesh->material = material;
 
     // Настраиваем атрибуты:
     BufferVAO_begin(mesh->vao);
@@ -85,6 +89,12 @@ void Mesh_destroy(Mesh **mesh) {
 
 // -------- API сетки: --------
 
+
+// Получить материал из сетки:
+Material* Mesh_get_material(Mesh *self) {
+    if (!self) return NULL;
+    return self->material;
+}
 
 // Простой способ отрисовать сетку через forward rendering:
 void Mesh_render(Mesh *self, bool wireframe) {

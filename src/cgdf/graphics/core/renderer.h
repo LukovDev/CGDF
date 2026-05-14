@@ -1,7 +1,5 @@
 //
-// renderer.h - Создаёт общий апи для работы с рендерером.
-//
-// В Renderer объявляются различные функции и поля, для работы с графикой.
+// renderer.h - Создаёт общий апи для работы с рендерингом графики.
 //
 
 #pragma once
@@ -66,7 +64,7 @@ struct Renderer {
     RendererCameraType camera_type;  // Тип камеры который используется (для корректировок).
 
     // Другое:
-    Mesh *sprite_mesh;  // Сетка спрайта.
+    Mesh *sprite_mesh;          // Сетка спрайта.
     Texture *fallback_texture;  // Пустая текстура как заглушка для шейдеров.
 };
 
@@ -127,3 +125,30 @@ int Renderer_get_used_memory(Renderer *self);
 
 // Сколько свободно видеопамяти (в килобайтах):
 int Renderer_get_free_memory(Renderer *self);
+
+// Установить проверку глубины:
+void Renderer_set_depth_test(Renderer *self, bool enabled);
+
+// Включить или отключить запись глубины:
+void Renderer_set_depth_mask(Renderer *self, bool enabled);
+
+// Включить или отключить смешивание:
+void Renderer_set_blending(Renderer *self, bool enabled);
+
+// Установить отсечение граней:
+void Renderer_set_cull_faces(Renderer *self, bool enabled);
+
+// Отсекать только задние грани:
+void Renderer_set_back_face_culling(Renderer *self);
+
+// Отсекать только передние грани:
+void Renderer_set_front_face_culling(Renderer *self);
+
+// Передняя грань против часовой стрелки (CCW):
+void Renderer_set_front_face_onleft(Renderer *self);
+
+// Передняя грань по часовой стрелке (CW):
+void Renderer_set_front_face_onright(Renderer *self);
+
+// Установить размер viewport:
+void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height);

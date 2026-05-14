@@ -140,7 +140,7 @@ static void fbo_check_complete(const char *tag) {
 void BufferFBO_begin(BufferFBO *self) {
     if (!self || self->_is_begin_ || self->id == 0) return;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &self->_id_before_begin_);
-    if (self->_id_before_begin_ != self->id) {
+    if ((uint32_t)self->_id_before_begin_ != self->id) {
         glBindFramebuffer(GL_FRAMEBUFFER, self->id);
     }
     self->_is_begin_ = true;
@@ -150,7 +150,7 @@ void BufferFBO_begin(BufferFBO *self) {
 // Не использовать буфер:
 void BufferFBO_end(BufferFBO *self) {
     if (!self || !self->_is_begin_) return;
-    if (self->_id_before_begin_ != self->id) {
+    if ((uint32_t)self->_id_before_begin_ != self->id) {
         glBindFramebuffer(GL_FRAMEBUFFER, (uint32_t)self->_id_before_begin_);
     }
     if (self->_id_before_begin_ == 0) glDrawBuffer(GL_BACK);

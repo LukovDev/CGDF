@@ -41,8 +41,8 @@ struct MemInfo {
 
 
 // Глобальные переменные:
-extern bool _Info_cpu_cached_;
-extern CpuInfo _Info_cpu_info_cache_;
+extern bool g_Info_cpu_cached_;
+extern CpuInfo g_Info_cpu_info_cache_;
 
 
 // Получить архитектуру процессора в виде строки:

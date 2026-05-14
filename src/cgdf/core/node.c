@@ -45,7 +45,7 @@ void Node_destroy(Node **node) {
 
     // Рекурсивно удаляем потомков:
     if ((*node)->children) {
-        for (int i = 0; i < Array_len((*node)->children); i++) {
+        for (size_t i = 0; i < Array_len((*node)->children); i++) {
             Node *child = (Node*)Array_get_ptr((*node)->children, i);
             child->parent = NULL;  // Чтобы потомок не пытался удалить себя из нас.
             Node_destroy(&child);
@@ -160,7 +160,7 @@ Node* Node_copy(Node *self, Node *parent) {
     copy->parent_changed = true;
 
     // Копируем потомков оригинала, передавая им "себя" как родителя:
-    for (int i = 0; i < Array_len(self->children); i++) {
+    for (size_t i = 0; i < Array_len(self->children); i++) {
         Node_copy(*(Node**)Array_get(self->children, i), copy);
     }
 
@@ -253,7 +253,7 @@ void Node_invalidate_parent(Node *self) {
     if (!self) return;
 
     // Цикл по потомкам:
-    for (int i = 0; i < Array_len(self->children); i++) {
+    for (size_t i = 0; i < Array_len(self->children); i++) {
         Node *child = (Node*)Array_get_ptr(self->children, i);
         if (!child->parent_changed) {       // Если еще не помечен.
             child->parent_changed = true;   // Флаг о изменении родителя.
@@ -273,7 +273,7 @@ size_t Node_count_all_nodes(Node *self) {
     if (!self) return 0;
     size_t total = Array_len(self->children);
     // Рекурсивно проходимся по всем потомкам и считаем количество их потомков:
-    for (int i = 0; i < Array_len(self->children); i++) {
+    for (size_t i = 0; i < Array_len(self->children); i++) {
         Node *child = (Node*)Array_get_ptr(self->children, i);
         total += Node_count_all_nodes(child);
     }

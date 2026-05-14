@@ -14,10 +14,6 @@
 #include "hashtable.h"
 
 
-// Выбираем какую функцию хэша использовать (можно сменить, главное сохранить сигнатуру):
-uint64_t (*hash_func) (const void* data, size_t len) = hash_fnv1a;
-
-
 // Вывод данных для функции HashTable_print():
 static void print_data(FILE *out, void *data, size_t size, HashTablePrintMode mode) {
     if (!data) {
@@ -195,6 +191,7 @@ HashTable* HashTable_create(void) {
     table->len = 0;
     table->capacity = capacity;
     table->prob_index = 0;
+    table->hash_func = hash_fnv1a;
     reset_probs(table);
     return table;
 }
@@ -219,7 +216,7 @@ bool HashTable_set(HashTable *table, const void *key, size_t key_size, const voi
     check_maybe_growth(table);
 
     // Инициализируем данные для пробирований:
-    size_t hash = hash_func(key, key_size);
+    size_t hash = table->hash_func(key, key_size);
     size_t idx = hash % table->capacity;
     size_t prob_idx = table->prob_index++ % HASHTABLE_PROBING_COUNT;
     table->prob_count[prob_idx] = 0;  // Обнуляем для этой сессии пробингов.
@@ -265,7 +262,7 @@ void* HashTable_get(HashTable *table, const void *key, size_t key_size, size_t *
     check_maybe_problimit(table);
 
     // Инициализируем данные для пробирований:
-    size_t hash = hash_func(key, key_size);
+    size_t hash = table->hash_func(key, key_size);
     size_t idx = hash % table->capacity;
     size_t prob_idx = table->prob_index++ % HASHTABLE_PROBING_COUNT;
     table->prob_count[prob_idx] = 0;  // Обнуляем для этой сессии пробингов.
@@ -311,7 +308,7 @@ bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool f
     check_maybe_problimit(table);
 
     // Инициализируем данные для пробирований:
-    size_t hash = hash_func(key, key_size);
+    size_t hash = table->hash_func(key, key_size);
     size_t idx = hash % table->capacity;
     size_t prob_idx = table->prob_index++ % HASHTABLE_PROBING_COUNT;
     table->prob_count[prob_idx] = 0;  // Обнуляем для этой сессии пробингов.

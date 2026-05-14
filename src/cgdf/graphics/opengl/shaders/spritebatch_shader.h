@@ -16,7 +16,7 @@ layout (location = 2) in vec4 a_color;\n\
 out vec2 v_texcoord;\n\
 out vec4 v_color;\n\
 \n\
-void main() {\n\
+void main(void) {\n\
     gl_Position = u_proj * u_view * vec4(a_position, 1.0f);\n\
     v_texcoord = a_texcoord;\n\
     v_color = a_color;\n\
@@ -30,7 +30,7 @@ in vec2 v_texcoord;\n\
 in vec4 v_color;\n\
 out vec4 FragColor;\n\
 \n\
-void main() {\n\
+void main(void) {\n\
     vec4 color = v_color;\n\
     if (u_use_texture) {\n\
         color *= texture(u_texture, v_texcoord);\n\

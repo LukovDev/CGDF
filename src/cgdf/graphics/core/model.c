@@ -35,7 +35,7 @@ void Model_destroy(Model **model) {
     if (!model || !*model) return;
 
     // Удаляем сетки модели:
-    for (int i = 0; i < Array_len((*model)->meshes); i++) {
+    for (size_t i = 0; i < Array_len((*model)->meshes); i++) {
         Mesh *mesh = (Mesh*)Array_get_ptr((*model)->meshes, i);
         Mesh_destroy(&mesh);
     }
@@ -79,7 +79,7 @@ void Model_render(Model *self, bool wireframe) {
     if (!self) return;
 
     // Проходимся по сеткам и рисуем их:
-    for (int i = 0; i < Array_len(self->meshes); i++) {
+    for (size_t i = 0; i < Array_len(self->meshes); i++) {
         Mesh *mesh = (Mesh*)Array_get_ptr(self->meshes, i);
         Mesh_render(mesh, wireframe);
     }

@@ -13,7 +13,7 @@
 
 
 // Создать буфер отслеживания:
-BufferQBO* BufferQBO_create() {
+BufferQBO* BufferQBO_create(void) {
     BufferQBO *qbo = (BufferQBO*)mm_alloc(sizeof(BufferQBO));
 
     // Заполняем поля:

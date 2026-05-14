@@ -15,10 +15,10 @@ typedef struct FrameAnimator2D FrameAnimator2D;  // 2D кадровый аним
 
 // Структура 2D кадрового аниматора:
 struct FrameAnimator2D {
-    uint32_t frames;    // Количество кадров анимации.
-    float    duration;  // Продолжительность кадра в секундах.
-    float    count;     // Счётчик кадров.
-    bool     _paused_;  // Анимация приостановлена.
+    uint32_t frames;  // Количество кадров анимации.
+    float duration;   // Продолжительность кадра в секундах.
+    float count;      // Счётчик кадров.
+    bool _paused_;    // Анимация приостановлена.
 };
 
 

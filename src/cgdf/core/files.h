@@ -15,13 +15,19 @@ void Files_fix_apple_path(void);
 #endif
 
 // Получить текущую директорию:
-char *Files_get_cwd(char *buf, size_t size);
+char* Files_get_cwd(char *buf, size_t size);
 
 // Переход к каталогу:
 bool Files_chdir(const char *path);
 
 // Получить путь домашнего каталога:
-char *Files_get_home(void);
+char* Files_get_home(void);
+
+// Получить директорию файла (требуется освободить память):
+char* Files_dirname_dup(const char *filepath);
+
+// Склеить пути (требуется освободить память):
+char* Files_path_join(const char *dir, const char *path);
 
 // Загружаем файл в строку:
 char* Files_load(const char* file_path, const char* mode);

@@ -34,6 +34,9 @@ static inline bool core_init(void) {
     Time_init();
     logger_init();
 
+    // Инициализация генератора случайных чисел:
+    srand((uint32_t)Time_now(NULL));
+
     // Настраиваем пути для OS X:
     #ifdef __APPLE__
         Files_fix_apple_path();
