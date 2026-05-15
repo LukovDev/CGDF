@@ -66,6 +66,10 @@ def branch(args: list) -> None:
 # Откат/удаление/отмена коммита:
 def reset(args: list) -> None:
     """
+    Сбросить проект до состояния удаленного репозитория:
+    git fetch --all
+    git reset --hard origin/master
+
     git reset --soft HEAD~1
     Пример:
     Ты хочешь отменить коммит, но оставить изменения staged (для повторного коммита, например с другим сообщением).

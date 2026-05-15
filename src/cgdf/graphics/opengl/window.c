@@ -70,7 +70,7 @@ WinConfig* Window_create_config(const WindowScene *scene) {
 
     // Копируем структуру сцены, если передана:
     if (scene) memcpy(&config->scene, scene, sizeof(WindowScene));
-    else config->scene = (WindowScene){ NULL };
+    else config->scene = (WindowScene){ 0 };
 
     // Версия рендерера по умолчанию:
     config->gl_major = 3;
@@ -101,7 +101,7 @@ Window* Window_create(WinConfig *config) {
     Input *input = Input_create(Impl_set_mouse_pos, Impl_set_mouse_visible);
 
     // Сохраняем указатели:
-    window->scene = (WindowScene){ NULL };
+    window->scene = (WindowScene){ 0 };
     window->config = config;
     window->renderer = NULL;  // Создаём рендерер при создании окна.
     window->input = input;
@@ -188,7 +188,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
             // Устанавливаем новую сцену:
             memcpy(&self->scene, &vars->new_scene, sizeof(WindowScene));  // Делаем новую сцену текущей.
-            vars->new_scene = (WindowScene){ NULL };  // Обнуляем "новую сцену".
+            vars->new_scene = (WindowScene){ 0 };  // Обнуляем "новую сцену".
 
             // Небольшая настройка для новой сцены:
             vars->dtime = 0.0f;
@@ -837,7 +837,7 @@ void Window_set_scene(Window *self, const WindowScene *scene) {
 
     // Устанавливаем новую сцену:
     if (scene) memcpy(&vars->new_scene, scene, sizeof(WindowScene));  // Помещаем сцену в буфер новой сцены.
-    else vars->new_scene = (WindowScene){ NULL };
+    else vars->new_scene = (WindowScene){ 0 };
     vars->is_new_scene = true;  // Поднимаем флаг что устанавливается новая сцена.
 }
 

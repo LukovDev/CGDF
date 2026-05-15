@@ -188,7 +188,7 @@ Renderer* Renderer_create(void) {
 
     // Заполняем поля:
     rnd->initialized = false;
-    rnd->info = (RendererInfo){ NULL };
+    rnd->info = (RendererInfo){ 0 };
     rnd->camera = NULL;
     rnd->camera_type = RENDERER_CAMERA_2D;
     rnd->sprite_mesh = NULL;
