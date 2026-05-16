@@ -53,21 +53,21 @@ struct HashSlot {
 
 // Структура хэш-таблицы:
 struct HashTable {
-    HashSlot *data;       // Таблица слотов.
-    size_t   len;         // Длина таблицы (сколько ячеек занято).
-    size_t   capacity;    // Всего выделенных ячеек в памяти (вместимость).
-    size_t   prob_count[HASHTABLE_PROBING_COUNT];  // Количество пробирований (поиск слота).
-    size_t   prob_index;  // Индекс (счетчик) в массиве prob_count.
-    uint64_t (*hash_func)(const void* data, size_t len);  // Функция хэша. Можно сменить.
+    HashSlot *data;      // Таблица слотов.
+    size_t  len;         // Длина таблицы (сколько ячеек занято).
+    size_t  capacity;    // Всего выделенных ячеек в памяти (вместимость).
+    size_t  prob_count[HASHTABLE_PROBING_COUNT];  // Количество пробирований (поиск слота).
+    size_t  prob_index;  // Индекс (счетчик) в массиве prob_count.
+    size_t (*hash_func)(const void* data, size_t len);  // Функция хэша. Можно сменить.
 };
 
 
 // Функция хэша на основе FNV-1a:
-static inline uint64_t hash_fnv1a(const void* data, size_t len) {
-    uint64_t hash = 1469598103934665603ULL;  // Offset basis.
+static inline size_t hash_fnv1a(const void* data, size_t len) {
+    size_t hash = 1469598103934665603ULL;  // Offset basis.
     const unsigned char* ptr = (const unsigned char*)data;
     for (size_t i = 0; i < len; i++) {
-        hash ^= (uint64_t)ptr[i];
+        hash ^= (size_t)ptr[i];
         hash *= 1099511628211ULL;  // FNV prime.
     }
     return hash;
