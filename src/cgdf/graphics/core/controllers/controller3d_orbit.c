@@ -59,9 +59,9 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
 
     // Кнопка мыши для активации управления:
     #ifdef __APPLE__
-    const int mouse_active_key = 0;
+        const int mouse_active_key = 0;
     #else
-    const int mouse_active_key = 2;
+        const int mouse_active_key = 2;
     #endif
 
     // Получаем нажатие кнопки мыши:

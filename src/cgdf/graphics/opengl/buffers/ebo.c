@@ -78,7 +78,7 @@ size_t BufferEBO_get_size(BufferEBO *self) {
     int buffer_size;
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);
     if (!was_begin) BufferEBO_end(self);
-    return buffer_size;
+    return (size_t)buffer_size;
 }
 
 // Установить данные буфера (выделяет новую память и заново всё сохраняет):

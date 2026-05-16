@@ -7,12 +7,14 @@
 #include <SDL3/SDL.h>
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/array.h>
 #include <cgdf/core/logger.h>
 #include "../core/vertex.h"
 #include "../core/mesh.h"
 #include "../core/camera.h"
-#include "../core/renderer.h"
+#include "../core/shader.h"
 #include "../core/texture.h"
+#include "../core/renderer.h"
 #include "shaders/default_shader.h"
 #include "shaders/model_shader.h"
 #include "shaders/spritebatch_shader.h"
@@ -31,7 +33,7 @@
 
 
 // Глобальная конфигурация дебага рендеринга:
-RendererDebugConfig Renderer_debug_config = {
+RendererDebugConfig g_Renderer_debug_config = {
     .debug_enabled = false,
     .sync = false,
     .level_notify = false,
@@ -162,20 +164,28 @@ static inline void create_shaders(Renderer *rnd) {
     rnd->shader_light2d     = create_shader(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
 }
 
-// Скомпилировать шейдеры:
-static inline void compile_shaders(Renderer *rnd) {
-    if (rnd->shader)             Shader_compile(rnd->shader);
-    if (rnd->shader_model)       Shader_compile(rnd->shader_model);
-    if (rnd->shader_spritebatch) Shader_compile(rnd->shader_spritebatch);
-    if (rnd->shader_light2d)     Shader_compile(rnd->shader_light2d);
-}
-
 // Освободить шейдеры:
 static inline void destroy_shaders(Renderer *rnd) {
-    if (rnd->shader)             Shader_destroy(&rnd->shader);
-    if (rnd->shader_model)       Shader_destroy(&rnd->shader_model);
-    if (rnd->shader_spritebatch) Shader_destroy(&rnd->shader_spritebatch);
-    if (rnd->shader_light2d)     Shader_destroy(&rnd->shader_light2d);
+    Shader_destroy(&rnd->shader);
+    Shader_destroy(&rnd->shader_model);
+    Shader_destroy(&rnd->shader_spritebatch);
+    Shader_destroy(&rnd->shader_light2d);
+}
+
+// Скомпилировать шейдеры:
+static inline void compile_shaders(Renderer *rnd) {
+    Shader_compile(rnd->shader);
+    Shader_compile(rnd->shader_model);
+    Shader_compile(rnd->shader_spritebatch);
+    Shader_compile(rnd->shader_light2d);
+}
+
+// Освободить кэш шейдеров:
+static inline void clear_shaders_cache(Renderer *rnd) {
+    Shader_clear_caches(rnd->shader);
+    Shader_clear_caches(rnd->shader_model);
+    Shader_clear_caches(rnd->shader_spritebatch);
+    Shader_clear_caches(rnd->shader_light2d);
 }
 
 
@@ -191,16 +201,13 @@ Renderer* Renderer_create(void) {
     rnd->info = (RendererInfo){ 0 };
     rnd->camera = NULL;
     rnd->camera_type = RENDERER_CAMERA_2D;
-    rnd->sprite_mesh = NULL;
-    rnd->fallback_texture = NULL;
-
-    rnd->shader = NULL;
-    rnd->shader_model = NULL;
-    rnd->shader_spritebatch = NULL;
-    rnd->shader_light2d = NULL;
 
     // Создаём шейдеры:
     create_shaders(rnd);
+
+    // Другое:
+    rnd->sprite_mesh = NULL;
+    rnd->fallback_texture = NULL;
     return rnd;
 }
 
@@ -252,13 +259,13 @@ void Renderer_init(Renderer *self) {
     };
 
     // Инициализируем логирование OpenGL:
-    if (Renderer_debug_config.debug_enabled) {
+    if (g_Renderer_debug_config.debug_enabled) {
         gl_setup_debug_output(
-            Renderer_debug_config.sync,
-            Renderer_debug_config.level_notify,
-            Renderer_debug_config.level_low,
-            Renderer_debug_config.level_medium,
-            Renderer_debug_config.level_high
+            g_Renderer_debug_config.sync,
+            g_Renderer_debug_config.level_notify,
+            g_Renderer_debug_config.level_low,
+            g_Renderer_debug_config.level_medium,
+            g_Renderer_debug_config.level_high
         );
 
         // Логируем как мы получаем данные о памяти:
@@ -280,16 +287,6 @@ void Renderer_init(Renderer *self) {
     glEnable(GL_BLEND);  // Включаем смешивание цветов.
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Устанавливаем режим смешивания.
     glEnable(GL_PROGRAM_POINT_SIZE);  // Разрешаем установку размера точки через шейдер.
-
-    /* ВЫРЕЗАНО:
-    // Включаем сглаживание линий только если драйвер сообщает поддержку:
-    float smooth_line_range[2] = {0.0f, 0.0f};
-    glGetFloatv(GL_SMOOTH_LINE_WIDTH_RANGE, smooth_line_range);
-    if (smooth_line_range[1] > 0.0f) {
-        glEnable(GL_LINE_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Просим использовать максимально качественное сглаживание.
-    }
-    */
 
     // Инициализация стеков буферов:
     BufferGC_GL_init();
@@ -343,9 +340,7 @@ void Renderer_clear_caches(Renderer *self) {
     TexUnits_unbind_all();
 
     // Освобождаем кэши в шейдерах:
-    Shader_clear_caches(self->shader);
-    Shader_clear_caches(self->shader_spritebatch);
-    Shader_clear_caches(self->shader_light2d);
+    clear_shaders_cache(self);
 }
 
 // Получить матрицу вида камеры:

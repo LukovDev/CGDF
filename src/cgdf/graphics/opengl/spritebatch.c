@@ -32,7 +32,7 @@ struct SpriteBatch {
 
 
 // Глобальные переменные:
-uint32_t BATCH_SPRITES_SIZE = BATCH_MAX_SPRITES;
+uint32_t g_BATCH_SPRITES_SIZE = BATCH_MAX_SPRITES;
 
 
 // -------- Вспомогательные функции: --------
@@ -102,12 +102,12 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     // Размер буфера спрайтов в байтах:
     // Размер одной вершины в байтах (32) * 4 вершины спрайта * максимальное количество спрайтов (2048).
     // Если пакет равен 2048 спрайтам, то размер буфера: 32 * 4 * 2048 = 262144 байт (256 кб) в озу и в видеопамяти.
-    size_t size = stride * BATCH_VERTS_PER_SPRITE * BATCH_SPRITES_SIZE;
+    size_t size = stride * BATCH_VERTS_PER_SPRITE * g_BATCH_SPRITES_SIZE;
 
     // Размер буфера индексов в байтах:
     // Размер одного индекса (4 байта) * количество индексов на спрайт (6) * размер пакета спрайтов (2048).
     // Если пакет равен 2048 спрайтам, то размер буфера: 4 * 6 * 2048 = 49152 байт (48 кб) в озу и в видеопамяти.
-    size_t size_indices = sizeof(uint32_t) * BATCH_INDCS_PER_SPRITE * BATCH_SPRITES_SIZE;
+    size_t size_indices = sizeof(uint32_t) * BATCH_INDCS_PER_SPRITE * g_BATCH_SPRITES_SIZE;
 
     // Заполняем поля:
     batch->renderer = renderer;
@@ -123,7 +123,7 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     batch->_is_begin_ = false;
 
     // Создаём массив индексов, чтобы из 4 вершины спрайта можно было рисовать 2 треугольника:
-    uint32_t *indices = _create_indices_buffer_(size_indices, BATCH_SPRITES_SIZE);
+    uint32_t *indices = _create_indices_buffer_(size_indices, g_BATCH_SPRITES_SIZE);
     batch->ebo = BufferEBO_create(indices, size_indices, GL_STATIC_DRAW);
     mm_free(indices);  // Освобождаем массив индексов.
     // Больше трогать память ebo буфера не нужно. Мы заполнили его полностью.
@@ -221,7 +221,7 @@ void SpriteBatch_draw(
     }
 
     // Если превышен лимит спрайтов, то отрисовываем все что накопили:
-    if (self->sprite_count >= BATCH_SPRITES_SIZE) {
+    if (self->sprite_count >= g_BATCH_SPRITES_SIZE) {
         _batch_flush_(self);
     };
 
@@ -304,7 +304,7 @@ void SpriteBatch_draw3d(
     }
 
     // Если превышен лимит спрайтов, то отрисовываем все что накопили:
-    if (self->sprite_count >= BATCH_SPRITES_SIZE) {
+    if (self->sprite_count >= g_BATCH_SPRITES_SIZE) {
         _batch_flush_(self);
     };
 

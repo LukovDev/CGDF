@@ -51,9 +51,22 @@ static void load_shader(Shader *shader, const char *vert, const char *frag) {
 }
 
 
+static size_t calculate_mesh_size(OBJFile *file) {
+    size_t size = 0;
+    for (size_t i=0; i < Array_len(file->models); i++) {
+        Model *model = (Model*)Array_get_ptr(file->models, i);
+        for (size_t j=0; j < Array_len(model->meshes); j++) {
+            Mesh *mesh = (Mesh*)Array_get_ptr(model->meshes, j);
+            size += Mesh_get_size(mesh);
+        }
+    }
+    return size;
+}
+
+
 // Вызывается после создания окна:
 void start(Window *self) {
-    printf("Start called.\n");
+    log_msg("[I] Start called.\n");
     Window_set_fps(self, 0);
     Window_set_vsync(self, false);
 
@@ -79,7 +92,7 @@ void start(Window *self) {
     ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f);
     ctrl_planet = CameraPlanetController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
 
-    printf("Loading data...\n");
+    log_msg("[I] Loading data...\n");
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
@@ -103,13 +116,13 @@ void start(Window *self) {
     objfile = ObjLoader_load(self->renderer, "data/obj/cat/cat.obj");
     objfile2 = ObjLoader_load(self->renderer, "data/obj/demo_scene/demo_scene.obj");
 
-    printf("data loaded\n");
+    log_msg("[I] data loaded\n");
 }
 
 
 // Вызывается при закрытии окна:
 void destroy(Window *self) {
-    printf("Destroy called.\n");
+    log_msg("[I] Destroy called.\n");
     print_before_free();
     Texture_destroy(&tex1);
     Texture_destroy(&blue_noise);
@@ -153,6 +166,28 @@ void destroy(Window *self) {
 void update(Window *self, float dtime) {
     static bool orbit_enabled = false;
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
+    if (Input_get_key_down(self)[K_2]) {
+        for (size_t i=0; i < Array_len(objfile.models); i++) {
+            Model *model = Array_get_ptr(objfile.models, i);
+            Model_destroy(&model);
+        }
+        Array_clear(objfile.models, false);
+        for (size_t i=0; i < Array_len(objfile2.models); i++) {
+            Model *model = Array_get_ptr(objfile2.models, i);
+            Model_destroy(&model);
+        }
+        Array_clear(objfile2.models, false);
+        for (size_t i=0; i < Array_len(objfile.materials); i++) {
+            Material *mat = Array_get_ptr(objfile.materials, i);
+            Material_destroy(&mat);
+        }
+        Array_clear(objfile.materials, false);
+        for (size_t i=0; i < Array_len(objfile2.materials); i++) {
+            Material *mat = Array_get_ptr(objfile2.materials, i);
+            Material_destroy(&mat);
+        }
+        Array_clear(objfile2.materials, false);
+    }
     if (orbit_enabled) {
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
         // CameraPlanetController3D_update(ctrl_planet, dtime, false);
@@ -196,10 +231,11 @@ void render(Window *self, float dtime) {
         for (size_t j = 0; j < Array_len(model->meshes); j++) {
             Mesh *mesh = (Mesh*)Array_get_ptr(model->meshes, j);
             Material *mat = Mesh_get_material(mesh);
-            Shader_set_bool(self->renderer->shader_model, "u_use_texture", mat->albedo_map != NULL);
-            Shader_set_tex2d(self->renderer->shader_model, "u_texture", mat->albedo_map->id);
-            Shader_set_vec4(self->renderer->shader_model, "u_color", mat->albedo);
-
+            if (mat->name) {
+                Shader_set_bool(self->renderer->shader_model, "u_use_texture", mat->albedo_map != NULL);
+                Shader_set_tex2d(self->renderer->shader_model, "u_texture", mat->albedo_map->id);
+                Shader_set_vec4(self->renderer->shader_model, "u_color", mat->albedo);
+            }
             Mesh_render(mesh, use_wireframe);
         }
     }
@@ -216,16 +252,18 @@ void render(Window *self, float dtime) {
             if (i == Array_len(objfile2.models)-1) init_color = true;
             colors[i] = (Vec4f){(double)rand()/RAND_MAX, (double)rand()/RAND_MAX, (double)rand()/RAND_MAX, 1.0f};
         }
-        Shader_set_vec4(self->renderer->shader_model, "u_color", colors[i]);
+        // Shader_set_vec4(self->renderer->shader_model, "u_color", colors[i]);
         Shader_set_bool(self->renderer->shader_model, "u_use_normals", use_normals);
 
         // Проходимся по сеткам и рисуем их:
         for (size_t j = 0; j < Array_len(model->meshes); j++) {
             Mesh *mesh = (Mesh*)Array_get_ptr(model->meshes, j);
             Material *mat = Mesh_get_material(mesh);
-            Shader_set_bool(self->renderer->shader_model, "u_use_texture", mat->albedo_map != NULL);
-            if (mat->albedo_map) Shader_set_tex2d(self->renderer->shader_model, "u_texture", mat->albedo_map->id);
-            if (use_mat_color) Shader_set_vec4(self->renderer->shader_model, "u_color", mat->albedo);
+            if (mat->name) {
+                Shader_set_bool(self->renderer->shader_model, "u_use_texture", mat->albedo_map != NULL);
+                if (mat->albedo_map) Shader_set_tex2d(self->renderer->shader_model, "u_texture", mat->albedo_map->id);
+                if (use_mat_color) Shader_set_vec4(self->renderer->shader_model, "u_color", mat->albedo);
+            }
             Mesh_render(mesh, use_wireframe);
         }
     }
@@ -286,20 +324,36 @@ void render(Window *self, float dtime) {
     CpuInfo cpu_info = Info_get_cpu();
     MemInfo mem_info = Info_get_mem();
     FontPixmap_render(font, text_pos.x, text_pos.y, 0,
-        "CPU:\n%s [%s]\nThreads: %d\n\n"
-        "GPU:\n%s\nOpenGL %s\n\n"
-        "RAM:\nUSED: %zu MB\nFREE: %zu MB\nTOTAL: %zu MB\n\n"
-        "Memory Manager:\nUsed: %.2f MB\n\n"
+        "CPU:\n"
+        "%s [%s]\n"
+        "Threads: %d\n\n"
+        "GPU:\n"
+        "%s\n"
+        "OpenGL %s\n"
+        "USED: %.2f MB\n"
+        "FREE: %.2f MB\n"
+        "TOTAL: %.2f MB\n\n"
+        "RAM:\n"
+        "USED: %.2f MB\n"
+        "FREE: %.2f MB\n"
+        "TOTAL: %.2f MB\n\n"
+        "Memory Manager:\n"
+        "Used: %.2f MB\n"
+        "Mesh used: %.2f MB\n\n"
         "FPS: %.2f\n",
         cpu_info.model,
         Info_get_cpu_arch_name(cpu_info.arch),
         cpu_info.threads,
-        self->renderer->info.renderer,
-        self->renderer->info.version,
-        mem_info.used / 1024 / 1024,
-        mem_info.free / 1024 / 1024,
-        mem_info.total / 1024 / 1024,
+        Renderer_get_renderer(self->renderer),
+        Renderer_get_version(self->renderer),
+        Renderer_get_used_memory(self->renderer) / 1024.0,
+        Renderer_get_free_memory(self->renderer) / 1024.0,
+        Renderer_get_total_memory(self->renderer) / 1024.0,
+        (double)mem_info.used / 1024.0 / 1024.0,
+        (double)mem_info.free / 1024.0 / 1024.0,
+        (double)mem_info.total / 1024.0 / 1024.0,
         mm_get_used_size_mb(),
+        (double)(calculate_mesh_size(&objfile) + calculate_mesh_size(&objfile2)) / 1024.0f / 1024.0f,
         fps
     );
     Camera2D_ui_end(camera2d);
@@ -310,7 +364,7 @@ void render(Window *self, float dtime) {
 
 // Вызывается при изменении размера окна:
 void resize(Window *self, int width, int height) {
-    printf("Resize called.\n");
+    log_msg("[I] Resize called.\n");
     Camera3D_resize(camera3d, width, height, false);
     Camera2D_resize(camera2d, width, height);
 }
@@ -318,13 +372,13 @@ void resize(Window *self, int width, int height) {
 
 // Вызывается при разворачивании окна:
 void show(Window *self) {
-    printf("Show called.\n");
+    log_msg("[I] Show called.\n");
 }
 
 
 // Вызывается при сворачивании окна:
 void hide(Window *self) {
-    printf("Hide called.\n");
+    log_msg("[I] Hide called.\n");
 }
 
 
@@ -343,25 +397,25 @@ WindowScene TestScene = {
 int main(int argc, char *argv[]) {
     CGDF_Init();
 
-    printf("CWD: %s\n", Files_get_cwd(NULL, 0));
+    log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(NULL, 0));
 
     CpuInfo cpu_info = Info_get_cpu();
-    printf("CPU Model: \"%s\"\n", cpu_info.model);
-    printf("CPU Arch: %s\n", Info_get_cpu_arch_name(cpu_info.arch));
-    printf("Threads: %d\n", cpu_info.threads);
+    log_msg("[I] CPU Model: \"%s\"\n", cpu_info.model);
+    log_msg("[I] CPU Arch: \"%s\"\n", Info_get_cpu_arch_name(cpu_info.arch));
+    log_msg("[I] Threads: %d\n", cpu_info.threads);
     MemInfo mem_info = Info_get_mem();
-    printf("Total RAM: %zu MB\n", mem_info.total / 1024 / 1024);
-    printf("Free RAM: %zu MB\n", mem_info.free / 1024 / 1024);
-    printf("Used RAM: %zu MB\n", mem_info.used / 1024 / 1024);
+    log_msg("[I] Total RAM: %zu MB\n", mem_info.total / 1024 / 1024);
+    log_msg("[I] Free RAM: %zu MB\n", mem_info.free / 1024 / 1024);
+    log_msg("[I] Used RAM: %zu MB\n", mem_info.used / 1024 / 1024);
 
     const char* cgdf_version = CGDF_GetVersion();
-    log_msg("[I] CGDF version: %s\n", cgdf_version);
+    log_msg("[I] CGDF version: \"%s\"\n", cgdf_version);
 
     WinConfig *config = Window_create_config(&TestScene);
     config->gl_major = 3;
     config->gl_minor = 3;
     Window *window = Window_create(config);
-    Renderer_debug_config.debug_enabled = true;
+    g_Renderer_debug_config.debug_enabled = true;
     if (!Window_open(window)) {
         log_msg("[E] Window creation failed.\n");
     }

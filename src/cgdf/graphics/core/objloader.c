@@ -1,6 +1,9 @@
 //
 // objloader.c - Реализует загрузчик моделей в формате OBJ/MTL.
 //
+// Поддерживает загрузку PBR материалов с текстурами.
+// Поддерживает deduplicating вершин.
+//
 
 
 // Подключаем:
@@ -8,6 +11,7 @@
 #include <cgdf/core/mm.h>
 #include <cgdf/core/math.h>
 #include <cgdf/core/array.h>
+#include <cgdf/core/hashtable.h>
 #include <cgdf/core/files.h>
 #include <cgdf/core/logger.h>
 #include "material.h"
@@ -90,7 +94,7 @@ static bool make_vertex(ObjIndex idx, Array *positions, Array *normals, Array *t
 }
 
 // Закончить текущий меш и добавить в модель:
-static void flush_mesh(Model *model, Array *vertices, Array *indices, Material *material) {
+static void flush_mesh(Model *model, Array *vertices, Array *indices, Material *material, HashTable *vertex_cache) {
     if (!model || Array_len(vertices) == 0 || Array_len(indices) == 0) return;
 
     Mesh *mesh = Mesh_create(
@@ -101,6 +105,7 @@ static void flush_mesh(Model *model, Array *vertices, Array *indices, Material *
     Model_add_mesh(model, mesh);
     Array_clear(vertices, false);
     Array_clear(indices, false);
+    HashTable_clear(vertex_cache, false);
 }
 
 // Закончить текущую модель и добавить в массив моделей:
@@ -113,6 +118,40 @@ static void flush_model(OBJFile *objfile, Model **model) {
         Model_destroy(model);
     }
     *model = NULL;
+}
+
+// Хэш-функция для ObjIndex:
+static size_t hash_obj_index(const void *key, size_t size) {
+    (void)size;
+    const ObjIndex *k = (const ObjIndex*)key;
+    size_t h = 1469598103934665603ULL;
+    h ^= (uint32_t)k->p; h *= 1099511628211ULL;
+    h ^= (uint32_t)k->t; h *= 1099511628211ULL;
+    h ^= (uint32_t)k->n; h *= 1099511628211ULL;
+    return h;
+}
+
+// Кэширование вершин:
+static uint32_t get_or_create_vertex(
+    ObjIndex idx,
+    HashTable *cache,
+    Array *vertices,
+    Array *positions,
+    Array *normals,
+    Array *texcoords
+) {
+    // Ищем вершину в кэше вершин. Если нашли, возвращаем:
+    ObjIndex key = { .p = idx.p, .t = idx.t, .n = idx.n };
+    void *found = HashTable_get(cache, &key, sizeof(ObjIndex), NULL);
+    if (found) return (uint32_t)(uintptr_t)found;
+
+    // Если не нашли, создаём новую вершину и добавляем её индекс из массива в кэш:
+    Vertex vertex;
+    if (!make_vertex(idx, positions, normals, texcoords, &vertex)) return UINT32_MAX;
+    uint32_t new_index = (uint32_t)Array_len(vertices);
+    Array_push(vertices, &vertex);
+    HashTable_set(cache, &key, sizeof(ObjIndex), (void*)(uintptr_t)new_index, sizeof(uint32_t));
+    return new_index;
 }
 
 
@@ -175,7 +214,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
     // Получаем папку MTL-файла:
     char *mtl_dir = Files_dirname_dup(filepath);
     char line[2048];
-    Material *mat = NULL;
+    Material *mat = NULL;  // Текущий материал.
 
     // Читаем файл построчно:
     while (fgets(line, sizeof(line), f)) {
@@ -349,12 +388,12 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
 
 // Загрузить модели из OBJ-файла с материалами:
 OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
-    if (!renderer || !filepath) return (OBJFile){NULL, NULL};
+    if (!renderer || !filepath) return (OBJFile){ 0 };
 
     // Создаём структуру:
     OBJFile objfile = {
         .models = Array_create(sizeof(void*), ARRAY_DEFAULT_CAPACITY),
-        .materials = Array_create(sizeof(void*), ARRAY_DEFAULT_CAPACITY),
+        .materials = Array_create(sizeof(void*), ARRAY_DEFAULT_CAPACITY)
     };
 
     // Открываем файл:
@@ -362,7 +401,7 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
     if (!f) {
         Array_destroy(&objfile.models);
         Array_destroy(&objfile.materials);
-        return (OBJFile){NULL, NULL};
+        return (OBJFile){ 0 };
     }
 
     // Создаём временные массивы:
@@ -372,6 +411,8 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
     Array *texcoords = Array_create(sizeof(Vec2d), ARRAY_DEFAULT_CAPACITY);
     Array *vertices = Array_create(sizeof(Vertex), ARRAY_DEFAULT_CAPACITY);
     Array *indices = Array_create(sizeof(uint32_t), ARRAY_DEFAULT_CAPACITY);
+    HashTable *vertex_cache = HashTable_create();  // Храним индекс вершины в массиве вершин, по ключу ObjIndex.
+    vertex_cache->hash_func = hash_obj_index;      // Устанавливаем свою функцию хэширования.
 
     // Временные переменные для парсинга:
     Material *default_mat = Material_create_default(NULL);
@@ -414,14 +455,14 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
 
         // Начинаем новую модель:
         else if ((s[0] == 'o' || s[0] == 'g') && (s[1] == ' ' || s[1] == '\t')) {
-            flush_mesh(current_model, vertices, indices, current_mat);
+            flush_mesh(current_model, vertices, indices, current_mat, vertex_cache);
             flush_model(&objfile, &current_model);
             current_model = Model_create(renderer);
         }
 
         // Если используем другой материал, то ищем или создаём новый материал и начинаем новый меш:
         else if (strncmp(s, "usemtl", 6) == 0 && (s[6] == ' ' || s[6] == '\t')) {
-            flush_mesh(current_model, vertices, indices, current_mat);
+            flush_mesh(current_model, vertices, indices, current_mat, vertex_cache);
             char *name = skip_ws(s + 6);
             Material *mat = find_material(objfile.materials, name);
             if (!mat) {
@@ -454,28 +495,21 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
                 if (parse_face_token(token, &idx)) face[face_count++] = idx;
             }
 
-            // Триангулируем поверхность:
+            // Триангулируем поверхность (поддержка deduplicating vertices):
             for (int i = 1; i < face_count - 1; i++) {
-                Vertex v0, v1, v2;
-                if (!make_vertex(face[0], positions, normals, texcoords, &v0) ||
-                    !make_vertex(face[i], positions, normals, texcoords, &v1) ||
-                    !make_vertex(face[i + 1], positions, normals, texcoords, &v2)) {
-                    continue;
-                }
-
-                uint32_t base = (uint32_t)Array_len(vertices);
-                Array_push(vertices, &v0);
-                Array_push(vertices, &v1);
-                Array_push(vertices, &v2);
-                Array_push(indices, &(uint32_t){base + 0});
-                Array_push(indices, &(uint32_t){base + 1});
-                Array_push(indices, &(uint32_t){base + 2});
+                uint32_t i0 = get_or_create_vertex(face[0], vertex_cache, vertices, positions, normals, texcoords);
+                uint32_t i1 = get_or_create_vertex(face[i], vertex_cache, vertices, positions, normals, texcoords);
+                uint32_t i2 = get_or_create_vertex(face[i+1], vertex_cache, vertices, positions, normals, texcoords);
+                if (i0 == UINT32_MAX || i1 == UINT32_MAX || i2 == UINT32_MAX) continue;
+                Array_push(indices, &i0);
+                Array_push(indices, &i1);
+                Array_push(indices, &i2);
             }
         }
     }
 
     // Закрываем последний меш и модель:
-    flush_mesh(current_model, vertices, indices, current_mat);
+    flush_mesh(current_model, vertices, indices, current_mat, vertex_cache);
     flush_model(&objfile, &current_model);
 
     // Освобождаем временные массивы и закрываем файл:
@@ -484,6 +518,7 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
     Array_destroy(&texcoords);
     Array_destroy(&vertices);
     Array_destroy(&indices);
+    HashTable_destroy(&vertex_cache);
     mm_free(obj_dir);
     fclose(f);
 

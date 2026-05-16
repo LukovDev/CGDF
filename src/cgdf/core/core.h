@@ -19,6 +19,7 @@ extern "C" {
 #include "files.h"
 #include "hashtable.h"
 #include "info.h"
+#include "jobsystem.h"
 #include "libs.h"
 #include "logger.h"
 #include "math.h"

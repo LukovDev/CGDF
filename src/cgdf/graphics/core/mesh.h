@@ -7,6 +7,7 @@
 
 // Подключаем:
 #include <cgdf/core/std.h>
+#include <cgdf/core/math.h>
 #include "vertex.h"
 #include "material.h"
 
@@ -33,8 +34,17 @@ Mesh* Mesh_create(
 // Уничтожить сетку:
 void Mesh_destroy(Mesh **mesh);
 
+// Получить айди буфера вершин и индексов (x=vbo, y=ebo):
+Vec2i Mesh_get_buffers_ids(Mesh *self);
+
+// Динамическая ли сетка:
+bool Mesh_is_dynamic(Mesh *self);
+
 // Получить материал из сетки:
 Material* Mesh_get_material(Mesh *self);
+
+// Получить размер сетки в байтах (VRAM. VBO+EBO):
+size_t Mesh_get_size(Mesh *self);
 
 // Простой способ отрисовать сетку через forward rendering:
 void Mesh_render(Mesh *self, bool wireframe);

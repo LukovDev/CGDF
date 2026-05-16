@@ -150,9 +150,9 @@ size_t Pixmap_get_size(Pixmap *pixmap) {
 
 // Набор байтов стандартной картинки:
 #if defined(_MSC_VER)
-__declspec(align(16))
+    __declspec(align(16))
 #else
-__attribute__((aligned(16)))
+    __attribute__((aligned(16)))
 #endif
 const unsigned char g_Pixmap_default_icon[] = {
     0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF,

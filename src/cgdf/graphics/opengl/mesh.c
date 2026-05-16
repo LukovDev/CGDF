@@ -6,10 +6,11 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
+#include <cgdf/core/math.h>
 #include <cgdf/core/logger.h>
 #include "../core/vertex.h"
-#include "../core/mesh.h"
 #include "../core/material.h"
+#include "../core/mesh.h"
 #include "buffers/buffers.h"
 #include "gl.h"
 
@@ -19,9 +20,10 @@ struct Mesh {
     BufferVAO *vao;  // Атрибуты вершин.
     BufferVBO *vbo;  // Буфер вершин.
     BufferEBO *ebo;  // Буфер индексов.
-    uint32_t index_count;  // Количество индексов.
-    bool is_dynamic;       // Динамическая ли сетка.
-    Material *material;    // Материал сетки.
+    uint32_t vertex_count;  // Количество вершин.
+    uint32_t index_count;   // Количество индексов.
+    bool is_dynamic;        // Динамическая ли сетка.
+    Material *material;     // Материал сетки.
 };
 
 
@@ -46,6 +48,7 @@ Mesh* Mesh_create(
     mesh->vao = BufferVAO_create();
     mesh->vbo = BufferVBO_create(vertices, vertex_count * sizeof(Vertex), mode);
     mesh->ebo = BufferEBO_create(indices, index_count * sizeof(uint32_t), mode);
+    mesh->vertex_count = vertex_count;
     mesh->index_count = index_count;
     mesh->is_dynamic = is_dynamic;
     mesh->material = material;
@@ -90,10 +93,28 @@ void Mesh_destroy(Mesh **mesh) {
 // -------- API сетки: --------
 
 
+// Получить айди буфера вершин и индексов (x=vbo, y=ebo):
+Vec2i Mesh_get_buffers_ids(Mesh *self) {
+    if (!self) return (Vec2i){-1, -1};
+    return (Vec2i){self->vbo->id, self->ebo->id};
+}
+
+// Динамическая ли сетка:
+bool Mesh_is_dynamic(Mesh *self) {
+    if (!self) return false;
+    return self->is_dynamic;
+}
+
 // Получить материал из сетки:
 Material* Mesh_get_material(Mesh *self) {
     if (!self) return NULL;
     return self->material;
+}
+
+// Получить размер сетки в байтах (VRAM. VBO+EBO):
+size_t Mesh_get_size(Mesh *self) {
+    if (!self) return 0;
+    return BufferVBO_get_size(self->vbo) + BufferEBO_get_size(self->ebo);
 }
 
 // Простой способ отрисовать сетку через forward rendering:
@@ -102,8 +123,12 @@ void Mesh_render(Mesh *self, bool wireframe) {
 
     // Рисуем как есть, используя текущий активный шейдер:
     BufferVAO_begin(self->vao);
-    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    GLint prev_mode = GL_FILL;
+    if (wireframe) {
+        glGetIntegerv(GL_POLYGON_MODE, &prev_mode);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
     glDrawElements(GL_TRIANGLES, self->index_count, GL_UNSIGNED_INT, 0);
-    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, prev_mode);
     BufferVAO_end(self->vao);
 }

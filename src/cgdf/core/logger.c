@@ -19,9 +19,9 @@
 #include "logger.h"
 
 #ifdef _WIN32
-#include <process.h>
+    #include <process.h>
 #else
-#include <unistd.h>
+    #include <unistd.h>
 #endif
 
 
@@ -65,13 +65,13 @@ static inline void crash_handler(int sig) {
 void logger_init(void) {
     // Инициализируем лог-файл:
     #ifndef CGDF_DISABLE_LOG_FILE
-    TimeCurrent tc = Time_get_current(true);
-    int y = tc.year, m = tc.month, d = tc.day, h = tc.hour, mi = tc.min, s = tc.sec, ms = tc.ms;
-    FILE *f = fopen(LOG_FILE_PATH, "w");
-    if (f) {
-        fprintf(f, "[%02d:%02d:%02d.%03d]: Logger initialized: [%d.%02d.%02d]\n", h, mi, s, ms, y, m, d);
-        fclose(f);
-    }
+        TimeCurrent tc = Time_get_current(true);
+        int y = tc.year, m = tc.month, d = tc.day, h = tc.hour, mi = tc.min, s = tc.sec, ms = tc.ms;
+        FILE *f = fopen(LOG_FILE_PATH, "w");
+        if (f) {
+            fprintf(f, "[%02d:%02d:%02d.%03d]: Logger initialized: [%d.%02d.%02d]\n", h, mi, s, ms, y, m, d);
+            fclose(f);
+        }
     #endif
 
     // Устанавливаем обработчик сигналов:
@@ -103,12 +103,12 @@ void log_msg(const char *fmt, ...) {
 
     // В файл:
     #ifndef CGDF_DISABLE_LOG_FILE
-    FILE *f = fopen(LOG_FILE_PATH, "a");
-    if (f) {
-        fprintf(f, "[%02d:%02d:%02d.%03d]: ", h, mi, s, ms);
-        vfprintf(f, fmt, args_copy);
-        fclose(f);
-    }
+        FILE *f = fopen(LOG_FILE_PATH, "a");
+        if (f) {
+            fprintf(f, "[%02d:%02d:%02d.%03d]: ", h, mi, s, ms);
+            vfprintf(f, fmt, args_copy);
+            fclose(f);
+        }
     #endif
 
     va_end(args_copy);

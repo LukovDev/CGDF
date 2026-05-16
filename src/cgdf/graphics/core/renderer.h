@@ -8,6 +8,7 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/math.h>
+#include <cgdf/core/array.h>
 #include "mesh.h"
 #include "shader.h"
 #include "texture.h"
@@ -38,7 +39,7 @@ struct RendererDebugConfig {
 
 
 // Глобальная конфигурация дебага рендеринга:
-extern RendererDebugConfig Renderer_debug_config;
+extern RendererDebugConfig g_Renderer_debug_config;
 
 
 // Информация рендерера:
@@ -55,13 +56,13 @@ struct RendererInfo {
 struct Renderer {
     bool initialized;   // Флаг инициализации контекста OpenGL.
     RendererInfo info;  // Информация рендерера.
+    void *camera;                    // Текущая активная камера.
+    RendererCameraType camera_type;  // Тип камеры который используется (для корректировок).
+
     Shader *shader;              // Дефолтная шейдерная программа.
     Shader *shader_model;        // Шейдер модели.
     Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
     Shader *shader_light2d;      // Шейдер 2D освещения.
-
-    void *camera;  // Текущая активная камера.
-    RendererCameraType camera_type;  // Тип камеры который используется (для корректировок).
 
     // Другое:
     Mesh *sprite_mesh;          // Сетка спрайта.
