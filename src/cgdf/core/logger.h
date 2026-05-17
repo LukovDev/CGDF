@@ -6,7 +6,7 @@
 
 
 // Инициализация логгера:
-void logger_init(void);
+void Logger_init(void);
 
 // Вывод сообщения в лог-файл и в консоль:
 void log_msg(const char *fmt, ...);

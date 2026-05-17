@@ -52,6 +52,7 @@ void CameraPlanetController3D_destroy(CameraPlanetController3D **ctrl) {
 // Обновление контроллера:
 void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime, bool pressed_pass) {
     if (!self) return;
+    if (pressed_pass) dtime += dtime;  // Просто пустышка чтобы компилятор не ругался что функция пустая.
     /*
     Window *window = self->window;
     Camera3D *camera = self->camera;

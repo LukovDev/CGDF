@@ -33,7 +33,8 @@ extern "C" {
 // Инициализация ядра:
 static inline bool core_init(void) {
     Time_init();
-    logger_init();
+    Logger_init();
+    JobSystem_init();
 
     // Инициализация генератора случайных чисел:
     srand((uint32_t)Time_now(NULL));
@@ -42,6 +43,13 @@ static inline bool core_init(void) {
     #ifdef __APPLE__
         Files_fix_apple_path();
     #endif
+    return true;
+}
+
+
+// Уничтожение ядра:
+static inline bool core_destroy(void) {
+    JobSystem_destroy();  // Уничтожение работы с задачами (потоками).
     return true;
 }
 

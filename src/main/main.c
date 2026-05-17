@@ -116,7 +116,7 @@ WindowScene MainScene = {
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
     // В первую очередь, нам надо инициализировать фреймворк:
-    if (!CGDF_Init()) {
+    if (!CGDF_init()) {
         printf("CGDF initialization failed.\n");
         return 1;
     }
@@ -158,6 +158,9 @@ int main(int argc, char *argv[]) {
     // надо удалить созданные нами объекты, чтобы не было утечек памяти:
     Window_destroy(&window);
     Window_destroy_config(&config);
+
+    // Перед завершением программы, надо освободить внутренние системы фреймворка:
+    CGDF_destroy();
 
     // Необязательно, но мы можем посмотреть, есть ли утечка памяти после освобождения ресурсов:
     size_t used_size = mm_get_used_size();         // Сколько байтов всё ещё используется.

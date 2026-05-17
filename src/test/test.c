@@ -395,10 +395,30 @@ WindowScene TestScene = {
     .hide    = hide
 };
 
+typedef struct TaskArgs {
+    size_t id;
+} TaskArgs;
+
+int test_task(void *args) {
+    TaskArgs *task_args = (TaskArgs*)args;
+    log_msg("[I] Task %zu started.\n", task_args->id);
+    Time_sleep(1.0);
+    log_msg("[I] Task %zu finished.\n", task_args->id);
+    mm_free(task_args);
+    return 0;
+}
 
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
-    CGDF_Init();
+    CGDF_init();
+
+    for (int i = 0; i < 12; i++) {
+        TaskArgs *args = mm_alloc(sizeof(TaskArgs));
+        args->id = i;
+        JobSystem_create_job(test_task, args);
+    }
+
+    while (JobSystem_get_active_workers_count() > 0);
 
     log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(NULL, 0));
 
@@ -414,18 +434,19 @@ int main(int argc, char *argv[]) {
     const char* cgdf_version = CGDF_GetVersion();
     log_msg("[I] CGDF version: \"%s\"\n", cgdf_version);
 
-    WinConfig *config = Window_create_config(&TestScene);
-    config->gl_major = 3;
-    config->gl_minor = 3;
-    Window *window = Window_create(config);
-    g_Renderer_debug_config.debug_enabled = true;
-    if (!Window_open(window)) {
-        log_msg("[E] Window creation failed.\n");
-    }
+    // WinConfig *config = Window_create_config(&TestScene);
+    // config->gl_major = 3;
+    // config->gl_minor = 3;
+    // Window *window = Window_create(config);
+    // g_Renderer_debug_config.debug_enabled = true;
+    // if (!Window_open(window)) {
+    //     log_msg("[E] Window creation failed.\n");
+    // }
 
-    Window_destroy(&window);
-    Window_destroy_config(&config);
+    // Window_destroy(&window);
+    // Window_destroy_config(&config);
 
+    CGDF_destroy();
     print_after_free();
 
     return EXIT_SUCCESS;

@@ -12,14 +12,19 @@ extern "C" {
 // Определения:
 #define CGDF_VERSION "v1.0.0-alpha"
 
+
 // Подключаем:
 #include "core/core.h"
 
+
 // Инициализировать фреймворк:
-static inline bool CGDF_Init(void) {
-    if (!core_init()) return false;
-    // ...
-    return true;
+static inline bool CGDF_init(void) {
+    return core_init();
+}
+
+// Уничтожить фреймворк:
+static inline bool CGDF_destroy(void) {
+    return core_destroy();
 }
 
 // Получить версию фреймворка:
