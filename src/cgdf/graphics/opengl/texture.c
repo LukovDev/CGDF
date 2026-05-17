@@ -18,76 +18,98 @@
 // -------- Вспомогательные функции: --------
 
 
-// Подбираем формат текстуры (internalformat):
-static int get_tex_format(TextureFormat format) {
-    int gl_tex_format = GL_RGBA;
+// Подбираем формат текстуры (каналы):
+static int get_format(TextureFormat format) {
     switch (format) {
-        case TEX_RED:      { gl_tex_format = GL_RED; break; }
-        case TEX_RG:       { gl_tex_format = GL_RG; break; }
-        case TEX_RGB:      { gl_tex_format = GL_RGB; break; }
-        case TEX_RGBA:     { gl_tex_format = GL_RGBA; break; }
-        case TEX_RGB16F:   { gl_tex_format = GL_RGB16F; break; }
-        case TEX_RGBA16F:  { gl_tex_format = GL_RGBA16F; break; }
-        case TEX_RGB32F:   { gl_tex_format = GL_RGB32F; break; }
-        case TEX_RGBA32F:  { gl_tex_format = GL_RGBA32F; break; }
-        case TEX_R16F:     { gl_tex_format = GL_R16F; break; }
-        case TEX_SRGB:     { gl_tex_format = GL_SRGB8; break; }
-        case TEX_SRGBA:    { gl_tex_format = GL_SRGB8_ALPHA8; break; }
-        case TEX_BGR:      { gl_tex_format = GL_RGB; break; }
-        case TEX_BGRA:     { gl_tex_format = GL_RGBA; break; }
-        case TEX_RGBA8:    { gl_tex_format = GL_RGBA8; break; }
-        case TEX_DEPTH16:  { gl_tex_format = GL_DEPTH_COMPONENT16; break; }
-        case TEX_DEPTH24:  { gl_tex_format = GL_DEPTH_COMPONENT24; break; }
-        case TEX_DEPTH32:  { gl_tex_format = GL_DEPTH_COMPONENT32; break; }
-        case TEX_DEPTH32F: { gl_tex_format = GL_DEPTH_COMPONENT32F; break; }
-        case TEX_DEPTH_COMPONENT: { gl_tex_format = GL_DEPTH_COMPONENT16; break; }
-        case TEX_DEPTH_STENCIL:   { gl_tex_format = GL_DEPTH24_STENCIL8; break; }
+        case TEX_FORMAT_R:             return GL_RED;
+        case TEX_FORMAT_RG:            return GL_RG;
+        case TEX_FORMAT_RGB:           return GL_RGB;
+        case TEX_FORMAT_BGR:           return GL_BGR;
+        case TEX_FORMAT_RGBA:          return GL_RGBA;
+        case TEX_FORMAT_BGRA:          return GL_BGRA;
+        case TEX_FORMAT_DEPTH:         return GL_DEPTH_COMPONENT;
+        case TEX_FORMAT_DEPTH_STENCIL: return GL_DEPTH_STENCIL;
+        default:                       return GL_RGBA;
     }
-    return gl_tex_format;
 }
 
-// Подбираем формат внешних данных:
-static int get_data_format(TextureFormat format) {
-    int gl_data_format = GL_RGBA;
-    switch (format) {
-        case TEX_RED:     { gl_data_format = GL_RED; break; }
-        case TEX_RG:      { gl_data_format = GL_RG; break; }
-        case TEX_RGB:     { gl_data_format = GL_RGB; break; }
-        case TEX_RGBA:    { gl_data_format = GL_RGBA; break; }
-        case TEX_RGB16F:
-        case TEX_RGB32F:
-        case TEX_SRGB:    { gl_data_format = GL_RGB; break; }
-        case TEX_RGBA8:
-        case TEX_RGBA16F:
-        case TEX_RGBA32F:
-        case TEX_SRGBA:   { gl_data_format = GL_RGBA; break; }
-        case TEX_BGR:     { gl_data_format = GL_BGR; break; }
-        case TEX_BGRA:    { gl_data_format = GL_BGRA; break; }
-        case TEX_R16F:    { gl_data_format = GL_RED; break; }
-        case TEX_DEPTH16:
-        case TEX_DEPTH24:
-        case TEX_DEPTH32:
-        case TEX_DEPTH32F:
-        case TEX_DEPTH_COMPONENT: { gl_data_format = GL_DEPTH_COMPONENT; break; }
-        case TEX_DEPTH_STENCIL:   { gl_data_format = GL_DEPTH_STENCIL; break; }
+// Подбираем внутренний формат текстуры:
+static int get_internal_format(TextureInternalFormat internal) {
+    switch (internal) {
+        case TEX_INTERNAL_R8:                  return GL_R8;
+        case TEX_INTERNAL_RG8:                 return GL_RG8;
+        case TEX_INTERNAL_RGB8:                return GL_RGB8;
+        case TEX_INTERNAL_RGBA8:               return GL_RGBA8;
+        case TEX_INTERNAL_R16F:                return GL_R16F;
+        case TEX_INTERNAL_RGB16F:              return GL_RGB16F;
+        case TEX_INTERNAL_RGBA16F:             return GL_RGBA16F;
+        case TEX_INTERNAL_RGB32F:              return GL_RGB32F;
+        case TEX_INTERNAL_RGBA32F:             return GL_RGBA32F;
+        case TEX_INTERNAL_SRGB8:               return GL_SRGB8;
+        case TEX_INTERNAL_SRGBA8:              return GL_SRGB8_ALPHA8;
+        case TEX_INTERNAL_DEPTH16:             return GL_DEPTH_COMPONENT16;
+        case TEX_INTERNAL_DEPTH24:             return GL_DEPTH_COMPONENT24;
+        case TEX_INTERNAL_DEPTH32F:            return GL_DEPTH_COMPONENT32F;
+        case TEX_INTERNAL_DEPTH24_STENCIL8:    return GL_DEPTH24_STENCIL8;
+        default:                               return GL_RGBA8;
     }
-    return gl_data_format;
 }
 
-// Подбираем тип данных:
+// Подбираем тип данных текстуры:
 static int get_data_type(TextureDataType dtype) {
-    int gl_data_type;
     switch (dtype) {
-        case TEX_DATA_UBYTE:  { gl_data_type = GL_UNSIGNED_BYTE; break; }
-        case TEX_DATA_BYTE:   { gl_data_type = GL_BYTE; break; }
-        case TEX_DATA_USHORT: { gl_data_type = GL_UNSIGNED_SHORT; break; }
-        case TEX_DATA_SHORT:  { gl_data_type = GL_SHORT; break; }
-        case TEX_DATA_UINT:   { gl_data_type = GL_UNSIGNED_INT; break; }
-        case TEX_DATA_INT:    { gl_data_type = GL_INT; break; }
-        case TEX_DATA_FLOAT:  { gl_data_type = GL_FLOAT; break; }
-        default:              { gl_data_type = GL_UNSIGNED_BYTE; break; }
+        case TEX_DATA_UBYTE:   return GL_UNSIGNED_BYTE;
+        case TEX_DATA_BYTE:    return GL_BYTE;
+        case TEX_DATA_USHORT:  return GL_UNSIGNED_SHORT;
+        case TEX_DATA_SHORT:   return GL_SHORT;
+        case TEX_DATA_UINT:    return GL_UNSIGNED_INT;
+        case TEX_DATA_INT:     return GL_INT;
+        case TEX_DATA_FLOAT:   return GL_FLOAT;
+        default:               return GL_UNSIGNED_BYTE;
     }
-    return gl_data_type;
+}
+
+// Размер одного пикселя internal format:
+static size_t bytes_per_internal(TextureInternalFormat internal)
+{
+    switch (internal)
+    {
+        case TEX_INTERNAL_R8:       return 1;
+        case TEX_INTERNAL_RG8:      return 2;
+        case TEX_INTERNAL_RGB8:     return 3;
+        case TEX_INTERNAL_RGBA8:    return 4;
+
+        case TEX_INTERNAL_R16F:     return 2;
+        case TEX_INTERNAL_RGB16F:   return 6;
+        case TEX_INTERNAL_RGBA16F:  return 8;
+
+        case TEX_INTERNAL_RGB32F:   return 12;
+        case TEX_INTERNAL_RGBA32F:  return 16;
+
+        case TEX_INTERNAL_DEPTH16:  return 2;
+        case TEX_INTERNAL_DEPTH24:  return 4;
+        case TEX_INTERNAL_DEPTH32F: return 4;
+        case TEX_INTERNAL_DEPTH24_STENCIL8: return 4;
+
+        case TEX_INTERNAL_SRGB8:  return 3;
+        case TEX_INTERNAL_SRGBA8: return 4;
+        default:                  return 4;
+    }
+}
+
+// Получить размер текстуры:
+static size_t get_tex_size(Texture *self) {
+    if (!self) return 0;
+    size_t total = 0;
+    int width = self->width, height = self->height;
+    while (true) {
+        total += width * height * bytes_per_internal(self->internal);
+        if (!self->has_mipmap) break;
+        if (width == 1 && height == 1) break;
+        width  = width  > 1 ? width  / 2 : 1;
+        height = height > 1 ? height / 2 : 1;
+    }
+    return total;
 }
 
 
@@ -107,9 +129,12 @@ Texture* Texture_create(Renderer *renderer) {
     texture->channels = 4;
     texture->has_mipmap = false;
     texture->_is_begin_ = false;
+    texture->format = TEX_FORMAT_RGBA;
+    texture->internal = TEX_INTERNAL_RGBA8;
+    texture->dtype = TEX_DATA_UBYTE;
+    texture->size = texture->width*texture->height*bytes_per_internal(texture->internal);
     texture->_id_before_begin_ = 0;
     texture->_active_id_before_begin_ = 0;
-
     return texture;
 }
 
@@ -127,31 +152,12 @@ void Texture_destroy(Texture **texture) {
     *texture = NULL;
 }
 
-// Сделать пустую текстуру нужного размера:
-void Texture_empty(Texture *self, int width, int height, bool use_mipmap, TextureFormat format, TextureDataType dtype) {
-    if (!self) return;
-
-    width = width <= 0 ? 1 : width;
-    height = height <= 0 ? 1 : height;
-    char *null_data = mm_calloc(1, (size_t)width * (size_t)height * 4);
-    Texture_set_data(self, width, height, null_data, use_mipmap, format, format, dtype);
-    mm_free(null_data);
-}
-
-// Загрузить текстуру (из файла):
-void Texture_load(Texture *self, const char *filepath, bool use_mipmap) {
-    Pixmap *img = Pixmap_load(filepath, PIXMAP_RGBA);
-    if (!self || !img) { if (img) { Pixmap_destroy(&img); } return; }
-    Texture_set_data(self, img->width, img->height, img->data, use_mipmap, TEX_RGBA, TEX_RGBA, TEX_DATA_UBYTE);
-    if (img) { Pixmap_destroy(&img); }
-}
-
 // Активация текстуры:
 void Texture_begin(Texture *self) {
     if (!self || self->_is_begin_ || self->id == 0) return;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &self->_id_before_begin_);
     glGetIntegerv(GL_ACTIVE_TEXTURE, &self->_active_id_before_begin_);
     glActiveTexture(GL_TEXTURE0);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &self->_id_before_begin_);
     if ((uint32_t)self->_id_before_begin_ != self->id) {
         glBindTexture(GL_TEXTURE_2D, self->id);
     }
@@ -161,13 +167,60 @@ void Texture_begin(Texture *self) {
 // Деактивация текстуры:
 void Texture_end(Texture *self) {
     if (!self || !self->_is_begin_) return;
-    if (self->_active_id_before_begin_ != 0) {
-        glActiveTexture(self->_active_id_before_begin_);
-    }
+    glActiveTexture(GL_TEXTURE0);
     if ((uint32_t)self->_id_before_begin_ != self->id) {
         glBindTexture(GL_TEXTURE_2D, (uint32_t)self->_id_before_begin_);
+    } if (self->_active_id_before_begin_ != GL_TEXTURE0) {
+        glActiveTexture(self->_active_id_before_begin_);
     }
     self->_is_begin_ = false;
+}
+
+// Сделать пустую текстуру нужного размера:
+void Texture_empty(
+    Texture *self, int width, int height, bool use_mipmap,
+    TextureFormat format, TextureInternalFormat internal, TextureDataType dtype
+) {
+    if (!self) return;
+
+    width = width <= 0 ? 1 : width;
+    height = height <= 0 ? 1 : height;
+    Texture_set_data(self, width, height, NULL, use_mipmap, format, internal, dtype);
+}
+
+// Загрузить текстуру (из файла):
+void Texture_load(Texture *self, const char *filepath, bool use_mipmap) {
+    Pixmap *img = Pixmap_load(filepath, PIXMAP_RGBA);
+    if (!img) return;
+
+    TextureFormat format = TEX_FORMAT_RGBA;
+    TextureInternalFormat internal = TEX_INTERNAL_RGBA8;
+    TextureDataType dtype = TEX_DATA_UBYTE;
+
+    // Определяем формат текстуры:
+    switch (img->channels) {
+        case PIXMAP_R:    { format = TEX_FORMAT_R; break; }
+        case PIXMAP_RG:   { format = TEX_FORMAT_RG; break; }
+        case PIXMAP_RGB:  { format = TEX_FORMAT_RGB; break; }
+        case PIXMAP_RGBA: { format = TEX_FORMAT_RGBA; break; }
+        default: break;
+    }
+
+    // Определяем внутренний формат текстуры:
+    if (img->is_hdr) {
+        dtype = TEX_DATA_FLOAT;
+        internal = (format == TEX_FORMAT_RGBA) ? TEX_INTERNAL_RGBA16F : TEX_INTERNAL_RGB16F;
+    } else {
+        switch (format) {
+            case TEX_FORMAT_RGBA: internal = TEX_INTERNAL_RGBA8; break;
+            case TEX_FORMAT_RGB:  internal = TEX_INTERNAL_RGB8;  break;
+            case TEX_FORMAT_RG:   internal = TEX_INTERNAL_RG8;   break;
+            default:              internal = TEX_INTERNAL_R8;    break;
+        }
+    }
+
+    Texture_set_data(self, img->width, img->height, img->data, use_mipmap, format, internal, dtype);
+    Pixmap_destroy(&img);
 }
 
 // Загрузить текстуру (из картинки):
@@ -175,26 +228,56 @@ void Texture_load_pixmap(Texture *self, Pixmap *pixmap, bool use_mipmap) {
     if (!self || !pixmap) return;
 
     // Подбираем формат данных:
-    TextureFormat tex_format;
+    TextureFormat tex_format = TEX_FORMAT_RGBA;
+    TextureInternalFormat tex_internal = TEX_INTERNAL_RGBA8;
     switch (pixmap->channels) {
-        case 1:  { tex_format = TEX_RED; break; }
-        case 2:  { tex_format = TEX_RG; break; }
-        case 3:  { tex_format = TEX_RGB; break; }
-        case 4:  { tex_format = TEX_RGBA; break; }
-        default: { tex_format = TEX_RGBA; break; }
+        case PIXMAP_R:    { tex_format = TEX_FORMAT_R;    tex_internal = TEX_INTERNAL_R8; break; }
+        case PIXMAP_RG:   { tex_format = TEX_FORMAT_RG;   tex_internal = TEX_INTERNAL_RG8; break; }
+        case PIXMAP_RGB:  { tex_format = TEX_FORMAT_RGB;  tex_internal = TEX_INTERNAL_RGB8; break; }
+        case PIXMAP_RGBA: { tex_format = TEX_FORMAT_RGBA; tex_internal = TEX_INTERNAL_RGBA8; break; }
+        default:          { tex_format = TEX_FORMAT_RGBA; tex_internal = TEX_INTERNAL_RGBA8; break; }
+    }
+
+    // Если это HDR:
+    if (pixmap->is_hdr) {
+        switch (pixmap->channels) {
+            case PIXMAP_R:    { tex_internal = TEX_INTERNAL_R16F; break; }
+            case PIXMAP_RGB:  { tex_internal = TEX_INTERNAL_RGB16F; break; }
+            case PIXMAP_RGBA: { tex_internal = TEX_INTERNAL_RGBA16F; break; }
+            default:          { tex_internal = TEX_INTERNAL_RGB16F; break; }
+        }
     }
 
     // Выделяем память под данные:
     Texture_set_data(
         self, pixmap->width, pixmap->height, pixmap->data, use_mipmap,
-        tex_format, tex_format, TEX_DATA_UBYTE
+        tex_format, tex_internal, pixmap->is_hdr ? TEX_DATA_FLOAT : TEX_DATA_UBYTE
     );
+}
+
+// Загрузить текстуру (из файла) расширенный режим:
+void Texture_load_advanced(
+    Texture *self, const char *filepath, bool use_mipmap,
+    TextureFormat format, TextureInternalFormat internal, TextureDataType dtype
+) {
+    PixmapFormat img_channels = PIXMAP_RGBA;
+    switch (format) {
+        case TEX_FORMAT_R:    { img_channels = PIXMAP_R; break; }
+        case TEX_FORMAT_RG:   { img_channels = PIXMAP_RG; break; }
+        case TEX_FORMAT_RGB:  { img_channels = PIXMAP_RGB; break; }
+        case TEX_FORMAT_RGBA: { img_channels = PIXMAP_RGBA; break; }
+        default:              { img_channels = PIXMAP_RGBA; break; }
+    }
+    Pixmap *img = Pixmap_load(filepath, img_channels);
+    if (!self || !img) { if (img) { Pixmap_destroy(&img); } return; }
+    Texture_set_data(self, img->width, img->height, img->data, use_mipmap, format, internal, dtype);
+    if (img) { Pixmap_destroy(&img); }
 }
 
 // Установить данные текстуры:
 void Texture_set_data(
     Texture *self, const int width, const int height, const void *data, bool use_mipmap,
-    TextureFormat tex_format, TextureFormat data_format, TextureDataType data_type
+    TextureFormat format, TextureInternalFormat internal, TextureDataType dtype
 ) {
     if (!self) return;
 
@@ -217,32 +300,29 @@ void Texture_set_data(
         return;
     }
 
-    // Подбираем формат текстуры (internalformat):
-    int gl_tex_format = get_tex_format(tex_format);
-
-    // Подбираем формат внешних данных:
-    int gl_data_format = get_data_format(data_format);
-
-    // Подбираем тип данных:
-    int gl_data_type = get_data_type(data_type);
-
-    // Перепроверка:
-    if (gl_tex_format == GL_RGB16F || gl_tex_format == GL_RGBA16F) gl_data_type = GL_HALF_FLOAT;
-    else if (gl_tex_format == GL_RGB32F || gl_tex_format == GL_RGBA32F) gl_data_type = GL_FLOAT;
+    // Получаем форматы в OpenGL:
+    if (internal == TEX_INTERNAL_RGB32F && dtype != TEX_DATA_FLOAT) dtype = TEX_DATA_FLOAT;
+    if (internal == TEX_INTERNAL_RGB8 && format == TEX_FORMAT_RGBA) self->format = TEX_FORMAT_RGB;
+    int gl_format    = get_format(format);
+    int gl_internal  = get_internal_format(internal);
+    int gl_data_type = get_data_type(dtype);
 
     Texture_begin(self);
 
     // UNPACK alignment для RGB/BGR:
     int prev_unpack = 0;
     glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack);
-    if (gl_data_format == GL_RGB || gl_data_format == GL_BGR) {
+    if (gl_format == GL_RGB || gl_format == GL_BGR) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     }
 
     // Загрузка данных текстуры:
-    glTexImage2D(GL_TEXTURE_2D, 0, gl_tex_format, self->width, self->height, 0, gl_data_format, gl_data_type, data);
+    self->format = format;
+    self->internal = internal;
+    self->dtype = dtype;
+    glTexImage2D(GL_TEXTURE_2D, 0, gl_internal, self->width, self->height, 0, gl_format, gl_data_type, data);
 
-    if (gl_data_format == GL_RGB || gl_data_format == GL_BGR) {
+    if (gl_format == GL_RGB || gl_format == GL_BGR) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
     }
 
@@ -252,36 +332,45 @@ void Texture_set_data(
 
     // Устанавливаем фильтры по умолчанию:
     Texture_set_linear(self);
+
+    // Получаем размер текстуры:
+    self->size = get_tex_size(self);
     Texture_end(self);
 }
 
 // Установить данные текстуры (подмассив):
 void Texture_set_subdata(
     Texture *self, int miplevel, int offset_x, int offset_y, int width, int height,
-    TextureFormat data_format, TextureDataType data_type, const void *data
+    TextureFormat format, TextureDataType dtype, const void *data
 ) {
     if (!self) return;
 
-    // Подбираем формат внешних данных:
-    int gl_data_format = get_data_format(data_format);
-
-    // Подбираем тип данных:
-    int gl_data_type = get_data_type(data_type);
+    // Получаем форматы в OpenGL:
+    int gl_format    = get_format(format);
+    int gl_data_type = get_data_type(dtype);
 
     Texture_begin(self);
 
     // UNPACK alignment для RGB/BGR:
     int prev_unpack = 0;
     glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack);
-    if (gl_data_format == GL_RGB || gl_data_format == GL_BGR) {
+    if (gl_format == GL_RGB || gl_format == GL_BGR) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     }
 
-    glTexSubImage2D(GL_TEXTURE_2D, miplevel, offset_x, offset_y, width, height, gl_data_format, gl_data_type, data);
+    self->format = format;
+    self->dtype = dtype;
+    glTexSubImage2D(GL_TEXTURE_2D, miplevel, offset_x, offset_y, width, height, gl_format, gl_data_type, data);
+
+    if (gl_format == GL_RGB || gl_format == GL_BGR) {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
+    }
 
     // Если надо использовать мипмапы, создаём их:
     if (self->has_mipmap) glGenerateMipmap(GL_TEXTURE_2D);
 
+    // Получаем размер текстуры:
+    self->size = get_tex_size(self);
     Texture_end(self);
 }
 
@@ -290,25 +379,35 @@ Pixmap* Texture_get_pixmap(Texture *self, int channels) {
     if (!self) return NULL;
 
     // Выделяем память под данные (указатель на блок сохраняется в img ниже):
-    unsigned char* data = mm_alloc(self->width * self->height * channels);
+    TextureDataType type = TEX_DATA_UBYTE;
+    switch (self->internal) {
+        case TEX_INTERNAL_R16F:
+        case TEX_INTERNAL_RGB16F:
+        case TEX_INTERNAL_RGBA16F:
+        case TEX_INTERNAL_RGB32F:
+        case TEX_INTERNAL_RGBA32F: { type = TEX_DATA_FLOAT; break; }
+        default: break;
+    }
+    size_t bpp = channels * (type == TEX_DATA_FLOAT ? sizeof(float) : sizeof(uint8_t));
+    void* data = mm_alloc(self->width * self->height * bpp);
 
     // Подбираем формат данных:
-    int gl_data_format;
+    int gl_format;
     switch (channels) {
-        case 1:  { gl_data_format = GL_RED; break; }
-        case 2:  { gl_data_format = GL_RG; break; }
-        case 3:  { gl_data_format = GL_RGB; break; }
-        case 4:  { gl_data_format = GL_RGBA; break; }
-        default: { gl_data_format = GL_RGBA; break; }
+        case PIXMAP_R:    { gl_format = GL_RED; break; }
+        case PIXMAP_RG:   { gl_format = GL_RG; break; }
+        case PIXMAP_RGB:  { gl_format = GL_RGB; break; }
+        case PIXMAP_RGBA: { gl_format = GL_RGBA; break; }
+        default: { gl_format = GL_RGBA; break; }
     }
     Texture_begin(self);
     int32_t prev_pack = 0;
     glGetIntegerv(GL_PACK_ALIGNMENT, &prev_pack);
-    if (gl_data_format == GL_RGB || gl_data_format == GL_BGR) {
+    if (gl_format == GL_RGB || gl_format == GL_BGR) {
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
     }
-    glGetTexImage(GL_TEXTURE_2D, 0, gl_data_format, GL_UNSIGNED_BYTE, data);
-    if (gl_data_format == GL_RGB || gl_data_format == GL_BGR) {
+    glGetTexImage(GL_TEXTURE_2D, 0, gl_format, get_data_type(type), data);
+    if (gl_format == GL_RGB || gl_format == GL_BGR) {
         glPixelStorei(GL_PACK_ALIGNMENT, prev_pack);
     }
     Texture_end(self);
@@ -320,8 +419,15 @@ Pixmap* Texture_get_pixmap(Texture *self, int channels) {
     pixmap->height = self->height;
     pixmap->channels = channels;
     pixmap->from_stbi = false;
+    pixmap->is_hdr = (type == TEX_DATA_FLOAT);
     pixmap->data = data;
     return pixmap;  // Не забудьте уничтожить Pixmap!
+}
+
+// Получить размер текстуры:
+size_t Texture_get_size(Texture *self) {
+    if (!self) return 0;
+    return self->size;
 }
 
 // Установить фильтрацию текстуры:

@@ -21,6 +21,7 @@ Pixmap* Pixmap_create(int width, int height, int channels) {
     pixmap->height = height;
     pixmap->channels = channels;
     pixmap->from_stbi = false;
+    pixmap->is_hdr = false;
     return pixmap;
 }
 
@@ -32,7 +33,7 @@ void Pixmap_destroy(Pixmap **pixmap) {
         if ((*pixmap)->from_stbi) {
             stbi_image_free((*pixmap)->data);
             mm_used_size_sub(Pixmap_get_size(*pixmap));
-        } else { mm_free((*pixmap)->data); }
+        } else mm_free((*pixmap)->data);
     }
     mm_free(*pixmap);
     *pixmap = NULL;
@@ -40,17 +41,27 @@ void Pixmap_destroy(Pixmap **pixmap) {
 
 
 // Загрузить картинку:
-Pixmap* Pixmap_load(const char *filepath, int format) {
+Pixmap* Pixmap_load(const char *filepath, int channels) {
+    if (filepath == NULL) return Pixmap_create_default();
+
     Pixmap *pixmap = (Pixmap*)mm_alloc(sizeof(Pixmap));
-    if (!format) format = PIXMAP_RGBA;
-    if (filepath == NULL) {
-        mm_free(pixmap);
-        return Pixmap_create_default();
+    if (channels <= 0) channels = (int)PIXMAP_RGBA;
+    pixmap->is_hdr = false;
+
+    // Загружаем как float (32 бита на канал), если это HDR картинка:
+    if (stbi_is_hdr(filepath)) {
+        if (channels >= (int)PIXMAP_RGBA) channels = (int)PIXMAP_RGB;  // Ограничиваем максимум 3 каналами.
+        pixmap->data = stbi_loadf(filepath, &pixmap->width, &pixmap->height, NULL, channels);
+        pixmap->is_hdr = true;
     }
-    pixmap->data = stbi_load(filepath, &pixmap->width, &pixmap->height, NULL, format);
-    pixmap->channels = format;
+    // Загружаем как обычную картинку (8 бит на канал):
+    else {
+        pixmap->data = stbi_load(filepath, &pixmap->width, &pixmap->height, NULL, channels);
+    }
+
+    pixmap->channels = channels;
     if (pixmap->data == NULL) {
-        log_msg("[E] Pixmap_load: file \"%s\" not found.\n", filepath);
+        log_msg("[E] Pixmap_load: file \"%s\" not found/loaded.\n", filepath);
         mm_free(pixmap);
         return Pixmap_create_default();
     }
@@ -61,31 +72,44 @@ Pixmap* Pixmap_load(const char *filepath, int format) {
 
 
 // Сохранить картинку:
-bool Pixmap_save(Pixmap *pixmap, const char *filepath, const char *format) {
-    if (!pixmap || !pixmap->data || !filepath || !format) return false;
+bool Pixmap_save(Pixmap *self, const char *filepath, const char *format) {
+    if (!self || !self->data || !filepath || !format) return false;
     bool success = false;
 
     // Определяем формат по строке:
-    if (strcmp(format, "png") == 0) {
+    if (strcmp(format, "hdr") == 0) {
+        if (!self->is_hdr) {
+            log_msg("[E] Pixmap_save: Cannot save LDR pixmap as HDR without conversion.\n");
+            return false;
+        }
+        success = stbi_write_hdr(filepath, self->width, self->height, self->channels, (const float*)self->data);
+    } else if (strcmp(format, "png") == 0) {
+        if (self->is_hdr) {
+            log_msg("[E] Pixmap_save: Cannot save HDR pixmap as PNG directly.\n");
+            return false;
+        }
         success = stbi_write_png(
-            filepath, pixmap->width, pixmap->height,
-            pixmap->channels, pixmap->data,
-            pixmap->width * pixmap->channels);
+            filepath, self->width, self->height,
+            self->channels, self->data,
+            self->width * self->channels
+        );
     } else if (strcmp(format, "jpg") == 0 || strcmp(format, "jpeg") == 0) {
-        success = stbi_write_jpg(
-            filepath, pixmap->width, pixmap->height, pixmap->channels, pixmap->data, 100); // Качество 100%.
+        if (self->is_hdr) return false;
+        success = stbi_write_jpg(filepath, self->width, self->height, self->channels, self->data, 100);
     } else if (strcmp(format, "bmp") == 0) {
-        success = stbi_write_bmp(filepath, pixmap->width, pixmap->height, pixmap->channels, pixmap->data);
+        if (self->is_hdr) return false;
+        success = stbi_write_bmp(filepath, self->width, self->height, self->channels, self->data);
     } else if (strcmp(format, "tga") == 0) {
-        success = stbi_write_tga(filepath, pixmap->width, pixmap->height, pixmap->channels, pixmap->data);
+        if (self->is_hdr) return false;
+        success = stbi_write_tga(filepath, self->width, self->height, self->channels, self->data);
     } else {
-        fprintf(stderr, "Pixmap_save: Unknown format: \"%s\"\n", format);
+        log_msg("[E] Pixmap_save: Unknown format: \"%s\"\n", format);
         return false;
     }
 
     // Если не удалось сохранить картинку:
     if (!success) {
-        fprintf(stderr, "Pixmap_save: Saving pixmap failed: \"%s\"\n", filepath);
+        log_msg("[E] Pixmap_save: Saving pixmap failed: \"%s\"\n", filepath);
         return false;
     }
     return true;
@@ -102,9 +126,10 @@ Pixmap* Pixmap_copy(const Pixmap *source) {
     copy->height = source->height;
     copy->channels = source->channels;
     copy->from_stbi = false;
+    copy->is_hdr = source->is_hdr;
 
     // Вычисляем размер буфера:
-    size_t size = (size_t)source->width * source->height * source->channels;
+    size_t size = Pixmap_get_size((Pixmap*)source);
 
     if (source->data && size > 0) {
         copy->data = mm_alloc(size);
@@ -113,7 +138,7 @@ Pixmap* Pixmap_copy(const Pixmap *source) {
             mm_alloc_error();
         }
         memcpy(copy->data, source->data, size);
-    } else { copy->data = NULL; }
+    } else copy->data = NULL;
 
     return copy;
 }
@@ -136,15 +161,17 @@ Pixmap* Pixmap_create_default(void) {
     pixmap->height = g_Pixmap_default_icon_height;
     pixmap->channels = PIXMAP_RGBA;
     pixmap->from_stbi = false;
+    pixmap->is_hdr = false;
 
     return pixmap;
 }
 
 
 // Получить размер картинки в байтах:
-size_t Pixmap_get_size(Pixmap *pixmap) {
-    if (!pixmap) return 0;
-    return pixmap->width * pixmap->height * pixmap->channels;
+size_t Pixmap_get_size(Pixmap *self) {
+    if (!self) return 0;
+    size_t size = self->width * self->height * self->channels;
+    return self->is_hdr ? (size * sizeof(float)) : (size * sizeof(unsigned char));
 }
 
 

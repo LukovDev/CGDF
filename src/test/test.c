@@ -109,7 +109,7 @@ void start(Window *self) {
     FontPixmap_set_pixelized(font, true);
 
     blue_noise = Texture_create(self->renderer);
-    Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
+    // Texture_load(blue_noise, "data/DefaultPacks/hdr-skyspheres-pack/moonless_golf_16k.hdr", false);
 
     material = Material_create_default(NULL);
 
@@ -187,6 +187,7 @@ void update(Window *self, float dtime) {
             Material_destroy(&mat);
         }
         Array_clear(objfile2.materials, false);
+        Texture_destroy(&blue_noise);
     }
     if (orbit_enabled) {
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
@@ -340,6 +341,7 @@ void render(Window *self, float dtime) {
         "Memory Manager:\n"
         "Used: %.2f MB\n"
         "Mesh used: %.2f MB\n\n"
+        "Textures used: %.2f MB\n\n"
         "FPS: %.2f\n",
         cpu_info.model,
         Info_get_cpu_arch_name(cpu_info.arch),
@@ -354,6 +356,7 @@ void render(Window *self, float dtime) {
         (double)mem_info.total / 1024.0 / 1024.0,
         mm_get_used_size_mb(),
         (double)(calculate_mesh_size(&objfile) + calculate_mesh_size(&objfile2)) / 1024.0f / 1024.0f,
+        (double)(Texture_get_size(blue_noise)) / 1024.0 / 1024.0,
         fps
     );
     Camera2D_ui_end(camera2d);

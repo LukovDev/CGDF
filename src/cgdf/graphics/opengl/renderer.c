@@ -317,7 +317,7 @@ void Renderer_init(Renderer *self) {
 
     // Текстура-заглушка:
     self->fallback_texture = Texture_create(self);
-    Texture_empty(self->fallback_texture, 1, 1, false, TEX_RGBA8, TEX_DATA_UBYTE);  // 1x1 пустая текстура.
+    Texture_empty(self->fallback_texture, 1, 1, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA8, TEX_DATA_UBYTE);
 
     // Инициализация текстурных юнитов:
     TextureUnits_init(self);

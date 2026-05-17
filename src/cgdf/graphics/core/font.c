@@ -193,7 +193,10 @@ static FontGlyph* generate_glyph(FontPixmap *self, uint32_t codepoint) {
 
     // Загружаем bitmap в текстуру:
     // Данные вставляются от atlas_x, atlas_y и до atlas_x+width, atlas_y+height:
-    Texture_set_subdata(self->atlas, 0, atlas_x, atlas_y, width, height, TEX_RGBA8, TEX_DATA_UBYTE, rgba);
+    Texture_set_subdata(
+        self->atlas, 0, atlas_x, atlas_y, width, height,
+        TEX_FORMAT_RGBA, TEX_DATA_UBYTE, rgba
+    );
     mm_free(rgba);  // Можно освободить. Больше не понадобится.
 
     // Получаем advance:
@@ -237,7 +240,7 @@ static bool font_expand_and_repack(FontPixmap *self) {
     // Создаём новый атлас:
     Texture *new_atlas = Texture_create(self->renderer);
     if (!new_atlas) return false;
-    Texture_empty(new_atlas, new_size, new_size, false, TEX_RGBA8, TEX_DATA_UBYTE);
+    Texture_empty(new_atlas, new_size, new_size, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA8, TEX_DATA_UBYTE);
     HashTable *new_glyphs = HashTable_create();
     if (!new_glyphs) {
         Texture_destroy(&new_atlas);
@@ -350,7 +353,7 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     // Инициализируем атлас:
     int atlas_size = (int)sqrt(FONT_ATLAS_SIZE) * (font->font_size + FONT_ATLAS_PADDING * 2);
     if (atlas_size > max_size) atlas_size = max_size;  // Ограничиваем максимумом.
-    Texture_empty(font->atlas, atlas_size, atlas_size, false, TEX_RGBA8, TEX_DATA_UBYTE);
+    Texture_empty(font->atlas, atlas_size, atlas_size, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA8, TEX_DATA_UBYTE);
     return font;
 }
 

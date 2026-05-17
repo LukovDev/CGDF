@@ -9,11 +9,13 @@
 #include "std.h"
 
 
-// Размеры каналов в байтах:
-#define PIXMAP_R    1
-#define PIXMAP_RG   2
-#define PIXMAP_RGB  3
-#define PIXMAP_RGBA 4
+// Количество каналов в пикселе:
+typedef enum PixmapFormat {
+    PIXMAP_R = 1,
+    PIXMAP_RG,
+    PIXMAP_RGB,
+    PIXMAP_RGBA
+} PixmapFormat;
 
 
 // Определяем глобальные переменные стандартной картинки:
@@ -33,7 +35,8 @@ struct Pixmap {
     int height;      // Высота картинки.
     int channels;    // Количество байт на пиксель.
     bool from_stbi;  // Флаг, что картинка загружена с помощью stbi.
-    unsigned char* data;  // Указатель на блок данных.
+    bool is_hdr;     // Флаг, что картинка HDR.
+    void *data;      // Указатель на блок данных (либо unsigned char* либо float*).
 };
 
 
@@ -44,10 +47,10 @@ Pixmap* Pixmap_create(int width, int height, int channels);
 void Pixmap_destroy(Pixmap **pixmap);
 
 // Загрузить картинку:
-Pixmap* Pixmap_load(const char *filepath, int format);
+Pixmap* Pixmap_load(const char *filepath, int channels);
 
 // Сохранить картинку:
-bool Pixmap_save(Pixmap *pixmap, const char *filepath, const char *format);
+bool Pixmap_save(Pixmap *self, const char *filepath, const char *format);
 
 // Копировать картинку в памяти:
 Pixmap* Pixmap_copy(const Pixmap *source);
@@ -56,4 +59,4 @@ Pixmap* Pixmap_copy(const Pixmap *source);
 Pixmap* Pixmap_create_default(void);
 
 // Получить размер картинки в байтах:
-size_t Pixmap_get_size(Pixmap *pixmap);
+size_t Pixmap_get_size(Pixmap *self);

@@ -160,7 +160,7 @@ void Light2D_set_intensity(Light2D *self, float intensity) {
 // Изменить размер 2D освещения:
 void Light2D_resize(Light2D *self, int width, int height) {
     if (!self) return;
-    Texture_empty(self->albedo_tex, width, height, false, TEX_RGBA16F, TEX_DATA_UBYTE);
-    Texture_empty(self->light_tex, width, height, false, TEX_RGBA16F, TEX_DATA_UBYTE);
+    Texture_empty(self->albedo_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_UBYTE);
+    Texture_empty(self->light_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_UBYTE);
     BufferFBO_resize(self->framebuffer, width, height);
 }
