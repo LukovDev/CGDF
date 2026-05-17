@@ -33,10 +33,9 @@ void main(void) {\n\
 static const char* MODEL_SHADER_FRAG = "\
 #version 330 core\n\
 \n\
-uniform vec4 u_color;\n\
-uniform bool u_use_texture;\n\
-uniform bool u_use_normals;\n\
-uniform sampler2D u_texture;\n\
+uniform vec4 u_albedo;\n\
+uniform bool u_use_tex_albedo;\n\
+uniform sampler2D u_tex_albedo;\n\
 in vec2 v_texcoord;\n\
 in vec3 v_normal;\n\
 in vec3 v_normal_world;\n\
@@ -45,9 +44,9 @@ in vec3 v_frag_pos;\n\
 out vec4 FragColor;\n\
 \n\
 void main(void) {\n\
-    vec4 color = u_color;\n\
-    if (u_use_texture) {\n\
-        color *= texture(u_texture, v_texcoord);\n\
+    vec4 color = u_albedo;\n\
+    if (u_use_tex_albedo) {\n\
+        color *= texture(u_tex_albedo, v_texcoord);\n\
     }\n\
     vec3 light_pos = vec3(100, 500, 100);\n\
     vec3 light_color = vec3(1, 1, 1);\n\
@@ -61,5 +60,4 @@ void main(void) {\n\
     vec3 result = (ambient + diffuse) * color.rgb;\n\
     if (distance <= light_radius) result = color.rgb;\n\
     FragColor = vec4(result, 1.0);\n\
-    if (u_use_normals) FragColor = vec4(normalize(v_normal_world), 1.0);\n\
 }";

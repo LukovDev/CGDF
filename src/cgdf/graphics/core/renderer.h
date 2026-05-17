@@ -59,10 +59,14 @@ struct Renderer {
     void *camera;                    // Текущая активная камера.
     RendererCameraType camera_type;  // Тип камеры который используется (для корректировок).
 
+    // Шейдеры:
     Shader *shader;              // Дефолтная шейдерная программа.
     Shader *shader_model;        // Шейдер модели.
     Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
     Shader *shader_light2d;      // Шейдер 2D освещения.
+
+    // Отрисовка сцены:
+    Array *models;  // Массив указателей на модели для отрисовки.
 
     // Другое:
     Mesh *sprite_mesh;          // Сетка спрайта.
@@ -81,6 +85,9 @@ void Renderer_destroy(Renderer **rnd);
 
 // Инициализация рендерера:
 void Renderer_init(Renderer *self);
+
+// Отрисовать всё что накопили, на экран:
+void Renderer_display(Renderer *self);
 
 // Освобождение буферов:
 void Renderer_buffers_flush(Renderer *self);

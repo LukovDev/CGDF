@@ -209,70 +209,21 @@ void render(Window *self, float dtime) {
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
 
-    Renderer_set_depth_test(self->renderer, true);
-    Shader_begin(self->renderer->shader_model);
-    Shader_set_mat4(self->renderer->shader_model, "u_view", camera3d->view);
-    Shader_set_mat4(self->renderer->shader_model, "u_proj", camera3d->proj);
-    static bool use_mat_color = true;
-    static bool use_normals = false;
-    static bool use_wireframe = false;
-    if (Input_get_key_down(self)[K_3]) use_mat_color = !use_mat_color;
-    if (Input_get_key_down(self)[K_4]) use_normals = !use_normals;
-    if (Input_get_key_down(self)[K_5]) use_wireframe = !use_wireframe;
-    for (size_t i=0; i < Array_len(objfile.models); i++) {
-        Model *model = Array_get_ptr(objfile.models, i);
-        glm_mat4_identity(model->transform);
-        glm_translate(model->transform, (vec3){-7.0f, 0.2f, 3.0f});
-        glm_rotate(model->transform, radians(90.0f), (vec3){0, 1, 0});
-        glm_rotate(model->transform, radians(-90.0f), (vec3){1, 0, 0});
-        glm_scale(model->transform, (vec3){0.2f, 0.2f, 0.2f});
-        Shader_set_mat4(self->renderer->shader_model, "u_model", model->transform);
-
-        // Проходимся по сеткам и рисуем их:
-        for (size_t j = 0; j < Array_len(model->meshes); j++) {
-            Mesh *mesh = (Mesh*)Array_get_ptr(model->meshes, j);
-            Material *mat = Mesh_get_material(mesh);
-            if (mat->name) {
-                Shader_set_bool(self->renderer->shader_model, "u_use_texture", mat->albedo_map != NULL);
-                Shader_set_tex2d(self->renderer->shader_model, "u_texture", mat->albedo_map->id);
-                Shader_set_vec4(self->renderer->shader_model, "u_color", mat->albedo);
-            }
-            Mesh_render(mesh, use_wireframe);
-        }
-    }
+    Model *cat = Array_get_ptr(objfile.models, 0);
+    glm_mat4_identity(cat->transform);
+    glm_translate(cat->transform, (vec3){-7.0f, 0.2f, 3.0f});
+    glm_rotate(cat->transform, radians(90.0f), (vec3){0, 1, 0});
+    glm_rotate(cat->transform, radians(-90.0f), (vec3){1, 0, 0});
+    glm_scale(cat->transform, (vec3){0.2f, 0.2f, 0.2f});
+    Model_render(cat, false);
 
     for (size_t i=0; i < Array_len(objfile2.models); i++) {
         Model *model = Array_get_ptr(objfile2.models, i);
-        glm_mat4_identity(model->transform);
-        glm_translate(model->transform, (vec3){0.0f, -0.01f, 0.0f});
-        Shader_set_mat4(self->renderer->shader_model, "u_model", model->transform);
-        static Vec4f colors[128];
-        static bool init_color = false;
-        if (Input_get_key_down(self)[K_2]) init_color = false;
-        if (!init_color) {
-            if (i == Array_len(objfile2.models)-1) init_color = true;
-            colors[i] = (Vec4f){(double)rand()/RAND_MAX, (double)rand()/RAND_MAX, (double)rand()/RAND_MAX, 1.0f};
-        }
-        // Shader_set_vec4(self->renderer->shader_model, "u_color", colors[i]);
-        Shader_set_bool(self->renderer->shader_model, "u_use_normals", use_normals);
-
-        // Проходимся по сеткам и рисуем их:
-        for (size_t j = 0; j < Array_len(model->meshes); j++) {
-            Mesh *mesh = (Mesh*)Array_get_ptr(model->meshes, j);
-            Material *mat = Mesh_get_material(mesh);
-            if (mat->name) {
-                Shader_set_bool(self->renderer->shader_model, "u_use_texture", mat->albedo_map != NULL);
-                if (mat->albedo_map) Shader_set_tex2d(self->renderer->shader_model, "u_texture", mat->albedo_map->id);
-                if (use_mat_color) Shader_set_vec4(self->renderer->shader_model, "u_color", mat->albedo);
-            }
-            Mesh_render(mesh, use_wireframe);
-        }
+        Model_render(model, false);
     }
+    Renderer_display(self->renderer);
 
-    Shader_end(self->renderer->shader_model);
-
-
-    if (!use_wireframe) {
+    if (true) {
         Shader_begin(grid);
         mat4 gridmodel;
         glm_mat4_identity(gridmodel);
@@ -395,30 +346,10 @@ WindowScene TestScene = {
     .hide    = hide
 };
 
-typedef struct TaskArgs {
-    size_t id;
-} TaskArgs;
-
-int test_task(void *args) {
-    TaskArgs *task_args = (TaskArgs*)args;
-    log_msg("[I] Task %zu started.\n", task_args->id);
-    Time_sleep(1.0);
-    log_msg("[I] Task %zu finished.\n", task_args->id);
-    mm_free(task_args);
-    return 0;
-}
 
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
     CGDF_init();
-
-    for (int i = 0; i < 12; i++) {
-        TaskArgs *args = mm_alloc(sizeof(TaskArgs));
-        args->id = i;
-        JobSystem_create_job(test_task, args);
-    }
-
-    while (JobSystem_get_active_workers_count() > 0);
 
     log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(NULL, 0));
 
@@ -434,17 +365,17 @@ int main(int argc, char *argv[]) {
     const char* cgdf_version = CGDF_GetVersion();
     log_msg("[I] CGDF version: \"%s\"\n", cgdf_version);
 
-    // WinConfig *config = Window_create_config(&TestScene);
-    // config->gl_major = 3;
-    // config->gl_minor = 3;
-    // Window *window = Window_create(config);
-    // g_Renderer_debug_config.debug_enabled = true;
-    // if (!Window_open(window)) {
-    //     log_msg("[E] Window creation failed.\n");
-    // }
+    WinConfig *config = Window_create_config(&TestScene);
+    config->gl_major = 3;
+    config->gl_minor = 3;
+    Window *window = Window_create(config);
+    g_Renderer_debug_config.debug_enabled = true;
+    if (!Window_open(window)) {
+        log_msg("[E] Window creation failed.\n");
+    }
 
-    // Window_destroy(&window);
-    // Window_destroy_config(&config);
+    Window_destroy(&window);
+    Window_destroy_config(&config);
 
     CGDF_destroy();
     print_after_free();

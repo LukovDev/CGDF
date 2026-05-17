@@ -11,6 +11,7 @@
 #include <cgdf/core/logger.h>
 #include "../core/vertex.h"
 #include "../core/mesh.h"
+#include "../core/model.h"
 #include "../core/camera.h"
 #include "../core/shader.h"
 #include "../core/texture.h"
@@ -31,6 +32,9 @@
 // Константы для AMD (ATI_meminfo):
 #define GL_VBO_FREE_MEMORY_ATI 0x87FB
 
+// Константы для буфера логов OpenGL:
+#define GL_DEBUG_SEEN_MAX 64  // Храним последние N сообщений. Если новые будут совпадать со старыми, их не выводим.
+
 
 // Глобальная конфигурация дебага рендеринга:
 RendererDebugConfig g_Renderer_debug_config = {
@@ -41,6 +45,19 @@ RendererDebugConfig g_Renderer_debug_config = {
     .level_medium = true,
     .level_high = true
 };
+
+
+// -------- Вспомогательные структуры: --------
+
+
+// Структура отладочного сообщения:
+typedef struct GLDebugSeenMsg {
+    GLuint id;
+    GLenum type;
+    GLenum severity;
+    char msg[1024];
+} GLDebugSeenMsg;
+
 
 
 // -------- Вспомогательные функции: --------
@@ -91,27 +108,41 @@ static const char* dbg_type(GLenum t) {
     }
 }
 
+static bool gl_debug_seen(GLuint id, GLenum type, GLenum severity, const char *msg) {
+    static GLDebugSeenMsg seen[GL_DEBUG_SEEN_MAX];
+    static size_t count = 0;
+    static size_t cursor = 0;
+
+    // Проходимся по предыдущим сообщениям и проверяем, было ли оно уже за последние GL_DEBUG_SEEN_MAX сообщений:
+    for (size_t i = 0; i < count; i++) {
+        if (seen[i].id == id && seen[i].type == type && seen[i].severity == severity && strcmp(seen[i].msg, msg) == 0) {
+            return true;
+        }
+    }
+
+    // Иначе добавляем в кольцевой буфер новое сообщение:
+    GLDebugSeenMsg *slot = &seen[cursor];
+    slot->id = id;
+    slot->type = type;
+    slot->severity = severity;
+    snprintf(slot->msg, sizeof(slot->msg), "%s", msg);
+
+    if (count < GL_DEBUG_SEEN_MAX) count++;
+    cursor = (cursor + 1) % GL_DEBUG_SEEN_MAX;
+
+    return false;
+}
+
 // Debug callback:
 static void APIENTRY gl_debug_cb(
     GLenum source, GLenum type, GLuint id, GLenum severity,
     GLsizei length, const GLchar* message, const void* userParam
 ) {
     (void)source; (void)type; (void)id; (void)length; (void)userParam;
-    static GLuint last_id = 0;
-    static GLenum last_type = 0;
-    static GLenum last_severity = 0;
-    static char last_msg[1024] = {0};
-
     const char *msg = message ? message : "(null)";
 
-    // Если лог полностью такой же, не выводим:
-    if (id == last_id && type == last_type && severity == last_severity && strcmp(msg, last_msg) == 0) return;
-
-    last_id = id;
-    last_type = type;
-    last_severity = severity;
-    snprintf(last_msg, sizeof(last_msg), "%s", msg);
-
+    // Если это сообщение совпадает с предыдущими, то пропускаем:
+    if (gl_debug_seen(id, type, severity, msg)) return;
     log_msg("[GL][%s][%s<id=%u>] %s\n", dbg_severity(severity), dbg_type(type), id, msg);
 }
 
@@ -205,6 +236,9 @@ Renderer* Renderer_create(void) {
     // Создаём шейдеры:
     create_shaders(rnd);
 
+    // Отрисовка сцены:
+    rnd->models = Array_create(sizeof(Model*), ARRAY_DEFAULT_CAPACITY);  // Массив указателей на модели для отрисовки.
+
     // Другое:
     rnd->sprite_mesh = NULL;
     rnd->fallback_texture = NULL;
@@ -230,6 +264,9 @@ void Renderer_destroy(Renderer **rnd) {
 
     // Уничтожение текстурных юнитов:
     TextureUnits_destroy();
+
+    // Удаляем массивы:
+    Array_destroy(&(*rnd)->models);
 
     // Освобождаем память рендерера:
     mm_free(*rnd);
@@ -325,6 +362,43 @@ void Renderer_init(Renderer *self) {
     // Поднимаем флаг инициализации:
     self->initialized = true;
     log_msg("[I] OpenGL initialized.\n");
+}
+
+// Отрисовать всё что накопили, на экран:
+void Renderer_display(Renderer *self) {
+    if (!self || !Array_len(self->models)) return;
+
+    // Настраиваем шейдер моделей:
+    mat4 view, proj;
+    Renderer_get_view_proj(self, view, proj);
+    Renderer_set_depth_test(self, true);
+    Shader_begin(self->shader_model);
+    Shader_set_mat4(self->shader_model, "u_view", view);
+    Shader_set_mat4(self->shader_model, "u_proj", proj);
+
+    // Проходимся по моделям:
+    for (size_t i=0; i < Array_len(self->models); i++) {
+        Model *model = Array_get_ptr(self->models, i);
+        Shader_set_mat4(self->shader_model, "u_model", model->transform);
+
+        // Проходимся по сеткам и рисуем их:
+        for (size_t i = 0; i < Array_len(model->meshes); i++) {
+            Mesh *mesh = (Mesh*)Array_get_ptr(model->meshes, i);
+            Material *mat = Mesh_get_material(mesh);
+            if (mat && mat->name) {
+                Shader_set_bool(self->shader_model, "u_use_tex_albedo", mat->albedo_map != NULL);
+                if (mat->albedo_map) Shader_set_tex2d(self->shader_model, "u_tex_albedo", mat->albedo_map->id);
+                Shader_set_vec4(self->shader_model, "u_albedo", mat->albedo);
+            }
+            Mesh_render(mesh, model->wireframe);
+        }
+    }
+
+    Shader_end(self->shader_model);
+
+    // Очищаем список моделей:
+    Array_clear(self->models, false);
+    // renderer draw calls counter
 }
 
 // Освобождение буферов:

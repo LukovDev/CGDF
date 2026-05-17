@@ -26,6 +26,7 @@ struct Model {
     Renderer *renderer;  // Рендерер модели.
     mat4 transform;      // Матрица трансформации модели.
     Array *meshes;       // Сетки модели. Каждая сетка имеет свой материал.
+    bool wireframe;      // Рисовать сетку как линии.
 };
 
 
