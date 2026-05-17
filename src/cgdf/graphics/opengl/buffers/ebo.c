@@ -20,6 +20,7 @@ BufferEBO* BufferEBO_create(const void* data, const size_t size, int mode) {
     ebo->id = 0;
     ebo->_is_begin_ = false;
     ebo->_id_before_begin_ = 0;
+    ebo->size = 0;
     glGenBuffers(1, &ebo->id);
 
     // Проверка генерации буфера:
@@ -73,18 +74,14 @@ void BufferEBO_end(BufferEBO *self) {
 // Получить размер буфера:
 size_t BufferEBO_get_size(BufferEBO *self) {
     if (!self) return 0;
-    bool was_begin = self->_is_begin_;
-    if (!was_begin) BufferEBO_begin(self);
-    int buffer_size;
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);
-    if (!was_begin) BufferEBO_end(self);
-    return (size_t)buffer_size;
+    return self->size;
 }
 
 // Установить данные буфера (выделяет новую память и заново всё сохраняет):
 void BufferEBO_set_data(BufferEBO *self, const void *data, const size_t size, int mode) {
     if (!self) return;
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, mode);
+    self->size = size;
 }
 
 // Изменить данные буфера (не выделяет новую память а просто изменяет данные):

@@ -20,6 +20,7 @@ BufferVBO* BufferVBO_create(const void* data, const size_t size, int mode) {
     vbo->id = 0;
     vbo->_is_begin_ = false;
     vbo->_id_before_begin_ = 0;
+    vbo->size = 0;
     glGenBuffers(1, &vbo->id);
 
     // Проверка генерации буфера:
@@ -73,18 +74,14 @@ void BufferVBO_end(BufferVBO *self) {
 // Получить размер буфера:
 size_t BufferVBO_get_size(BufferVBO *self) {
     if (!self) return 0;
-    bool was_begin = self->_is_begin_;
-    if (!was_begin) BufferVBO_begin(self);
-    int buffer_size;
-    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);
-    if (!was_begin) BufferVBO_end(self);
-    return (size_t)buffer_size;
+    return self->size;
 }
 
 // Установить данные буфера (выделяет новую память и заново всё сохраняет):
 void BufferVBO_set_data(BufferVBO *self, const void *data, const size_t size, int mode) {
     if (!self) return;
     glBufferData(GL_ARRAY_BUFFER, size, data, mode);
+    self->size = size;
 }
 
 // Изменить данные буфера (не выделяет новую память а просто изменяет данные):
