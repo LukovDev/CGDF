@@ -367,6 +367,7 @@ void Renderer_init(Renderer *self) {
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self) {
     if (!self || !Array_len(self->models)) return;
+    self->draw_calls_count = 0;
 
     // Настраиваем шейдер моделей:
     mat4 view, proj;
@@ -379,26 +380,42 @@ void Renderer_display(Renderer *self) {
     // Проходимся по моделям:
     for (size_t i=0; i < Array_len(self->models); i++) {
         Model *model = Array_get_ptr(self->models, i);
+        if (!model || !model->meshes) continue;  // Если нет модели или сеток в модели, пропускаем.
+
+        // Устанавливаем параметры модели:
         Shader_set_mat4(self->shader_model, "u_model", model->transform);
 
-        // Проходимся по сеткам и рисуем их:
+        // Проходимся по сеткам:
         for (size_t i = 0; i < Array_len(model->meshes); i++) {
             Mesh *mesh = (Mesh*)Array_get_ptr(model->meshes, i);
+            if (!mesh) continue;  // Если сетки нет, то пропускаем.
+
+            // Получаем материал и проверяем что он существует:
             Material *mat = Mesh_get_material(mesh);
             if (mat && mat->name) {
+                // Устанавливаем параметры материала:
                 Shader_set_bool(self->shader_model, "u_use_tex_albedo", mat->albedo_map != NULL);
                 if (mat->albedo_map) Shader_set_tex2d(self->shader_model, "u_tex_albedo", mat->albedo_map->id);
                 Shader_set_vec4(self->shader_model, "u_albedo", mat->albedo);
             }
+
+            // Рисуем сетку:
             Mesh_render(mesh, model->wireframe);
+            self->draw_calls_count++;
         }
     }
 
+    // Конец отрисовки моделей:
     Shader_end(self->shader_model);
 
     // Очищаем список моделей:
     Array_clear(self->models, false);
-    // renderer draw calls counter
+}
+
+// Получить количество вызовов отрисовки:
+size_t Renderer_get_draw_calls_count(Renderer *self) {
+    if (!self) return 0;
+    return self->draw_calls_count;
 }
 
 // Освобождение буферов:

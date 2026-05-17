@@ -6,7 +6,6 @@
 // Подключаем:
 #include <cgdf/cgdf.h>
 #include <cgdf/graphics/graphics.h>
-#include "game.h"
 
 
 static Texture *tex1;
@@ -187,7 +186,6 @@ void update(Window *self, float dtime) {
             Material_destroy(&mat);
         }
         Array_clear(objfile2.materials, false);
-        Texture_destroy(&blue_noise);
     }
     if (orbit_enabled) {
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
@@ -210,12 +208,14 @@ void render(Window *self, float dtime) {
     Renderer_get_view_proj(self->renderer, view, proj);
 
     Model *cat = Array_get_ptr(objfile.models, 0);
-    glm_mat4_identity(cat->transform);
-    glm_translate(cat->transform, (vec3){-7.0f, 0.2f, 3.0f});
-    glm_rotate(cat->transform, radians(90.0f), (vec3){0, 1, 0});
-    glm_rotate(cat->transform, radians(-90.0f), (vec3){1, 0, 0});
-    glm_scale(cat->transform, (vec3){0.2f, 0.2f, 0.2f});
-    Model_render(cat, false);
+    if (cat) {
+        glm_mat4_identity(cat->transform);
+        glm_translate(cat->transform, (vec3){-7.0f, 0.2f, 3.0f});
+        glm_rotate(cat->transform, radians(90.0f), (vec3){0, 1, 0});
+        glm_rotate(cat->transform, radians(-90.0f), (vec3){1, 0, 0});
+        glm_scale(cat->transform, (vec3){0.2f, 0.2f, 0.2f});
+        Model_render(cat, true);
+    }
 
     for (size_t i=0; i < Array_len(objfile2.models); i++) {
         Model *model = Array_get_ptr(objfile2.models, i);
@@ -282,6 +282,7 @@ void render(Window *self, float dtime) {
         "GPU:\n"
         "%s\n"
         "OpenGL %s\n"
+        "Renderer draw calls: %zu\n"
         "USED: %.2f MB\n"
         "FREE: %.2f MB\n"
         "TOTAL: %.2f MB\n\n"
@@ -291,7 +292,7 @@ void render(Window *self, float dtime) {
         "TOTAL: %.2f MB\n\n"
         "Memory Manager:\n"
         "Used: %.2f MB\n"
-        "Mesh used: %.2f MB\n\n"
+        "Mesh used: %.2f MB\n"
         "Textures used: %.2f MB\n\n"
         "FPS: %.2f\n",
         cpu_info.model,
@@ -299,6 +300,7 @@ void render(Window *self, float dtime) {
         cpu_info.threads,
         Renderer_get_renderer(self->renderer),
         Renderer_get_version(self->renderer),
+        Renderer_get_draw_calls_count(self->renderer),
         Renderer_get_used_memory(self->renderer) / 1024.0,
         Renderer_get_free_memory(self->renderer) / 1024.0,
         Renderer_get_total_memory(self->renderer) / 1024.0,

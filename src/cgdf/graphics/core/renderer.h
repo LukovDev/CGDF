@@ -66,7 +66,8 @@ struct Renderer {
     Shader *shader_light2d;      // Шейдер 2D освещения.
 
     // Отрисовка сцены:
-    Array *models;  // Массив указателей на модели для отрисовки.
+    Array *models;            // Массив указателей на модели для отрисовки.
+    size_t draw_calls_count;  // Количество вызовов отрисовки.
 
     // Другое:
     Mesh *sprite_mesh;          // Сетка спрайта.
@@ -88,6 +89,9 @@ void Renderer_init(Renderer *self);
 
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self);
+
+// Получить количество вызовов отрисовки:
+size_t Renderer_get_draw_calls_count(Renderer *self);
 
 // Освобождение буферов:
 void Renderer_buffers_flush(Renderer *self);

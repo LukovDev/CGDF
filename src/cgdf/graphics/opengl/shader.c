@@ -337,7 +337,7 @@ const char* Shader_get_error(Shader *self) {
 
 // Активация программы:
 void Shader_begin(Shader *self) {
-    if (!self || self->id == 0 || !glIsProgram(self->id)) return;
+    if (!self || self->id == 0) return;
     glGetIntegerv(GL_CURRENT_PROGRAM, &self->_id_before_begin_);
     if ((uint32_t)self->_id_before_begin_ != self->id) {
         glUseProgram(self->id);
@@ -356,7 +356,7 @@ void Shader_end(Shader *self) {
 
 // Получить локацию переменной:
 int32_t Shader_get_location(Shader *self, const char* name) {
-    if (!self || !name || self->id == 0 || !glIsProgram(self->id)) return -1;
+    if (!self || !name || self->id == 0) return -1;
 
     // Ищем и возвращаем локацию в кэше:
     for (size_t i = 0; i < Array_len(self->uniform_locations); i++) {
