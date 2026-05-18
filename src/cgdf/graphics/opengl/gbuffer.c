@@ -79,6 +79,7 @@ void GBuffer_begin(GBuffer *self) {
     if (!self || self->_is_begin_ || !self->fbo) return;
     BufferFBO_begin(self->fbo);
     BufferFBO_apply(self->fbo);
+    BufferFBO_clear(self->fbo, 0.0f, 0.0f, 0.0f, 0.0f);
     self->_is_begin_ = true;
 }
 
@@ -87,15 +88,6 @@ void GBuffer_end(GBuffer *self) {
     if (!self || !self->_is_begin_) return;
     BufferFBO_end(self->fbo);
     self->_is_begin_ = false;
-}
-
-// Очистить G-Buffer:
-void GBuffer_clear(GBuffer *self) {
-    if (!self) return;
-    if (!self->_is_begin_) BufferFBO_begin(self->fbo);
-    BufferFBO_apply(self->fbo);
-    BufferFBO_clear(self->fbo, 0.0f, 0.0f, 0.0f, 0.0f);
-    if (!self->_is_begin_) BufferFBO_end(self->fbo);
 }
 
 // Масштабировать G-Buffer:

@@ -373,7 +373,7 @@ void Renderer_init(Renderer *self) {
 
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self) {
-    if (!self) return;
+    if (!self || !Array_len(self->models)) return;
     self->draw_calls_count = 0;
 
     // -------- Проход 1 - GBuffer: --------
@@ -384,10 +384,6 @@ void Renderer_display(Renderer *self) {
     Renderer_set_depth_test(self, true);
     Renderer_set_depth_mask(self, true);
     Renderer_set_blending(self, false);  // Отключаем смешивание.
-
-    // Если нет моделей в стеке, просто выходим:
-    GBuffer_clear(self->gbuffer);
-    if (!Array_len(self->models)) return;
 
     // Используем G-Buffer:
     GBuffer_begin(self->gbuffer);

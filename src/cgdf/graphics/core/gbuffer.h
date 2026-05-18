@@ -32,9 +32,6 @@ void GBuffer_begin(GBuffer *self);
 // Закончить рендер G-Buffer:
 void GBuffer_end(GBuffer *self);
 
-// Очистить G-Buffer:
-void GBuffer_clear(GBuffer *self);
-
 // Масштабировать G-Buffer:
 void GBuffer_resize(GBuffer *self, int width, int height);
 

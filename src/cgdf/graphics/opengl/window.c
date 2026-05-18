@@ -859,7 +859,8 @@ void Window_clear(Window *self, float r, float g, float b) {
 void Window_display(Window *self) {
     if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    Renderer_display(self->renderer);  // Насильно вызываем рендеринг моделей.
+    // Очищаем массив моделей рендерера (дублирующе на всякий случай):
+    Array_clear(self->renderer->models, false);
     SDL_GL_SwapWindow(vars->window);
 }
 
