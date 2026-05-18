@@ -22,5 +22,8 @@ struct OBJFile {
 };
 
 
+// -------- API загрузчика: --------
+
+
 // Загрузить модели из OBJ-файла:
 OBJFile ObjLoader_load(Renderer *renderer, const char *filepath);

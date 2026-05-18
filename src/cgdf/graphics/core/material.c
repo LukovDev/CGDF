@@ -16,8 +16,6 @@ Material* Material_create(
     Vec4f albedo,
     Vec3f ambient,
     float metallic,
-    Vec3f specular,
-    float specular_strength,
     float roughness,
     float ao,
     float normal_strength,
@@ -26,8 +24,8 @@ Material* Material_create(
     float alpha_cutoff,
     bool double_sided,
     bool transparent,
-    float distortion_strength,
-    float distortion_aberration_strength,
+    float distortion,
+    float distortion_aberration,
     Texture *albedo_map,
     Texture *normal_map,
     Texture *occlusion_map,
@@ -44,8 +42,6 @@ Material* Material_create(
     material->albedo = albedo;
     material->ambient = ambient;
     material->metallic = metallic;
-    material->specular = specular;
-    material->specular_strength = specular_strength;
     material->roughness = roughness;
     material->ao = ao;
     material->normal_strength = normal_strength;
@@ -54,8 +50,8 @@ Material* Material_create(
     material->alpha_cutoff = alpha_cutoff;
     material->double_sided = double_sided;
     material->transparent = transparent;
-    material->distortion_strength = distortion_strength;
-    material->distortion_aberration_strength = distortion_aberration_strength;
+    material->distortion = distortion;
+    material->distortion_aberration = distortion_aberration;
 
     material->albedo_map = albedo_map;
     material->normal_map = normal_map;
@@ -79,8 +75,8 @@ Material* Material_create(
 // Создать материал по умолчанию (пустой):
 Material* Material_create_default(const char *name) {
     return Material_create(
-        name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, (Vec3f){0, 0, 0},
-        0.0f, 0.0f, 0.0f, 0.0f, (Vec3f){0, 0, 0}, 0.0f, 0.0f, false, false,
+        name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, 
+        0.0f, 0.0f, 0.0f, (Vec3f){0, 0, 0}, 0.0f, 0.0f, false, false,
         0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
     );
 }

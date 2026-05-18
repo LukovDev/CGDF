@@ -82,7 +82,7 @@ void start(Window *self) {
         (Vec3d){0.0f, 0.0f, 0.0f},
         (Vec3d){1.0f, 1.0f, 1.0f},
         90.0f,
-        0.01f, 10000.0f,
+        0.01f, 50.0f,
         false
     );
     Renderer_set_cull_faces(self->renderer, false);
@@ -255,6 +255,51 @@ void render(Window *self, float dtime) {
     Camera2D_update(camera2d);
     Camera2D_ui_begin(camera2d);
 
+    int width = Renderer_get_width(self->renderer);
+    int height = Renderer_get_height(self->renderer);
+    Texture *albedo_roughness = GBuffer_get_albedo_roughness(self->renderer->gbuffer);
+    Texture *normal_ao = GBuffer_get_normal_ao(self->renderer->gbuffer);
+    Texture *pbr_properties = GBuffer_get_pbr_properties(self->renderer->gbuffer);
+    Texture *emissive = GBuffer_get_emissive(self->renderer->gbuffer);
+    Texture *depth = GBuffer_get_depth(self->renderer->gbuffer);
+
+    float w = albedo_roughness->width * 0.25f, h = albedo_roughness->height * 0.25f;
+    float x1 = width, y1 = height-h;
+    float x2 = width, y2 = height-h - h;
+    float x3 = width, y3 = height-h - h * 2;
+    float x4 = width, y4 = height-h - h * 3;
+    Shader_begin(self->renderer->shader);
+    Shader_set_bool(self->renderer->shader, "u_use_gbuffer", true);
+    Shader_set_int(self->renderer->shader, "u_gbuffer_view", 0);
+    Shader_end(self->renderer->shader);
+    Sprite2D_render(self->renderer, albedo_roughness, 0, 0, albedo_roughness->width, albedo_roughness->height, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+    Sprite2D_render(self->renderer, albedo_roughness, x1 - w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    Shader_begin(self->renderer->shader);
+    Shader_set_int(self->renderer->shader, "u_gbuffer_view", 1);
+    Shader_end(self->renderer->shader);
+    Sprite2D_render(self->renderer, normal_ao, x2 - w, y2, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    Shader_begin(self->renderer->shader);
+    Shader_set_int(self->renderer->shader, "u_gbuffer_view", 2);
+    Shader_end(self->renderer->shader);
+    Sprite2D_render(self->renderer, pbr_properties, x3 - w, y3, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    Shader_begin(self->renderer->shader);
+    Shader_set_int(self->renderer->shader, "u_gbuffer_view", 3);
+    Shader_end(self->renderer->shader);
+    Sprite2D_render(self->renderer, emissive, x4 - w, y4, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    Shader_begin(self->renderer->shader);
+    Shader_set_int(self->renderer->shader, "u_gbuffer_view", 4);
+    Shader_end(self->renderer->shader);
+    Sprite2D_render(self->renderer, depth, x4 - w-w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+    Shader_begin(self->renderer->shader);
+    Shader_set_bool(self->renderer->shader, "u_use_gbuffer", false);
+    Shader_end(self->renderer->shader);
+
+    // Рисуем текст:
     Vec2f text_pos = {16, 16};
     float scale = 0.5f;
     FontPixmap_set_scale_factor(font, (Vec2f){scale, scale});
@@ -263,6 +308,12 @@ void render(Window *self, float dtime) {
     FontPixmap_set_bg_color(font, (Vec4f){0, 0, 0, 0.5f});
     FontPixmap_set_bg_padding(font, (Vec4f){8, 8, 8, 8});
     FontPixmap_set_line_height(font, 16.0f);
+
+    FontPixmap_render(font, 8 + x1 - w, 8 + y1, 0, "Albedo/Roughness");
+    FontPixmap_render(font, 8 + x2 - w, 8 + y2, 0, "Normal+AO");
+    FontPixmap_render(font, 8 + x3 - w, 8 + y3, 0, "PBR Properties");
+    FontPixmap_render(font, 8 + x4 - w, 8 + y4, 0, "Emissive");
+    FontPixmap_render(font, 8 + x4 - w-w, 8 + y1, 0, "Depth");
 
     static float fps = 0.0f;
     static float timer = 0.0f;
@@ -312,6 +363,7 @@ void render(Window *self, float dtime) {
         (double)(Texture_get_size(blue_noise)) / 1024.0 / 1024.0,
         fps
     );
+
     Camera2D_ui_end(camera2d);
 
     Window_display(self);

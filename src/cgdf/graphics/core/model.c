@@ -14,6 +14,9 @@
 #include "model.h"
 
 
+// -------- API модели: --------
+
+
 // Создать модель:
 Model* Model_create(Renderer *renderer) {
     if (!renderer) {

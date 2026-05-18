@@ -250,10 +250,10 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         }
 
         // Зеркальный цвет отражения:
-        else if (mat && strncmp(s, "Ks", 2) == 0 && (s[2] == ' ' || s[2] == '\t')) {
-            sscanf(s + 2, "%f %f %f", &mat->specular.x, &mat->specular.y, &mat->specular.z);
-            mat->specular_strength = (mat->specular.x + mat->specular.y + mat->specular.z) / 3.0f;
-        }
+        // else if (mat && strncmp(s, "Ks", 2) == 0 && (s[2] == ' ' || s[2] == '\t')) {
+        //     sscanf(s + 2, "%f %f %f", &mat->specular.x, &mat->specular.y, &mat->specular.z);
+        //     mat->specular_strength = (mat->specular.x + mat->specular.y + mat->specular.z) / 3.0f;
+        // }
 
         // Прозрачность:
         else if (mat && strncmp(s, "d", 1) == 0 && (s[1] == ' ' || s[1] == '\t')) {

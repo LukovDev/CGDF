@@ -53,7 +53,7 @@ typedef enum TextureDataType {
     TEX_DATA_UBYTE,  TEX_DATA_BYTE,
     TEX_DATA_USHORT, TEX_DATA_SHORT,
     TEX_DATA_UINT,   TEX_DATA_INT,
-    TEX_DATA_FLOAT,
+    TEX_DATA_FLOAT,  TEX_DATA_UINT_24_8,
 } TextureDataType;
 
 

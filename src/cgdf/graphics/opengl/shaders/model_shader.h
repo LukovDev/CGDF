@@ -19,15 +19,13 @@ out vec2 v_texcoord;\n\
 out vec3 v_normal;\n\
 out vec3 v_normal_world;\n\
 out vec4 v_color;\n\
-out vec3 v_frag_pos;\n\
 \n\
 void main(void) {\n\
     v_texcoord = a_texcoord;\n\
     v_normal = a_normal;\n\
     v_normal_world = transpose(inverse(mat3(u_model))) * a_normal;\n\
     v_color = a_color;\n\
-    v_frag_pos = vec3(u_model * vec4(a_position, 1.0f));\n\
-    gl_Position = u_proj * u_view * vec4(v_frag_pos, 1.0f);\n\
+    gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0f);\n\
 }";
 
 static const char* MODEL_SHADER_FRAG = "\
@@ -36,28 +34,36 @@ static const char* MODEL_SHADER_FRAG = "\
 uniform vec4 u_albedo;\n\
 uniform bool u_use_tex_albedo;\n\
 uniform sampler2D u_tex_albedo;\n\
+\n\
 in vec2 v_texcoord;\n\
 in vec3 v_normal;\n\
 in vec3 v_normal_world;\n\
 in vec4 v_color;\n\
-in vec3 v_frag_pos;\n\
-out vec4 FragColor;\n\
+layout (location = 0) out vec4 g_albedo_roughness;\n\
+layout (location = 1) out vec4 g_normal_ao;\n\
+layout (location = 2) out vec4 g_pbr_properties;\n\
+layout (location = 3) out vec4 g_emissive_dist;\n\
 \n\
 void main(void) {\n\
     vec4 color = u_albedo;\n\
     if (u_use_tex_albedo) {\n\
         color *= texture(u_tex_albedo, v_texcoord);\n\
     }\n\
-    vec3 light_pos = vec3(100, 500, 100);\n\
-    vec3 light_color = vec3(1, 1, 1);\n\
-    float light_radius = 1.0f;\n\
+    \n\
+    vec3 albedo = color.rgb;\n\
+    float roughness = 1.0;\n\
     vec3 normal = normalize(v_normal_world);\n\
-    vec3 light_dir = normalize(light_pos - v_frag_pos);\n\
-    float distance = length(light_pos - v_frag_pos);\n\
-    float diff = max(dot(normal, light_dir), 0.0);\n\
-    vec3 diffuse = diff * light_color;\n\
-    vec3 ambient = 0.1 * color.rgb;\n\
-    vec3 result = (ambient + diffuse) * color.rgb;\n\
-    if (distance <= light_radius) result = color.rgb;\n\
-    FragColor = vec4(result, 1.0);\n\
+    float ao = 0.0;\n\
+    float metallic = 0.0;\n\
+    float height = 0.0;\n\
+    float distortion = 0.0;\n\
+    float distortion_aberration = 1.0;\n\
+    vec3 emissive = vec3(0);\n\
+    float reserved = 0.0;\n\
+    \n\
+    // Выводим данные в GBuffer:\n\
+    g_albedo_roughness = vec4(albedo, roughness);\n\
+    g_normal_ao = vec4(normal, ao);\n\
+    g_pbr_properties = vec4(metallic, height, distortion, distortion_aberration);\n\
+    g_emissive_dist = vec4(emissive, reserved);\n\
 }";

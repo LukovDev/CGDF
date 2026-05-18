@@ -9,12 +9,13 @@
 #include <cgdf/core/mm.h>
 #include <cgdf/core/array.h>
 #include <cgdf/core/logger.h>
-#include "../core/vertex.h"
+#include "../core/gbuffer.h"
 #include "../core/mesh.h"
 #include "../core/model.h"
 #include "../core/camera.h"
 #include "../core/shader.h"
 #include "../core/texture.h"
+#include "../core/vertex.h"
 #include "../core/renderer.h"
 #include "shaders/default_shader.h"
 #include "shaders/model_shader.h"
@@ -237,7 +238,8 @@ Renderer* Renderer_create(void) {
     create_shaders(rnd);
 
     // Отрисовка сцены:
-    rnd->models = Array_create(sizeof(Model*), ARRAY_DEFAULT_CAPACITY);  // Массив указателей на модели для отрисовки.
+    rnd->models = NULL;
+    rnd->gbuffer = NULL;
 
     // Другое:
     rnd->sprite_mesh = NULL;
@@ -265,8 +267,9 @@ void Renderer_destroy(Renderer **rnd) {
     // Уничтожение текстурных юнитов:
     TextureUnits_destroy();
 
-    // Удаляем массивы:
+    // Удаляем всякое для отрисовки сцены:
     Array_destroy(&(*rnd)->models);
+    GBuffer_destroy(&(*rnd)->gbuffer);
 
     // Освобождаем память рендерера:
     mm_free(*rnd);
@@ -359,6 +362,10 @@ void Renderer_init(Renderer *self) {
     // Инициализация текстурных юнитов:
     TextureUnits_init(self);
 
+    // Отрисовка сцены:
+    self->models = Array_create(sizeof(Model*), ARRAY_DEFAULT_CAPACITY);  // Массив указателей на модели для отрисовки.
+    self->gbuffer = GBuffer_create(self, Renderer_get_width(self), Renderer_get_height(self));
+
     // Поднимаем флаг инициализации:
     self->initialized = true;
     log_msg("[I] OpenGL initialized.\n");
@@ -366,13 +373,26 @@ void Renderer_init(Renderer *self) {
 
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self) {
-    if (!self || !Array_len(self->models)) return;
+    if (!self) return;
     self->draw_calls_count = 0;
 
-    // Настраиваем шейдер моделей:
+    // -------- Проход 1 - GBuffer: --------
+
+    // Настраиваем состояние рендеринга:
     mat4 view, proj;
     Renderer_get_view_proj(self, view, proj);
     Renderer_set_depth_test(self, true);
+    Renderer_set_depth_mask(self, true);
+    Renderer_set_blending(self, false);  // Отключаем смешивание.
+
+    // Если нет моделей в стеке, просто выходим:
+    GBuffer_clear(self->gbuffer);
+    if (!Array_len(self->models)) return;
+
+    // Используем G-Buffer:
+    GBuffer_begin(self->gbuffer);
+
+    // Настраиваем шейдер моделей:
     Shader_begin(self->shader_model);
     Shader_set_mat4(self->shader_model, "u_view", view);
     Shader_set_mat4(self->shader_model, "u_proj", proj);
@@ -408,6 +428,14 @@ void Renderer_display(Renderer *self) {
     // Конец отрисовки моделей:
     Shader_end(self->shader_model);
 
+    // Останавливаем G-Buffer:
+    GBuffer_end(self->gbuffer);
+    Renderer_set_blending(self, true);  // Возвращаем смешивание.
+
+    // -------- Проход 2 - Свет: --------
+
+    // Пока ничего нет.
+
     // Очищаем список моделей:
     Array_clear(self->models, false);
 }
@@ -438,10 +466,9 @@ void Renderer_clear_caches(Renderer *self) {
 void Renderer_get_view(Renderer *self, mat4 view) {
     glm_mat4_identity(view);
     if (!self || !self->camera) return;
-    if (self->camera_type == RENDERER_CAMERA_2D) {
-        glm_mat4_copy(((Camera2D*)self->camera)->view, view);
-    } else if (self->camera_type == RENDERER_CAMERA_3D) {
-        glm_mat4_copy(((Camera3D*)self->camera)->view, view);
+    switch (self->camera_type) {
+        case RENDERER_CAMERA_2D: { glm_mat4_copy(((Camera2D*)self->camera)->view, view); break; }
+        case RENDERER_CAMERA_3D: { glm_mat4_copy(((Camera3D*)self->camera)->view, view); break; }
     }
 }
 
@@ -449,10 +476,9 @@ void Renderer_get_view(Renderer *self, mat4 view) {
 void Renderer_get_proj(Renderer *self, mat4 proj) {
     glm_mat4_identity(proj);
     if (!self || !self->camera) return;
-    if (self->camera_type == RENDERER_CAMERA_2D) {
-        glm_mat4_copy(((Camera2D*)self->camera)->proj, proj);
-    } else if (self->camera_type == RENDERER_CAMERA_3D) {
-        glm_mat4_copy(((Camera3D*)self->camera)->proj, proj);
+    switch (self->camera_type) {
+        case RENDERER_CAMERA_2D: { glm_mat4_copy(((Camera2D*)self->camera)->proj, proj); break; }
+        case RENDERER_CAMERA_3D: { glm_mat4_copy(((Camera3D*)self->camera)->proj, proj); break; }
     }
 }
 
@@ -465,23 +491,21 @@ void Renderer_get_view_proj(Renderer *self, mat4 view, mat4 proj) {
 // Получить ширину камеры:
 int Renderer_get_width(Renderer *self) {
     if (!self || !self->camera) return 0;
-    if (self->camera_type == RENDERER_CAMERA_2D) {
-        return ((Camera2D*)self->camera)->width;
-    } else if (self->camera_type == RENDERER_CAMERA_3D) {
-        return ((Camera3D*)self->camera)->width;
+    switch (self->camera_type) {
+        case RENDERER_CAMERA_2D: return ((Camera2D*)self->camera)->width;
+        case RENDERER_CAMERA_3D: return ((Camera3D*)self->camera)->width;
+        default: return 0;
     }
-    return 0;
 }
 
 // Получить высоту камеры:
 int Renderer_get_height(Renderer *self) {
     if (!self || !self->camera) return 0;
-    if (self->camera_type == RENDERER_CAMERA_2D) {
-        return ((Camera2D*)self->camera)->height;
-    } else if (self->camera_type == RENDERER_CAMERA_3D) {
-        return ((Camera3D*)self->camera)->height;
+    switch (self->camera_type) {
+        case RENDERER_CAMERA_2D: return ((Camera2D*)self->camera)->height;
+        case RENDERER_CAMERA_3D: return ((Camera3D*)self->camera)->height;
+        default: return 0;
     }
-    return 0;
 }
 
 // Получить производителя видеокарты:
@@ -538,6 +562,13 @@ int Renderer_get_free_memory(Renderer *self) {
     return free;
 }
 
+// Установить камеру:
+void Renderer_set_camera(Renderer *self, void *camera, RendererCameraType type) {
+    if (!self) return;
+    self->camera = camera;
+    self->camera_type = type;
+}
+
 // Установить проверку глубины:
 void Renderer_set_depth_test(Renderer *self, bool enabled) {
     if (!self) return;
@@ -590,4 +621,5 @@ void Renderer_set_front_face_onright(Renderer *self) {
 void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height) {
     if (!self) return;
     glViewport(x, y, width, height);
+    GBuffer_resize(self->gbuffer, width, height);
 }

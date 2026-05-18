@@ -58,14 +58,15 @@ static int get_internal_format(TextureInternalFormat internal) {
 // Подбираем тип данных текстуры:
 static int get_data_type(TextureDataType dtype) {
     switch (dtype) {
-        case TEX_DATA_UBYTE:   return GL_UNSIGNED_BYTE;
-        case TEX_DATA_BYTE:    return GL_BYTE;
-        case TEX_DATA_USHORT:  return GL_UNSIGNED_SHORT;
-        case TEX_DATA_SHORT:   return GL_SHORT;
-        case TEX_DATA_UINT:    return GL_UNSIGNED_INT;
-        case TEX_DATA_INT:     return GL_INT;
-        case TEX_DATA_FLOAT:   return GL_FLOAT;
-        default:               return GL_UNSIGNED_BYTE;
+        case TEX_DATA_UBYTE:     return GL_UNSIGNED_BYTE;
+        case TEX_DATA_BYTE:      return GL_BYTE;
+        case TEX_DATA_USHORT:    return GL_UNSIGNED_SHORT;
+        case TEX_DATA_SHORT:     return GL_SHORT;
+        case TEX_DATA_UINT:      return GL_UNSIGNED_INT;
+        case TEX_DATA_INT:       return GL_INT;
+        case TEX_DATA_FLOAT:     return GL_FLOAT;
+        case TEX_DATA_UINT_24_8: return GL_UNSIGNED_INT_24_8;
+        default:                 return GL_UNSIGNED_BYTE;
     }
 }
 

@@ -23,8 +23,6 @@ struct Material {
     Vec4f albedo;               // Цвет материала RGBA.
     Vec3f ambient;              // Фоновый цвет.
     float metallic;             // Металлизация (0.0 = диэлектрик, 1.0 = метал).
-    Vec3f specular;             // Цвет спекулярности (зеркальности).
-    float specular_strength;    // Сила спекулярности (зеркальности).
     float roughness;            // Шероховатость (0.0 = зеркало, 1.0 = матовая поверхность).
     float ao;                   // Коэффициент внешней окклюзии. Обычно 1.
     float normal_strength;      // Интенсивность нормалей.
@@ -33,8 +31,8 @@ struct Material {
     float alpha_cutoff;         // Альфа отсечение.
     bool double_sided;          // Двухсторонний материал (отключение culling).
     bool transparent;           // Прозрачный материал (для blend mode).
-    float distortion_strength;             // Сила искажения.
-    float distortion_aberration_strength;  // Сила искажения цвета.
+    float distortion;             // Сила искажения.
+    float distortion_aberration;  // Сила искажения цвета.
 
     // Текстуры:
     Texture *albedo_map;        // Текстура цвета (RGB = цвет, A = альфа opacity).
@@ -65,8 +63,6 @@ Material* Material_create(
     Vec4f albedo,
     Vec3f ambient,
     float metallic,
-    Vec3f specular,
-    float specular_strength,
     float roughness,
     float ao,
     float normal_strength,
@@ -75,8 +71,8 @@ Material* Material_create(
     float alpha_cutoff,
     bool double_sided,
     bool transparent,
-    float distortion_strength,
-    float distortion_aberration_strength,
+    float distortion,
+    float distortion_aberration,
     Texture *albedo_map,
     Texture *normal_map,
     Texture *occlusion_map,

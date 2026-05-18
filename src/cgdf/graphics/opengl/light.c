@@ -53,7 +53,7 @@ Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity) {
     light->intensity = intensity;
     light->albedo_tex = Texture_create(renderer);
     light->light_tex = Texture_create(renderer);
-    light->framebuffer = BufferFBO_create(width, height);
+    light->framebuffer = BufferFBO_create();
     light->_is_scene_begin_ = false;
     light->_is_light_begin_ = false;
 
@@ -162,5 +162,4 @@ void Light2D_resize(Light2D *self, int width, int height) {
     if (!self) return;
     Texture_empty(self->albedo_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_UBYTE);
     Texture_empty(self->light_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_UBYTE);
-    BufferFBO_resize(self->framebuffer, width, height);
 }

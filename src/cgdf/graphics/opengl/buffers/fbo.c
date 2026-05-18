@@ -13,57 +13,6 @@
 #include "buffers.h"
 
 
-// Создать буфер кадра:
-BufferFBO* BufferFBO_create(int width, int height) {
-    BufferFBO *fbo = (BufferFBO*)mm_alloc(sizeof(BufferFBO));
-
-    // Заполняем поля:
-    fbo->width = width;
-    fbo->height = height;
-    fbo->id = 0;
-    fbo->rbo_id = 0;
-    fbo->_is_begin_ = false;
-    fbo->_id_before_begin_ = 0;
-    fbo->_rbo_id_before_begin_ = 0;
-    fbo->_id_before_read_ = 0;
-    fbo->_id_before_draw_ = 0;
-    fbo->attachments = Array_create(sizeof(int), 16);
-
-    // Создаём фреймбуфер и буфер рендера:
-    glGenFramebuffers(1, &fbo->id);
-    glGenRenderbuffers(1, &fbo->rbo_id);
-
-    // Проверка генерации буферов:
-    if (fbo->id == 0 || fbo->rbo_id == 0) {
-        log_msg("[E] BufferFBO_create: Creating FBO failed (or RBO inside).\n");
-        if (fbo->id != 0) BufferGC_GL_push(BGC_GL_FBO, fbo->id);
-        if (fbo->rbo_id != 0) BufferGC_GL_push(BGC_GL_RBO, fbo->rbo_id);
-        Array_destroy(&fbo->attachments);
-        mm_free(fbo);
-        return NULL;
-    }
-
-    glGetIntegerv(GL_RENDERBUFFER_BINDING, &fbo->_rbo_id_before_begin_);
-    glBindRenderbuffer(GL_RENDERBUFFER, fbo->rbo_id);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, fbo->width, fbo->height);
-    glBindRenderbuffer(GL_RENDERBUFFER, fbo->_rbo_id_before_begin_);
-    return fbo;
-}
-
-// Уничтожить буфер кадра:
-void BufferFBO_destroy(BufferFBO **fbo) {
-    if (!fbo || !*fbo) return;
-
-    // Удаляем сам буфер:
-    BufferFBO_end(*fbo);
-    BufferGC_GL_push(BGC_GL_FBO, (*fbo)->id);      // Добавляем буфер в стек на уничтожение.
-    BufferGC_GL_push(BGC_GL_RBO, (*fbo)->rbo_id);  // Добавляем буфер в стек на уничтожение.
-    Array_destroy(&(*fbo)->attachments);
-    mm_free(*fbo);
-    *fbo = NULL;
-}
-
-
 // -------- Вспомогательные функции: --------
 
 
@@ -133,8 +82,46 @@ static void fbo_check_complete(const char *tag) {
 }
 
 
-// -------- Реализация API: --------
+// -------- API фреймбуфера: --------
 
+
+// Создать буфер кадра:
+BufferFBO* BufferFBO_create() {
+    BufferFBO *fbo = (BufferFBO*)mm_alloc(sizeof(BufferFBO));
+
+    // Заполняем поля:
+    fbo->id = 0;
+    fbo->_is_begin_ = false;
+    fbo->_id_before_begin_ = 0;
+    fbo->_id_before_read_ = 0;
+    fbo->_id_before_draw_ = 0;
+    fbo->attachments = Array_create(sizeof(uint32_t), 16);
+
+    // Создаём фреймбуфер:
+    glGenFramebuffers(1, &fbo->id);
+
+    // Проверка генерации буферов:
+    if (fbo->id == 0) {
+        log_msg("[E] BufferFBO_create: Creating FBO failed (or RBO inside).\n");
+        if (fbo->id != 0) BufferGC_GL_push(BGC_GL_FBO, fbo->id);
+        Array_destroy(&fbo->attachments);
+        mm_free(fbo);
+        return NULL;
+    }
+    return fbo;
+}
+
+// Уничтожить буфер кадра:
+void BufferFBO_destroy(BufferFBO **fbo) {
+    if (!fbo || !*fbo) return;
+
+    // Удаляем сам буфер:
+    BufferFBO_end(*fbo);
+    BufferGC_GL_push(BGC_GL_FBO, (*fbo)->id);  // Добавляем буфер в стек на уничтожение.
+    Array_destroy(&(*fbo)->attachments);
+    mm_free(*fbo);
+    *fbo = NULL;
+}
 
 // Использовать буфер:
 void BufferFBO_begin(BufferFBO *self) {
@@ -144,7 +131,6 @@ void BufferFBO_begin(BufferFBO *self) {
         glBindFramebuffer(GL_FRAMEBUFFER, self->id);
     }
     self->_is_begin_ = true;
-    BufferFBO_apply(self);  // Только после _is_begin_ = true.
 }
 
 // Не использовать буфер:
@@ -167,25 +153,10 @@ void BufferFBO_clear(BufferFBO *self, float r, float g, float b, float a) {
     glClear(clear_mask);
 }
 
-// Изменить размер кадрового буфера:
-void BufferFBO_resize(BufferFBO *self, int width, int height) {
-    if (!self) return;
-    self->width = width;
-    self->height = height;
-    glGetIntegerv(GL_RENDERBUFFER_BINDING, &self->_rbo_id_before_begin_);
-    glBindRenderbuffer(GL_RENDERBUFFER, self->rbo_id);
-    glRenderbufferStorage(
-        GL_RENDERBUFFER,
-        GL_DEPTH24_STENCIL8,
-        self->width, self->height
-    );
-    glBindRenderbuffer(GL_RENDERBUFFER, self->_rbo_id_before_begin_);
-}
-
 // Активировать привязку для записи в неё данных:
 void BufferFBO_active(BufferFBO *self, uint32_t attachment) {
     if (!self || !self->_is_begin_) return;
-    glDrawBuffer(GL_COLOR_ATTACHMENT0+attachment);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0 + attachment);
     fbo_check_complete("active");
 }
 
@@ -202,9 +173,10 @@ void BufferFBO_apply(BufferFBO *self) {
 }
 
 // Скопировать цвет и глубину в другой кадровый буфер:
-void BufferFBO_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height) {
+void BufferFBO_blit(BufferFBO *self, uint32_t dest_fbo_id, uint32_t attachment, int x, int y, int width, int height) {
     if (!self || !self->_is_begin_) return;
     GLbitfield mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+    glReadBuffer(GL_COLOR_ATTACHMENT0 + attachment);
     if (fbo_has_stencil(self->id) && fbo_has_stencil(dest_fbo_id)) {
         mask |= GL_STENCIL_BUFFER_BIT;
     }
@@ -212,8 +184,12 @@ void BufferFBO_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int wid
 }
 
 // Скопировать только цвет в другой кадровый буфер:
-void BufferFBO_blit_color(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height) {
+void BufferFBO_blit_color(
+    BufferFBO *self, uint32_t dest_fbo_id,
+    uint32_t attachment, int x, int y, int width, int height
+) {
     if (!self || !self->_is_begin_) return;
+    glReadBuffer(GL_COLOR_ATTACHMENT0 + attachment);
     fbo_blit(self, dest_fbo_id, x, y, width, height, GL_COLOR_BUFFER_BIT);
 }
 
@@ -238,17 +214,8 @@ void BufferFBO_attach(BufferFBO *self, BufferFBO_Type type, uint32_t attachment,
     switch (type) {
         // Привязываем глубину:
         case BUFFER_FBO_DEPTH: {
-            glEnable(GL_DEPTH_TEST);  // Включаем тест глубины.
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex_id, 0);
-        } break;
-
-        // Привязываем глубину и маску:
-        case BUFFER_FBO_DEPTH_STENCIL: {
-            if (tex_id == 0) {
-                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, self->rbo_id);
-            } else {
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, tex_id, 0);
-            }
+            fbo_check_complete("attach_depth");
         } break;
 
         // Привязываем цвет:

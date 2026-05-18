@@ -70,8 +70,7 @@ void Camera2D_update(Camera2D *self) {
     glm_mat4_mul(self->proj, self->view, self->view_proj);
 
     // Устанавливаем активную камеру:
-    renderer->camera = (void*)self;
-    renderer->camera_type = RENDERER_CAMERA_2D;
+    Renderer_set_camera(renderer, (void*)self, RENDERER_CAMERA_2D);
 
     // Обновляем данные матриц в шейдере по умолчанию:
     Renderer_set_depth_test(renderer, false);
@@ -252,8 +251,7 @@ void Camera3D_update(Camera3D *self) {
     glm_mat4_mul(self->proj, self->view, self->view_proj);
 
     // Устанавливаем активную камеру:
-    renderer->camera = (void*)self;
-    renderer->camera_type = RENDERER_CAMERA_3D;
+    Renderer_set_camera(renderer, (void*)self, RENDERER_CAMERA_3D);
 
     // Обновляем данные матриц в шейдере по умолчанию:
     Shader *shader = renderer->shader;

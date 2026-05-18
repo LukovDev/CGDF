@@ -19,15 +19,13 @@ out vec2 v_texcoord;\n\
 out vec3 v_normal;\n\
 out vec3 v_normal_world;\n\
 out vec4 v_color;\n\
-out vec3 v_frag_pos;\n\
 \n\
 void main(void) {\n\
     v_texcoord = a_texcoord;\n\
     v_normal = a_normal;\n\
     v_normal_world = transpose(inverse(mat3(u_model))) * a_normal;\n\
     v_color = a_color;\n\
-    v_frag_pos = vec3(u_model * vec4(a_position, 1.0f));\n\
-    gl_Position = u_proj * u_view * vec4(v_frag_pos, 1.0f);\n\
+    gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0f);\n\
 }";
 
 static const char* DEFAULT_SHADER_FRAG = "\
@@ -39,14 +37,33 @@ uniform bool u_use_normals;\n\
 uniform bool u_use_vcolor;\n\
 uniform vec4 u_color = vec4(1.0);\n\
 uniform sampler2D u_texture;\n\
+uniform bool u_use_gbuffer;\n\
+uniform int u_gbuffer_view;\n\
 in vec2 v_texcoord;\n\
 in vec3 v_normal;\n\
 in vec3 v_normal_world;\n\
 in vec4 v_color;\n\
-in vec3 v_frag_pos;\n\
 out vec4 FragColor;\n\
 \n\
 void main(void) {\n\
+    if (u_use_gbuffer) {\n\
+        vec2 uv = vec2(v_texcoord.x, 1.0 - v_texcoord.y); // если FBO вверх ногами\n\
+        vec4 s = texture(u_texture, uv);\n\
+        if (u_gbuffer_view == 0) {\n\
+            FragColor = vec4(s.rgb, s.a);\n\
+        } else if (u_gbuffer_view == 1) {\n\
+            FragColor = vec4(s.rgb, 1.0);\n\
+        } else if (u_gbuffer_view == 2) {\n\
+            FragColor = vec4(s.rgb, 1.0);\n\
+        } else if (u_gbuffer_view == 3) {\n\
+            FragColor = vec4(s.rgb, 1.0);\n\
+        } else {\n\
+            float near = 0.01;\n\
+            float far = 50.0;\n\
+            FragColor = vec4(vec3((2.0 * near * far) / (far + near - s.r * (far - near)) / far), 1.0);\n\
+        }\n\
+        return;\n\
+    }\n\
     // Если мы используем точки для рисования:\n\
     if (u_use_points) {\n\
         vec2 coord = gl_PointCoord*2.0f-1.0f;\n\

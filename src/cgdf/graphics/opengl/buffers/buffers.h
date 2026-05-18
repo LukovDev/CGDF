@@ -57,20 +57,16 @@ uint32_t BufferQBO_get_primitives(BufferQBO *self);
 
 // Структура буфера кадра:
 struct BufferFBO {
-    int width;        // Ширина кадрового буфера.
-    int height;       // Высота кадрового буфера.
     uint32_t id;      // Айди кадрового буфера.
-    uint32_t rbo_id;  // Айди рендер буфера.
     bool _is_begin_;  // Флаг использования буфера (внутренняя логика).
     int32_t _id_before_begin_;  // ID буфера перед использованием (внутренняя логика).
-    int32_t _rbo_id_before_begin_;  // ID рендер буфера перед использованием (внутренняя логика).
     int32_t _id_before_read_;   // Айди перед чтением (внутренняя логика).
     int32_t _id_before_draw_;   // Айди перед рисованием (внутренняя логика).
     Array *attachments;         // Массив привязок.
 };
 
 // Создать буфер кадра:
-BufferFBO* BufferFBO_create(int width, int height);
+BufferFBO* BufferFBO_create();
 
 // Уничтожить буфер кадра:
 void BufferFBO_destroy(BufferFBO **fbo);
@@ -84,9 +80,6 @@ void BufferFBO_end(BufferFBO *self);
 // Очистить буфер:
 void BufferFBO_clear(BufferFBO *self, float r, float g, float b, float a);
 
-// Изменить размер кадрового буфера:
-void BufferFBO_resize(BufferFBO *self, int width, int height);
-
 // Активировать привязку для записи в неё данных:
 void BufferFBO_active(BufferFBO *self, uint32_t attachment);
 
@@ -94,10 +87,13 @@ void BufferFBO_active(BufferFBO *self, uint32_t attachment);
 void BufferFBO_apply(BufferFBO *self);
 
 // Скопировать цвет и глубину в другой кадровый буфер:
-void BufferFBO_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height);
+void BufferFBO_blit(BufferFBO *self, uint32_t dest_fbo_id, uint32_t attachment, int x, int y, int width, int height);
 
 // Скопировать только цвет в другой кадровый буфер:
-void BufferFBO_blit_color(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height);
+void BufferFBO_blit_color(
+    BufferFBO *self, uint32_t dest_fbo_id,
+    uint32_t attachment, int x, int y, int width, int height
+);
 
 // Скопировать только глубину в другой кадровый буфер:
 void BufferFBO_blit_depth(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int width, int height);

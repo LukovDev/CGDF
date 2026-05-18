@@ -9,6 +9,7 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/math.h>
 #include <cgdf/core/array.h>
+#include "gbuffer.h"
 #include "mesh.h"
 #include "shader.h"
 #include "texture.h"
@@ -68,6 +69,7 @@ struct Renderer {
     // Отрисовка сцены:
     Array *models;            // Массив указателей на модели для отрисовки.
     size_t draw_calls_count;  // Количество вызовов отрисовки.
+    GBuffer *gbuffer;         // G-Buffer.
 
     // Другое:
     Mesh *sprite_mesh;          // Сетка спрайта.
@@ -137,6 +139,9 @@ int Renderer_get_used_memory(Renderer *self);
 
 // Сколько свободно видеопамяти (в килобайтах):
 int Renderer_get_free_memory(Renderer *self);
+
+// Установить камеру:
+void Renderer_set_camera(Renderer *self, void *camera, RendererCameraType type);
 
 // Установить проверку глубины:
 void Renderer_set_depth_test(Renderer *self, bool enabled);
