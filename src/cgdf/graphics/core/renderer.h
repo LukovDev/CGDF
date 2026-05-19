@@ -62,7 +62,7 @@ struct Renderer {
 
     // Шейдеры:
     Shader *shader;              // Дефолтная шейдерная программа.
-    Shader *shader_model;        // Шейдер модели.
+    Shader *shader_gbuffer;      // Шейдер gbuffer.
     Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
     Shader *shader_light2d;      // Шейдер 2D освещения.
 

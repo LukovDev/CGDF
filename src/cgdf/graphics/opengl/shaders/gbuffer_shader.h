@@ -1,11 +1,11 @@
 //
-// model_shader.h - Шейдеры модели.
+// gbuffer_shader.h - Шейдеры GBuffer.
 //
 
 #pragma once
 
 
-static const char* MODEL_SHADER_VERT = "\
+static const char* GBUFFER_SHADER_VERT = "\
 #version 330 core\n\
 \n\
 uniform mat4 u_model;\n\
@@ -28,7 +28,7 @@ void main(void) {\n\
     gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0f);\n\
 }";
 
-static const char* MODEL_SHADER_FRAG = "\
+static const char* GBUFFER_SHADER_FRAG = "\
 #version 330 core\n\
 \n\
 uniform vec4 u_albedo;\n\

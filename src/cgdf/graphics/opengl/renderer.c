@@ -18,7 +18,7 @@
 #include "../core/vertex.h"
 #include "../core/renderer.h"
 #include "shaders/default_shader.h"
-#include "shaders/model_shader.h"
+#include "shaders/gbuffer_shader.h"
 #include "shaders/spritebatch_shader.h"
 #include "shaders/light2d_shader.h"
 #include "buffer_gc.h"
@@ -191,7 +191,7 @@ static inline Shader* create_shader(Renderer *rnd, const char *vert, const char 
 // Создать шейдеры:
 static inline void create_shaders(Renderer *rnd) {
     rnd->shader             = create_shader(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
-    rnd->shader_model       = create_shader(rnd, MODEL_SHADER_VERT, MODEL_SHADER_FRAG, NULL);
+    rnd->shader_gbuffer     = create_shader(rnd, GBUFFER_SHADER_VERT, GBUFFER_SHADER_FRAG, NULL);
     rnd->shader_spritebatch = create_shader(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
     rnd->shader_light2d     = create_shader(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
 }
@@ -199,7 +199,7 @@ static inline void create_shaders(Renderer *rnd) {
 // Освободить шейдеры:
 static inline void destroy_shaders(Renderer *rnd) {
     Shader_destroy(&rnd->shader);
-    Shader_destroy(&rnd->shader_model);
+    Shader_destroy(&rnd->shader_gbuffer);
     Shader_destroy(&rnd->shader_spritebatch);
     Shader_destroy(&rnd->shader_light2d);
 }
@@ -207,7 +207,7 @@ static inline void destroy_shaders(Renderer *rnd) {
 // Скомпилировать шейдеры:
 static inline void compile_shaders(Renderer *rnd) {
     Shader_compile(rnd->shader);
-    Shader_compile(rnd->shader_model);
+    Shader_compile(rnd->shader_gbuffer);
     Shader_compile(rnd->shader_spritebatch);
     Shader_compile(rnd->shader_light2d);
 }
@@ -215,7 +215,7 @@ static inline void compile_shaders(Renderer *rnd) {
 // Освободить кэш шейдеров:
 static inline void clear_shaders_cache(Renderer *rnd) {
     Shader_clear_caches(rnd->shader);
-    Shader_clear_caches(rnd->shader_model);
+    Shader_clear_caches(rnd->shader_gbuffer);
     Shader_clear_caches(rnd->shader_spritebatch);
     Shader_clear_caches(rnd->shader_light2d);
 }
@@ -389,9 +389,9 @@ void Renderer_display(Renderer *self) {
     GBuffer_begin(self->gbuffer);
 
     // Настраиваем шейдер моделей:
-    Shader_begin(self->shader_model);
-    Shader_set_mat4(self->shader_model, "u_view", view);
-    Shader_set_mat4(self->shader_model, "u_proj", proj);
+    Shader_begin(self->shader_gbuffer);
+    Shader_set_mat4(self->shader_gbuffer, "u_view", view);
+    Shader_set_mat4(self->shader_gbuffer, "u_proj", proj);
 
     // Проходимся по моделям:
     for (size_t i=0; i < Array_len(self->models); i++) {
@@ -399,7 +399,7 @@ void Renderer_display(Renderer *self) {
         if (!model || !model->meshes) continue;  // Если нет модели или сеток в модели, пропускаем.
 
         // Устанавливаем параметры модели:
-        Shader_set_mat4(self->shader_model, "u_model", model->transform);
+        Shader_set_mat4(self->shader_gbuffer, "u_model", model->transform);
 
         // Проходимся по сеткам:
         for (size_t i = 0; i < Array_len(model->meshes); i++) {
@@ -410,9 +410,9 @@ void Renderer_display(Renderer *self) {
             Material *mat = Mesh_get_material(mesh);
             if (mat && mat->name) {
                 // Устанавливаем параметры материала:
-                Shader_set_bool(self->shader_model, "u_use_tex_albedo", mat->albedo_map != NULL);
-                if (mat->albedo_map) Shader_set_tex2d(self->shader_model, "u_tex_albedo", mat->albedo_map->id);
-                Shader_set_vec4(self->shader_model, "u_albedo", mat->albedo);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_albedo", mat->albedo_map != NULL);
+                if (mat->albedo_map) Shader_set_tex2d(self->shader_gbuffer, "u_tex_albedo", mat->albedo_map->id);
+                Shader_set_vec4(self->shader_gbuffer, "u_albedo", mat->albedo);
             }
 
             // Рисуем сетку:
@@ -422,7 +422,7 @@ void Renderer_display(Renderer *self) {
     }
 
     // Конец отрисовки моделей:
-    Shader_end(self->shader_model);
+    Shader_end(self->shader_gbuffer);
 
     // Останавливаем G-Buffer:
     GBuffer_end(self->gbuffer);

@@ -214,7 +214,7 @@ void render(Window *self, float dtime) {
         glm_rotate(cat->transform, radians(90.0f), (vec3){0, 1, 0});
         glm_rotate(cat->transform, radians(-90.0f), (vec3){1, 0, 0});
         glm_scale(cat->transform, (vec3){0.2f, 0.2f, 0.2f});
-        Model_render(cat, true);
+        Model_render(cat, false);
     }
 
     for (size_t i=0; i < Array_len(objfile2.models); i++) {
