@@ -13,7 +13,7 @@
 
 
 // Перевести координаты на экране, в мировые координаты в 2D пространстве:
-static inline Vec2d screen_to_world2d(Camera2D *camera, Vec2d point) {
+static inline Vec2d Utils_screen_to_world2d(Camera2D *camera, Vec2d point) {
     /*
         Сначала получаем позицию левого нижнего угла камеры в мировых координатах:
         - Позиция камеры минус половина видимой области (width/height), с учётом масштаба метра и зума.
@@ -45,7 +45,7 @@ static inline Vec2d screen_to_world2d(Camera2D *camera, Vec2d point) {
 
 
 // Перевести мировые координаты в 2D пространстве, в пространство экрана:
-static inline Vec2d world2d_to_screen(Camera2D *camera, Vec2d world_point) {
+static inline Vec2d Utils_world2d_to_screen(Camera2D *camera, Vec2d world_point) {
     // Вычисляем смещение точки относительно позиции камеры:
     double dx = world_point.x - camera->position.x;
     double dy = world_point.y - camera->position.y;
@@ -64,7 +64,7 @@ static inline Vec2d world2d_to_screen(Camera2D *camera, Vec2d world_point) {
 
 
 // Перевести мировые координаты в 3D пространстве, в пространство экрана:
-static inline Vec2d world3d_to_screen(Camera3D *camera, Vec3d world_pos) {
+static inline Vec2d Utils_world3d_to_screen(Camera3D *camera, Vec3d world_pos) {
     vec4 world_v = {(float)world_pos.x, (float)world_pos.y, (float)world_pos.z, 1.0f};
     vec4 clip_coords;
 
@@ -83,7 +83,7 @@ static inline Vec2d world3d_to_screen(Camera3D *camera, Vec3d world_pos) {
 
 
 // Переводит координаты точки на экране, в мировые координаты на плоскости:
-static inline bool camera_screen_to_plane(
+static inline bool Utils_camera_screen_to_plane(
     Window *window, mat4 view, mat4 proj, Vec2i mouse_pos,
     Vec3f plane_point, Vec3f plane_normal, Vec3f *out_pos
 ) {

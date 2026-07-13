@@ -138,6 +138,13 @@ static uint32_t utf8_decode(const char *symbol, int *advance) {
     return FONT_FALLBACK_SUMB;
 }
 
+// Очистить атлас (инициализация и очистка):
+static void clear_atlas(Texture *atlas, int width, int height, bool use_mipmap) {
+    uint8_t *zeros = mm_calloc(1, (size_t)width * (size_t)height * 4);
+    Texture_set_data(atlas, width, height, zeros, use_mipmap, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA8, TEX_DATA_UBYTE);
+    mm_free(zeros);
+}
+
 // Добавить глиф в хеш-таблицу:
 static bool glyph_insert_to_cache(FontPixmap *self, uint32_t codepoint, FontGlyph *glyph) {
     uint32_t *stored_key = (uint32_t*)mm_alloc(sizeof(uint32_t));
@@ -240,7 +247,9 @@ static bool font_expand_and_repack(FontPixmap *self) {
     // Создаём новый атлас:
     Texture *new_atlas = Texture_create(self->renderer);
     if (!new_atlas) return false;
-    Texture_empty(new_atlas, new_size, new_size, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA8, TEX_DATA_UBYTE);
+    clear_atlas(new_atlas, new_size, new_size, false);
+    if (self->pixelized) Texture_set_pixelized(new_atlas);
+    else Texture_set_linear(new_atlas);
     HashTable *new_glyphs = HashTable_create();
     if (!new_glyphs) {
         Texture_destroy(&new_atlas);
@@ -353,7 +362,7 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     // Инициализируем атлас:
     int atlas_size = (int)sqrt(FONT_ATLAS_SIZE) * (font->font_size + FONT_ATLAS_PADDING * 2);
     if (atlas_size > max_size) atlas_size = max_size;  // Ограничиваем максимумом.
-    Texture_empty(font->atlas, atlas_size, atlas_size, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA8, TEX_DATA_UBYTE);
+    clear_atlas(font->atlas, atlas_size, atlas_size, false);
     return font;
 }
 
@@ -728,7 +737,7 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     float block_x = x + align_x;
     float block_y = y + align_y;
 
-    // Рисуем текст:
+    // Начинаем рисовать текст:
     SpriteBatch_begin(self->batch);
 
     // Рисуем фон (пока что на весь блок текста):

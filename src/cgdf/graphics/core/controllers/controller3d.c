@@ -182,6 +182,11 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
         camera->fov = self->target_fov;
     }
 
+    // Если позиция сломана:
+    if (!isfinite(self->target_pos.x)) self->target_pos.x = 0.0f;
+    if (!isfinite(self->target_pos.y)) self->target_pos.y = 0.0f;
+    if (!isfinite(self->target_pos.z)) self->target_pos.z = 0.0f;
+
     // Проверка на перемещение камеры:
     vec3 diff;
     glm_vec3_sub(

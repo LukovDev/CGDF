@@ -1,3 +1,7 @@
+//
+// tinycthread.h - Был модифицирован LukovDev 2026 для поддержки работы на Linux системах.
+//
+
 /* -*- mode: c; tab-width: 2; indent-tabs-mode: nil; -*-
 Copyright (c) 2012 Marcus Geelnard
 Copyright (c) 2013-2016 Evan Nemerson
@@ -454,11 +458,11 @@ int tss_set(tss_t key, void *val);
   typedef struct {
     LONG volatile status;
     CRITICAL_SECTION lock;
-  } once_flag;
-  #define ONCE_FLAG_INIT {0,}
+  } tss_once_flag;
+  #define TSS_ONCE_FLAG_INIT {0,}
 #else
-  #define once_flag pthread_once_t
-  #define ONCE_FLAG_INIT PTHREAD_ONCE_INIT
+  typedef pthread_once_t tss_once_flag;
+  #define TSS_ONCE_FLAG_INIT PTHREAD_ONCE_INIT
 #endif
 
 /** Invoke a callback exactly once
@@ -467,9 +471,11 @@ int tss_set(tss_t key, void *val);
  * @param func Callback to invoke.
  */
 #if defined(_TTHREAD_WIN32_)
-  void call_once(once_flag *flag, void (*func)(void));
+  void tss_call_once(tss_once_flag *flag, void (*func)(void));
 #else
-  #define call_once(flag,func) pthread_once(flag,func)
+  static inline void tss_call_once(tss_once_flag* flag, void (*func)(void)) {
+      pthread_once(flag, func);
+  }
 #endif
 
 #ifdef __cplusplus

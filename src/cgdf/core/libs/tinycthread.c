@@ -1,3 +1,7 @@
+//
+// tinycthread.c - Был модифицирован LukovDev 2026 для поддержки работы на Linux системах.
+//
+
 /* -*- mode: c; tab-width: 2; indent-tabs-mode: nil; -*-
 Copyright (c) 2012 Marcus Geelnard
 Copyright (c) 2013-2016 Evan Nemerson
@@ -893,7 +897,7 @@ int _tthread_timespec_get(struct timespec *ts, int base)
 #endif /* _TTHREAD_EMULATE_TIMESPEC_GET_ */
 
 #if defined(_TTHREAD_WIN32_)
-void call_once(once_flag *flag, void (*func)(void))
+void call_once(tss_once_flag *flag, void (*func)(void))
 {
     /* The idea here is that we use a spin lock (via the
          InterlockedCompareExchange function) to restrict access to the

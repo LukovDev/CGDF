@@ -16,7 +16,8 @@
     #include <unistd.h>
     #include <sys/sysinfo.h>
 #endif
-#if (defined(__x86_64__) || defined(__i386__) || defined(_M_IX86) || defined(_M_X64)) && !defined(_WIN32)
+#if (defined(__x86_64__) || defined(__i386__) || defined(_M_IX86) || defined(_M_X64)) && \
+    (defined(__GNUC__) || defined(__clang__)) && !defined(_WIN32)
     #include <cpuid.h>
 #endif
 #include "info.h"
@@ -74,8 +75,7 @@ CpuInfo Info_get_cpu(void) {
             strncpy(info.model, "Apple Silicon", sizeof(info.model) - 1);
         }
     #elif defined(__linux__)
-        if (info.arch == INFO_X86_64 || info.arch == INFO_X86) {
-            #if defined(__cpuid_available) || defined(__GNUC__)
+        #if defined(__x86_64__) || defined(__i386__)
                 uint32_t regs[4];
                 char name[49] = {0};
                 for (int i = 0; i < 3; i++) {
@@ -83,8 +83,7 @@ CpuInfo Info_get_cpu(void) {
                     memcpy(name + i * 16, regs, 16);
                 }
                 strncpy(info.model, name, sizeof(info.model) - 1);
-            #endif
-        } else {
+        #else
             FILE* f = fopen("/proc/cpuinfo", "r");
             if (f) {
                 char line[256];
@@ -105,7 +104,7 @@ CpuInfo Info_get_cpu(void) {
                 }
                 fclose(f);
             }
-        }
+        #endif
     #endif
 
     // Если модель всё ещё пуста:

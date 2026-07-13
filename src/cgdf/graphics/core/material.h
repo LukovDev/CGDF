@@ -20,17 +20,21 @@ struct Material {
     char *name;  // Название материала.
 
     // Параметры:
-    Vec4f albedo;               // Цвет материала RGBA.
-    Vec3f ambient;              // Фоновый цвет.
-    float metallic;             // Металлизация (0.0 = диэлектрик, 1.0 = метал).
-    float roughness;            // Шероховатость (0.0 = зеркало, 1.0 = матовая поверхность).
-    float ao;                   // Коэффициент внешней окклюзии. Обычно 1.
-    float normal_strength;      // Интенсивность нормалей.
-    Vec3f emissive_color;       // Цвет свечения.
-    float emissive_strength;    // Интенсивность свечения.
-    float alpha_cutoff;         // Альфа отсечение.
-    bool double_sided;          // Двухсторонний материал (отключение culling).
-    bool transparent;           // Прозрачный материал (для blend mode).
+    Vec4f albedo;                 // Цвет материала RGBA.
+    Vec3f ambient;                // Фоновый цвет.
+    float metallic;               // Металлизация (0.0 = диэлектрик, 1.0 = метал).
+    float roughness;              // Шероховатость (0.0 = зеркало, 1.0 = матовая поверхность).
+    float ao;                     // Коэффициент внешней окклюзии. Обычно 1.
+    float normal_strength;        // Интенсивность нормалей.
+    Vec3f emissive_color;         // Цвет свечения.
+    float emissive_strength;      // Интенсивность свечения.
+    float height_strength;        // Интенсивность глубины.
+    float height_min_layers;      // Минимальное количество слоев глубины.
+    float height_max_layers;      // Максимальное количество слоев глубины.
+    bool height_cutoff_enabled;   // Отсекать ли фрагменты параллакса за координатами текстуры.
+    float alpha_cutoff;           // Альфа отсечение.
+    bool double_sided;            // Двухсторонний материал (отключение culling).
+    bool transparent;             // Прозрачный материал (для blend mode).
     float distortion;             // Сила искажения.
     float distortion_aberration;  // Сила искажения цвета.
 
@@ -68,6 +72,10 @@ Material* Material_create(
     float normal_strength,
     Vec3f emissive_color,
     float emissive_strength,
+    float height_strength,
+    float height_min_layers,
+    float height_max_layers,
+    bool height_cutoff_enabled,
     float alpha_cutoff,
     bool double_sided,
     bool transparent,

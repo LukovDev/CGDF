@@ -50,9 +50,9 @@ void main(void) {\n\
         vec2 uv = vec2(v_texcoord.x, 1.0 - v_texcoord.y); // если FBO вверх ногами\n\
         vec4 s = texture(u_texture, uv);\n\
         if (u_gbuffer_view == 0) {\n\
-            FragColor = vec4(s.rgb, s.a);\n\
+            FragColor = vec4(s.rgba);\n\
         } else if (u_gbuffer_view == 1) {\n\
-            FragColor = vec4(s.rgb, 1.0);\n\
+            FragColor = vec4(s.rgb * 2.0 - 1.0, 1.0);\n\
         } else if (u_gbuffer_view == 2) {\n\
             FragColor = vec4(s.rgb, 1.0);\n\
         } else if (u_gbuffer_view == 3) {\n\

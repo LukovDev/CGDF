@@ -68,6 +68,7 @@ struct Renderer {
 
     // Отрисовка сцены:
     Array *models;            // Массив указателей на модели для отрисовки.
+    Array *model_transforms;  // Массив трансформаций моделей.
     size_t draw_calls_count;  // Количество вызовов отрисовки.
     GBuffer *gbuffer;         // G-Buffer.
 

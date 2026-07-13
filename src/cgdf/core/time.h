@@ -130,7 +130,7 @@ static inline TimeCurrent Time_get_current(bool local_time) {
     TimeCurrent result;
 
     // Получаем часовой пояс устройства:
-    uint32_t offset_utc = Time_get_utc_offset().offset;
+    int32_t offset_utc = Time_get_utc_offset().offset;
     double unix_time = Time_now(NULL);
 
     // Целые секунды и миллисекунды:

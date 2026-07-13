@@ -36,16 +36,16 @@ void GBuffer_end(GBuffer *self);
 void GBuffer_resize(GBuffer *self, int width, int height);
 
 // Получить текстуру albedo_roughness:
-Texture* GBuffer_get_albedo_roughness(GBuffer *self);
+Texture* GBuffer_get_tex_albedo_roughness(GBuffer *self);
 
 // Получить текстуру normal_ao:
-Texture* GBuffer_get_normal_ao(GBuffer *self);
+Texture* GBuffer_get_tex_normal_ao(GBuffer *self);
 
 // Получить текстуру pbr_properties:
-Texture* GBuffer_get_pbr_properties(GBuffer *self);
+Texture* GBuffer_get_tex_pbr_properties(GBuffer *self);
 
 // Получить текстуру emissive:
-Texture* GBuffer_get_emissive(GBuffer *self);
+Texture* GBuffer_get_tex_emissive(GBuffer *self);
 
 // Получить текстуру depth:
-Texture* GBuffer_get_depth(GBuffer *self);
+Texture* GBuffer_get_tex_depth(GBuffer *self);

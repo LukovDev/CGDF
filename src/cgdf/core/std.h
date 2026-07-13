@@ -4,6 +4,10 @@
 
 #pragma once
 
+#if !defined(_WIN32) && !defined(__APPLE__)
+    #define _POSIX_C_SOURCE 200809L
+#endif
+
 
 // Подключаем:
 #include <math.h>

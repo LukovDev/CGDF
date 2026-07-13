@@ -239,6 +239,7 @@ Renderer* Renderer_create(void) {
 
     // Отрисовка сцены:
     rnd->models = NULL;
+    rnd->model_transforms = NULL;
     rnd->gbuffer = NULL;
 
     // Другое:
@@ -269,6 +270,7 @@ void Renderer_destroy(Renderer **rnd) {
 
     // Удаляем всякое для отрисовки сцены:
     Array_destroy(&(*rnd)->models);
+    Array_destroy(&(*rnd)->model_transforms);
     GBuffer_destroy(&(*rnd)->gbuffer);
 
     // Освобождаем память рендерера:
@@ -364,6 +366,7 @@ void Renderer_init(Renderer *self) {
 
     // Отрисовка сцены:
     self->models = Array_create(sizeof(Model*), ARRAY_DEFAULT_CAPACITY);  // Массив указателей на модели для отрисовки.
+    self->model_transforms = Array_create(sizeof(mat4), ARRAY_DEFAULT_CAPACITY);  // Массив трансформаций моделей.
     self->gbuffer = GBuffer_create(self, Renderer_get_width(self), Renderer_get_height(self));
 
     // Поднимаем флаг инициализации:
@@ -373,7 +376,16 @@ void Renderer_init(Renderer *self) {
 
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self) {
-    if (!self || !Array_len(self->models)) return;
+    if (!self) return;
+    static bool need_to_clean_gbuffer = false;
+    // Для очистки gbuffer при пустом стеке моделей:
+    if (!Array_len(self->models)) {
+        if (need_to_clean_gbuffer) {
+            need_to_clean_gbuffer = false;
+            GBuffer_resize(self->gbuffer, Renderer_get_width(self), Renderer_get_height(self));
+        }
+        return;
+    }
     self->draw_calls_count = 0;
 
     // -------- Проход 1 - GBuffer: --------
@@ -387,6 +399,7 @@ void Renderer_display(Renderer *self) {
 
     // Используем G-Buffer:
     GBuffer_begin(self->gbuffer);
+    need_to_clean_gbuffer = true;
 
     // Настраиваем шейдер моделей:
     Shader_begin(self->shader_gbuffer);
@@ -399,7 +412,9 @@ void Renderer_display(Renderer *self) {
         if (!model || !model->meshes) continue;  // Если нет модели или сеток в модели, пропускаем.
 
         // Устанавливаем параметры модели:
-        Shader_set_mat4(self->shader_gbuffer, "u_model", model->transform);
+        mat4 model_matrix;
+        glm_mat4_copy(*(mat4*)Array_get(self->model_transforms, i), model_matrix);
+        Shader_set_mat4(self->shader_gbuffer, "u_model", model_matrix);
 
         // Проходимся по сеткам:
         for (size_t i = 0; i < Array_len(model->meshes); i++) {
@@ -410,9 +425,71 @@ void Renderer_display(Renderer *self) {
             Material *mat = Mesh_get_material(mesh);
             if (mat && mat->name) {
                 // Устанавливаем параметры материала:
-                Shader_set_bool(self->shader_gbuffer, "u_use_tex_albedo", mat->albedo_map != NULL);
-                if (mat->albedo_map) Shader_set_tex2d(self->shader_gbuffer, "u_tex_albedo", mat->albedo_map->id);
+                if (mat->transparent) continue;  // Рендерим только непрозрачные сетки и материалы:
+
+                // Настройка двухстороннего рендеринга (Culling)
+                Renderer_set_cull_faces(self, !mat->double_sided);
+
+                // 1. Карта цвета:
+                bool use_albedo_tex = (mat->albedo_map != NULL);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_albedo", use_albedo_tex);
+                if (use_albedo_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_albedo", mat->albedo_map->id);
                 Shader_set_vec4(self->shader_gbuffer, "u_albedo", mat->albedo);
+
+                // 2. Карта нормалей:
+                bool use_normal_tex = (mat->normal_map != NULL);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_normal", use_normal_tex);
+                if (use_normal_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_normal", mat->normal_map->id);
+                Shader_set_float(self->shader_gbuffer, "u_normal_strength", mat->normal_strength);
+
+                // 3. Карта окклюзии (AO):
+                bool use_ao_tex = (mat->occlusion_map != NULL);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_occlusion", use_ao_tex);
+                if (use_ao_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_occlusion", mat->occlusion_map->id);
+                Shader_set_float(self->shader_gbuffer, "u_ao", mat->ao);
+
+                // 4. Карта матовости:
+                bool use_roughness_tex = (mat->roughness_map != NULL);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_roughness", use_roughness_tex);
+                if (use_roughness_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_roughness", mat->roughness_map->id);
+                Shader_set_float(self->shader_gbuffer, "u_roughness", mat->roughness);
+
+                // 5. Карта металлика:
+                bool use_metallic_tex = (mat->metallic_map != NULL);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_metallic", use_metallic_tex);
+                if (use_metallic_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_metallic", mat->metallic_map->id);
+                Shader_set_float(self->shader_gbuffer, "u_metallic", mat->metallic);
+
+                // 6. Карта свечения:
+                bool use_emissive_tex = (mat->emissive_map != NULL);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_emissive", use_emissive_tex);
+                if (use_emissive_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_emissive", mat->emissive_map->id);
+                Shader_set_vec3(self->shader_gbuffer, "u_emissive_color", mat->emissive_color);
+                Shader_set_float(self->shader_gbuffer, "u_emissive_strength", mat->emissive_strength);
+
+                // 7. Карта высоты (параллакс):
+                bool use_height_tex = (mat->height_map != NULL);
+                Shader_set_bool(self->shader_gbuffer, "u_use_tex_height", use_height_tex);
+                if (use_height_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_height", mat->height_map->id);
+                Shader_set_float(self->shader_gbuffer, "u_height_strength", mat->height_strength);
+                Shader_set_float(self->shader_gbuffer, "u_pom_min_layers", mat->height_min_layers);
+                Shader_set_float(self->shader_gbuffer, "u_pom_max_layers", mat->height_max_layers);
+                Shader_set_bool(self->shader_gbuffer, "u_pom_cutoff_enabled", mat->height_cutoff_enabled);
+
+                // 8. Остальные параметры:
+                Shader_set_vec3(self->shader_gbuffer, "u_ambient", mat->ambient);
+                Shader_set_float(self->shader_gbuffer, "u_alpha_cutoff", mat->alpha_cutoff);
+                Shader_set_float(self->shader_gbuffer, "u_distortion", mat->distortion);
+                Shader_set_float(self->shader_gbuffer, "u_distortion_aberration", mat->distortion_aberration);
+                Vec3f camera_pos;
+                if (self->camera_type == RENDERER_CAMERA_2D) {
+                    Vec2d pos = ((Camera2D*)self->camera)->position;
+                    camera_pos = (Vec3f){pos.x, pos.y, 0.0f};
+                } else {
+                    Vec3d pos = ((Camera3D*)self->camera)->position;
+                    camera_pos = (Vec3f){pos.x, pos.y, pos.z};
+                }
+                Shader_set_vec3(self->shader_gbuffer, "u_camera_pos", camera_pos);
             }
 
             // Рисуем сетку:
@@ -434,6 +511,7 @@ void Renderer_display(Renderer *self) {
 
     // Очищаем список моделей:
     Array_clear(self->models, false);
+    Array_clear(self->model_transforms, false);
 }
 
 // Получить количество вызовов отрисовки:
@@ -617,5 +695,5 @@ void Renderer_set_front_face_onright(Renderer *self) {
 void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height) {
     if (!self) return;
     glViewport(x, y, width, height);
-    GBuffer_resize(self->gbuffer, width, height);
+    GBuffer_resize(self->gbuffer, width, height);  // Меняем размер G-Buffer.
 }

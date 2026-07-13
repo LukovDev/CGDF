@@ -86,6 +86,10 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
         camera->position = (Vec2d){self->target_pos.x, self->target_pos.y};
     }
 
+    // Если позиция сломана:
+    if (!isfinite(self->target_pos.x)) self->target_pos.x = 0.0f;
+    if (!isfinite(self->target_pos.y)) self->target_pos.y = 0.0f;
+
     // Проверяем перемещается камера или нет:
     vec3 diff;
     glm_vec2_sub((vec2){ self->target_pos.x, self->target_pos.y },

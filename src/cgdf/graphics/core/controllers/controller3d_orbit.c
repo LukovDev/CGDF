@@ -113,6 +113,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     if (!pressed_pass && !keys[k_zoom]) {
         // Масштабируем расстояние:
         self->target_dst -= Input_get_mouse_wheel(window).y * self->target_dst * self->mouse_sensitivity;
+        if (self->target_dst <= 0.0f) self->target_dst = 0.001f;
     }
 
     // Плавное масштабирование расстояния, вращение и обзора камеры:
@@ -146,6 +147,13 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
 
     // Вращаем камеру:
     Camera3D_look_at(camera, self->target_pos, (Vec3d){0.0f, 1.0f, 0.0f});
+
+    // Если позиция сломана:
+    if (!isfinite(self->target_pos.x)) self->target_pos.x = 0.0f;
+    if (!isfinite(self->target_pos.y)) self->target_pos.y = 0.0f;
+    if (!isfinite(self->target_pos.z)) self->target_pos.z = 0.0f;
+    if (!isfinite(self->target_dst))   self->target_dst = 1.0f;
+    if (!isfinite(self->distance))     self->distance = 1.0f;
 
     // Проверяем перемещается камера или нет:
     vec3 diff;

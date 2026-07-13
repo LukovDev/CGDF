@@ -40,7 +40,10 @@ Vec2i Mesh_get_buffers_ids(Mesh *self);
 // Динамическая ли сетка:
 bool Mesh_is_dynamic(Mesh *self);
 
-// Получить материал из сетки:
+// Установить материал сетки:
+void Mesh_set_material(Mesh *self, Material *material);
+
+// Получить материал сетки:
 Material* Mesh_get_material(Mesh *self);
 
 // Получить размер сетки в байтах (VRAM. VBO+EBO):

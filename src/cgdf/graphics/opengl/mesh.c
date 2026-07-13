@@ -105,7 +105,13 @@ bool Mesh_is_dynamic(Mesh *self) {
     return self->is_dynamic;
 }
 
-// Получить материал из сетки:
+// Установить материал сетки:
+void Mesh_set_material(Mesh *self, Material *material) {
+    if (!self) return;
+    self->material = material;
+}
+
+// Получить материал сетки:
 Material* Mesh_get_material(Mesh *self) {
     if (!self) return NULL;
     return self->material;

@@ -21,6 +21,10 @@ Material* Material_create(
     float normal_strength,
     Vec3f emissive_color,
     float emissive_strength,
+    float height_strength,
+    float height_min_layers,
+    float height_max_layers,
+    bool height_cutoff_enabled,
     float alpha_cutoff,
     bool double_sided,
     bool transparent,
@@ -47,6 +51,10 @@ Material* Material_create(
     material->normal_strength = normal_strength;
     material->emissive_color = emissive_color;
     material->emissive_strength = emissive_strength;
+    material->height_strength = height_strength;
+    material->height_min_layers = height_min_layers;
+    material->height_max_layers = height_max_layers;
+    material->height_cutoff_enabled = height_cutoff_enabled;
     material->alpha_cutoff = alpha_cutoff;
     material->double_sided = double_sided;
     material->transparent = transparent;
@@ -75,9 +83,9 @@ Material* Material_create(
 // Создать материал по умолчанию (пустой):
 Material* Material_create_default(const char *name) {
     return Material_create(
-        name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, 
-        0.0f, 0.0f, 0.0f, (Vec3f){0, 0, 0}, 0.0f, 0.0f, false, false,
-        0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+        name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, 0.0f, 0.0f,
+        0.0f, (Vec3f){0, 0, 0}, 0.0f, 0.0f, 16.0f, 128.0f, false, 0.0f,
+        false, false, 0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
     );
 }
 

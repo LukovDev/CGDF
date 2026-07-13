@@ -57,6 +57,10 @@ void Camera2D_update(Camera2D *self) {
     if (!self || !self->window->renderer) return;
     Renderer *renderer = self->window->renderer;
 
+    // Если позиция камеры сломана:
+    if (!isfinite(self->position.x)) self->position.x = 0.0f;
+    if (!isfinite(self->position.y)) self->position.y = 0.0f;
+
     glm_mat4_identity(self->view);
     if (self->zoom != 0.0f) {
         glm_scale(self->view, (vec3){1.0f/self->zoom, 1.0f/self->zoom, 1.0f});
@@ -216,6 +220,11 @@ void Camera3D_update(Camera3D *self) {
         self->_oldfar_ = self->z_far;
         self->_oldnear_ = self->z_near;
     }
+
+    // Если позиция камеры сломана:
+    if (!isfinite(self->position.x)) self->position.x = 0.0f;
+    if (!isfinite(self->position.y)) self->position.y = 0.0f;
+    if (!isfinite(self->position.z)) self->position.z = 0.0f;
 
     // Сбрасываем матрицу вида:
     glm_mat4_identity(self->view);

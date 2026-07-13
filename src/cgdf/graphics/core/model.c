@@ -84,4 +84,5 @@ void Model_render(Model *self, bool wireframe) {
     // Добавляем себя в массив моделей для отрисовки:
     self->wireframe = wireframe;
     Array_push(self->renderer->models, &self);
+    Array_push(self->renderer->model_transforms, &self->transform);
 }

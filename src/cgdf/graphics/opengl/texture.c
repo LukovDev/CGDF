@@ -71,10 +71,8 @@ static int get_data_type(TextureDataType dtype) {
 }
 
 // Размер одного пикселя internal format:
-static size_t bytes_per_internal(TextureInternalFormat internal)
-{
-    switch (internal)
-    {
+static size_t bytes_per_internal(TextureInternalFormat internal) {
+    switch (internal) {
         case TEX_INTERNAL_R8:       return 1;
         case TEX_INTERNAL_RG8:      return 2;
         case TEX_INTERNAL_RGB8:     return 3;
@@ -186,6 +184,7 @@ void Texture_empty(
 
     width = width <= 0 ? 1 : width;
     height = height <= 0 ? 1 : height;
+    // Не гарантируем, что текстура будет полностью пустой. Её надо будет очистить!
     Texture_set_data(self, width, height, NULL, use_mipmap, format, internal, dtype);
 }
 
