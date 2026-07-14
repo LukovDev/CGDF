@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/cgdf.h>
 #include <cgdf/graphics/graphics.h>
+#include <cgdf/graphics/gui/gui.h>
 
 
 static Texture *tex1;
@@ -21,6 +22,7 @@ static Shader *grid;
 static Shader *atmo;
 static FontPixmap *font;
 static Material *material;
+static Material *floor_material;
 static OBJFile objfile;
 static OBJFile objfile2;
 static OBJFile objfile3;
@@ -132,6 +134,8 @@ void start(Window *self) {
     blue_noise = Texture_create(self->renderer);
     Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
 
+    GUI_init(self, NULL, 48);
+
     Texture *albedo = Texture_create(self->renderer);
     Texture *normal = Texture_create(self->renderer);
     Texture *occlusion = Texture_create(self->renderer);
@@ -151,11 +155,11 @@ void start(Window *self) {
     Texture_load(height, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/height.png", true);
 
     material = Material_create(
-        "Cat Material",
+        "Material 01",
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
         1.0f, 1.0f, 0.0f, 1.0f,
-        (Vec3f){1, 1, 1}, 1.0f, 0.075f, 16.0f, 128.0f, true,
+        (Vec3f){1, 1, 1}, 1.0f, 0.05f, 16.0f, 128.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
         albedo, normal, occlusion,
         roughness, metallic, emission,
@@ -169,19 +173,63 @@ void start(Window *self) {
     material->owns_emissive_map = true;
     material->owns_height_map = true;
 
+    Texture *floor_albedo = Texture_create(self->renderer);
+    Texture *floor_normal = Texture_create(self->renderer);
+    Texture *floor_occlusion = Texture_create(self->renderer);
+    Texture *floor_roughness = Texture_create(self->renderer);
+    Texture *floor_metallic = Texture_create(self->renderer);
+    Texture *floor_emission = Texture_create(self->renderer);
+    Texture *floor_height = Texture_create(self->renderer);
+
+    #define PACKTYPE "roads"
+    #define PACKNAME "square-block-vegetation"  // beige-stonework, square-block-vegetation, wedged-cobblestone
+    Texture_load(floor_albedo, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/albedo.png", true);
+    Texture_load(floor_normal, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/normal.png", true);
+    Texture_load(floor_occlusion, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/ao.png", true);
+    Texture_load(floor_roughness, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/roughness.png", true);
+    Texture_load(floor_metallic, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/metallic.png", true);
+    Texture_load(floor_emission, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/albedo.png", true);
+    Texture_load(floor_height, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/height.png", true);
+
+    floor_material = Material_create(
+        "Material 02",
+        (Vec4f){1, 1, 1, 1},
+        (Vec3f){1, 1, 1},
+        1.0f, 1.0f, 0.0f, 1.0f,
+        (Vec3f){1, 1, 1}, 1.0f, 0.05f, 16.0f, 128.0f, false,
+        0.0f, false, false, 0.0f, 0.0f,
+        floor_albedo, floor_normal, floor_occlusion,
+        floor_roughness, floor_metallic, floor_emission,
+        floor_height
+    );
+    floor_material->owns_albedo_map = true;
+    floor_material->owns_normal_map = true;
+    floor_material->owns_occlusion_map = true;
+    floor_material->owns_roughness_map = true;
+    floor_material->owns_metallic_map = true;
+    floor_material->owns_emissive_map = true;
+    floor_material->owns_height_map = true;
+
     objfile = ObjLoader_load(self->renderer, "data/obj/cat/cat.obj");
     objfile2 = ObjLoader_load(self->renderer, "data/obj/demo_scene/demo_scene.obj");
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
-    model = ObjLoader_load(self->renderer, "data/obj/example/cube.obj");
+    model = ObjLoader_load(self->renderer, "data/obj/example/sphere.obj");
 
-    Model *sphere = Array_get_ptr(model.models, 0);
-    for (size_t i=0; i<Array_len(sphere->meshes); i++) {
-        Mesh *mesh = Array_get_ptr(sphere->meshes, i);
+    Model *model0 = Array_get_ptr(model.models, 0);
+    for (size_t i=0; i<Array_len(model0->meshes); i++) {
+        Mesh *mesh = Array_get_ptr(model0->meshes, i);
         Mesh_set_material(mesh, material);
     }
-    Array_remove(objfile3.models, 0, NULL);
+    Model *floor = Array_get_ptr(objfile2.models, 0);
+    for (size_t i=0; i<Array_len(floor->meshes); i++) {
+        Mesh *mesh = Array_get_ptr(floor->meshes, i);
+        Mesh_set_material(mesh, floor_material);
+    }
+    Model *tmp = NULL;
+    Array_remove(objfile3.models, 0, &tmp);
+    Model_destroy(&tmp);
 
     log_msg("[I] data loaded\n");
 }
@@ -205,6 +253,9 @@ void destroy(Window *self) {
     CameraPlanetController3D_destroy(&ctrl_planet);
 
     Material_destroy(&material);
+    Material_destroy(&floor_material);
+
+    GUI_destroy();
 
     destroy_objfile(objfile);
     destroy_objfile(objfile2);
@@ -480,6 +531,12 @@ void render(Window *self, float dtime) {
         fps, camera3d->position.x, camera3d->position.y, camera3d->position.z, camera3d->fov
     );
     }
+
+    // if (GUI_panel(25, 25)) {
+    //     if (GUI_button("Knopka")) {
+    //         printf("pressed\n");
+    //     }
+    // }
 
     Camera2D_ui_end(camera2d);
 

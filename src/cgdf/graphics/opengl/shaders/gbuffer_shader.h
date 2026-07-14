@@ -91,10 +91,6 @@ vec3 get_normal_from_map(vec3 N, vec2 coords, mat3 out_TBN, vec2 duv1, vec2 duv2
     return normalize(out_TBN * tangent_normal);\n\
 }\n\
 \n\
-vec3 computeLighting(vec3 normal, vec3 baseColor, vec3 lightDir, vec3 lightColor, vec3 ambientColor) {\n\
-    float diffuseFactor = max(dot(normalize(normal), normalize(-lightDir)), 0.0);\n\
-    return baseColor * (ambientColor + diffuseFactor * lightColor);\n\
-}\n\
 void main(void) {\n\
     // Рассчет TBN:\n\
     vec3 N_base = normalize(v_normal_world);\n\
@@ -128,10 +124,9 @@ void main(void) {\n\
         float current_depth_map_value = 1.0f - texture(u_tex_height, UVs).r;\n\
         \n\
         // Проходися по слоям пока не попадем по высоте:\n\
-        while (current_layer_depth < current_depth_map_value) {\n\
+        for (; current_layer_depth < current_depth_map_value; current_layer_depth += layer_depth) {\n\
             UVs -= deltaUVs;\n\
             current_depth_map_value = 1.0f - texture(u_tex_height, UVs).r;\n\
-            current_layer_depth += layer_depth;\n\
         }\n\
         \n\
         // Применяем иллюзию:\n\
@@ -181,7 +176,6 @@ void main(void) {\n\
     // 6. Distortion:\n\
     float distortion = u_distortion;\n\
     float aberration = u_distortion_aberration;\n\
-    albedo.rgb = computeLighting(normal, albedo.rgb, normalize(vec3(-1.0, -1.0, -1.0)), vec3(2.0), vec3(0.1));\n\
     \n\
     // Упаковываем выходные данные в GBuffer:\n\
     // Layout 0: Альбедо (RGB) + Шероховатость (A):\n\

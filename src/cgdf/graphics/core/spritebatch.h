@@ -77,6 +77,9 @@ void SpriteBatch_reset_texcoord(SpriteBatch *self);
 // Получить текстурные координаты:
 Vec4f SpriteBatch_get_texcoord(SpriteBatch *self);
 
+// Установить кастомный шейдер:
+void SpriteBatch_set_custom_shader(SpriteBatch *self, Shader *shader);
+
 // Добавить 2D спрайт в пакет данных:
 void SpriteBatch_draw(
     SpriteBatch *self, Texture *texture,

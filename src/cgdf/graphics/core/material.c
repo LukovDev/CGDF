@@ -38,7 +38,6 @@ Material* Material_create(
     Texture *emissive_map,
     Texture *height_map
 ) {
-    if (!name) return NULL;
     Material *material = (Material*)mm_alloc(sizeof(Material));
 
     // Заполняем поля:

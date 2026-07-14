@@ -17,17 +17,18 @@
 
 // Пакетная отрисовка спрайтов:
 struct SpriteBatch {
-    Renderer     *renderer;       // Рендерер.
-    BufferVAO    *vao;            // Буфер атрибутов.
-    BufferVBO    *vbo;            // Буфер вершин.
-    BufferEBO    *ebo;            // Буфер граней.
-    SpriteVertex *array;          // Массив вершин.
-    uint32_t     sprite_count;    // Сколько спрайтов накоплено.
-    uint32_t     vertex_count;    // Сколько вершин реально записано.
-    uint32_t     current_tex_id;  // Текущий айди текстуры.
-    Vec4f        color;           // Цвета спрайтов.
-    Vec4f        texcoord;        // Текстурные координаты спрайтов.
-    bool         _is_begin_;      // Внутренний флаг-ключ отрисовки.
+    Renderer     *renderer;         // Рендерер.
+    BufferVAO    *vao;              // Буфер атрибутов.
+    BufferVBO    *vbo;              // Буфер вершин.
+    BufferEBO    *ebo;              // Буфер граней.
+    SpriteVertex *array;            // Массив вершин.
+    uint32_t     sprite_count;      // Сколько спрайтов накоплено.
+    uint32_t     vertex_count;      // Сколько вершин реально записано.
+    uint32_t     current_tex_id;    // Текущий айди текстуры.
+    Vec4f        color;             // Цвета спрайтов.
+    Vec4f        texcoord;          // Текстурные координаты спрайтов.
+    bool         _is_begin_;        // Внутренний флаг-ключ отрисовки.
+    Shader       *_custom_shader_;  // Кастомный шейдер.
 };
 
 
@@ -70,6 +71,7 @@ static void _batch_flush_(SpriteBatch *self) {
 
     // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch_begin):
     Shader *shader = self->renderer->shader_spritebatch;
+    if (self->_custom_shader_ != NULL) shader = self->_custom_shader_;
     Shader_set_bool(shader, "u_use_texture", self->current_tex_id != 0 ? true : false);
     Shader_set_tex2d(shader, "u_texture", self->current_tex_id);
 
@@ -121,6 +123,7 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     batch->color = (Vec4f){1.0f, 1.0f, 1.0f, 1.0f};
     batch->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
     batch->_is_begin_ = false;
+    batch->_custom_shader_ = NULL;
 
     // Создаём массив индексов, чтобы из 4 вершины спрайта можно было рисовать 2 треугольника:
     uint32_t *indices = _create_indices_buffer_(size_indices, g_BATCH_SPRITES_SIZE);
@@ -166,12 +169,13 @@ void SpriteBatch_begin(SpriteBatch *self) {
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
     Shader *shader = self->renderer->shader_spritebatch;
+    if (self->_custom_shader_ != NULL) shader = self->_custom_shader_;
     Shader_begin(shader);
+    Shader_set_mat4(shader, "u_view", view);
+    Shader_set_mat4(shader, "u_proj", proj);
     BufferVAO_begin(self->vao);
     BufferEBO_begin(self->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
     BufferVBO_begin(self->vbo);
-    Shader_set_mat4(shader, "u_view", view);
-    Shader_set_mat4(shader, "u_proj", proj);
     self->_is_begin_ = true;
 }
 
@@ -203,6 +207,12 @@ void SpriteBatch_reset_texcoord(SpriteBatch *self) {
 Vec4f SpriteBatch_get_texcoord(SpriteBatch *self) {
     if (!self) return (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
     return self->texcoord;
+}
+
+// Установить кастомный шейдер:
+void SpriteBatch_set_custom_shader(SpriteBatch *self, Shader *shader) {
+    if (!self) return;
+    self->_custom_shader_ = shader;
 }
 
 // Добавить 2D спрайт в пакет данных:
@@ -398,6 +408,8 @@ void SpriteBatch_end(SpriteBatch *self) {
     _batch_flush_(self);
     BufferVBO_end(self->vbo);
     BufferVAO_end(self->vao);
-    Shader_end(self->renderer->shader_spritebatch);
+    Shader *shader = self->renderer->shader_spritebatch;
+    if (self->_custom_shader_ != NULL) shader = self->_custom_shader_;
+    Shader_end(shader);
     self->_is_begin_ = false;
 }
