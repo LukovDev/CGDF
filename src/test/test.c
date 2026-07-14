@@ -215,13 +215,14 @@ void start(Window *self) {
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
-    model = ObjLoader_load(self->renderer, "data/obj/example/sphere.obj");
+    model = ObjLoader_load(self->renderer, "data/obj/home/Cottage.obj");
 
-    Model *model0 = Array_get_ptr(model.models, 0);
-    for (size_t i=0; i<Array_len(model0->meshes); i++) {
-        Mesh *mesh = Array_get_ptr(model0->meshes, i);
-        Mesh_set_material(mesh, material);
-    }
+    // Model *model0 = Array_get_ptr(model.models, 0);
+    // for (size_t i=0; i<Array_len(model0->meshes); i++) {
+    //     Mesh *mesh = Array_get_ptr(model0->meshes, i);
+    //     Mesh_set_material(mesh, material);
+    // }
+    
     Model *floor = Array_get_ptr(objfile2.models, 0);
     for (size_t i=0; i<Array_len(floor->meshes); i++) {
         Mesh *mesh = Array_get_ptr(floor->meshes, i);
@@ -340,11 +341,11 @@ void render(Window *self, float dtime) {
     Model *sphere = Array_get_ptr(model.models, 0);
     if (sphere) {
         glm_mat4_identity(sphere->transform);
-        glm_translate(sphere->transform, (vec3){0, 1.5f, 0});
-        glm_rotate(sphere->transform, radians(-time*10), (vec3){0, 1, 0});
-        glm_rotate(sphere->transform, radians(time*10), (vec3){1, 0, 0});
-        glm_rotate(sphere->transform, radians(-time*10), (vec3){0, 0, 1});
-        // glm_scale(sphere->transform, (vec3){0.2f, 0.2f, 0.2f});
+        glm_translate(sphere->transform, (vec3){0, 0, 0});
+        // glm_rotate(sphere->transform, radians(-time*10), (vec3){0, 1, 0});
+        // glm_rotate(sphere->transform, radians(time*10), (vec3){1, 0, 0});
+        // glm_rotate(sphere->transform, radians(-time*10), (vec3){0, 0, 1});
+        glm_scale(sphere->transform, (vec3){0.5f, 0.5f, 0.5f});
         Model_render(sphere, false);
     }
 

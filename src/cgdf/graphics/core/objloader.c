@@ -348,7 +348,8 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         }
 
         // PBR: Карта окклюзии (Ambient Occlusion):
-        else if (mat && (strncmp(s, "map_Ao", 6) == 0 || strncmp(s, "map_ao", 6) == 0) && (s[6] == ' ' || s[6] == '\t')) {
+        else if (mat && (strncmp(s, "map_Ao", 6) == 0 ||
+                strncmp(s, "map_ao", 6) == 0) && (s[6] == ' ' || s[6] == '\t')) {
             char *path = parse_texture_path(skip_ws(s + 6));
             // Загружает только если текстура не указана:
             if (path && !mat->occlusion_map) {

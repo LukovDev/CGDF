@@ -425,7 +425,7 @@ void Renderer_display(Renderer *self) {
             Material *mat = Mesh_get_material(mesh);
             if (mat && mat->name) {
                 // Устанавливаем параметры материала:
-                if (mat->transparent) continue;  // Рендерим только непрозрачные сетки и материалы:
+                // if (mat->transparent) continue;  // Рендерим только непрозрачные сетки и материалы:
 
                 // Настройка двухстороннего рендеринга (Culling)
                 Renderer_set_cull_faces(self, !mat->double_sided);
