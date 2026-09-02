@@ -5,7 +5,6 @@
         "src/test/",
         "src/cgdf/core/",
         "src/cgdf/graphics/core/",
-        "src/cgdf/graphics/gui/",
         "src/cgdf/graphics/opengl/"
     ],
     "build-dir":     "build/",

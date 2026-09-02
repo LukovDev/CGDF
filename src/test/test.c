@@ -6,7 +6,6 @@
 // Подключаем:
 #include <cgdf/cgdf.h>
 #include <cgdf/graphics/graphics.h>
-#include <cgdf/graphics/gui/gui.h>
 
 
 static Texture *tex1;
@@ -134,8 +133,6 @@ void start(Window *self) {
     blue_noise = Texture_create(self->renderer);
     Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
 
-    GUI_init(self, NULL, 48);
-
     Texture *albedo = Texture_create(self->renderer);
     Texture *normal = Texture_create(self->renderer);
     Texture *occlusion = Texture_create(self->renderer);
@@ -255,8 +252,6 @@ void destroy(Window *self) {
 
     Material_destroy(&material);
     Material_destroy(&floor_material);
-
-    GUI_destroy();
 
     destroy_objfile(objfile);
     destroy_objfile(objfile2);
@@ -532,12 +527,6 @@ void render(Window *self, float dtime) {
         fps, camera3d->position.x, camera3d->position.y, camera3d->position.z, camera3d->fov
     );
     }
-
-    // if (GUI_panel(25, 25)) {
-    //     if (GUI_button("Knopka")) {
-    //         printf("pressed\n");
-    //     }
-    // }
 
     Camera2D_ui_end(camera2d);
 

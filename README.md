@@ -13,6 +13,12 @@
 Графическая составляющая сейчас разрабатывается на `SDL3` _(3.4.2)_ и `OpenGL` _(3.3+)_.</br>
 Используется `GCC` компилятор. Стандарты: `c17` и `c++17`</br>
 
+#### О проекте:
+
+Этот проект является фреймворком, или же базовым "конструктором" / "набором инструментов" для разработки игр и программ на языке си.
+
+С помощью этого проекта можно разрабатывать не только игры, но и при должном опыте, игровые движки и софт. Теперь этот проект считается универсальным, не только для игр.
+
 #### OpenGL:
 Код библиотеки OpenGL был сгенерирован генератором GLAD.</br>
 Использовались такие параметры при генерации: [ссылка на генерацию](https://glad.dav1d.de/#language=c&specification=gl&api=gl%3D4.6&api=gles1%3Dnone&api=gles2%3Dnone&api=glsc2%3Dnone&profile=core&extensions=GL_ARB_buffer_storage&extensions=GL_ARB_compute_variable_group_size&extensions=GL_ARB_debug_output&extensions=GL_ARB_direct_state_access&extensions=GL_ARB_instanced_arrays&extensions=GL_ARB_shader_image_load_store&extensions=GL_ARB_shader_storage_buffer_object&extensions=GL_ARB_texture_storage&extensions=GL_ARB_texture_storage_multisample&extensions=GL_ATI_meminfo&extensions=GL_EXT_texture_filter_anisotropic&extensions=GL_NVX_gpu_memory_info&loader=on&localfiles=on).</br>
