@@ -8,7 +8,7 @@
 #include <cgdf/graphics/graphics.h>  // Графика, и другие модули подключаются отдельно.
 
 
-// Объявялем ресурсы:
+// Объявляем глобальные переменные:
 static Texture *tex1;
 static Camera2D *camera;
 static Sprite2D *sprite;

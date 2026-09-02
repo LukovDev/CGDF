@@ -13,6 +13,8 @@ data/animation/
 data/fonts/
 data/shaders/
 data/obj/
+data/game/
+src/game/
 
 __pycache__
 metadata.json
