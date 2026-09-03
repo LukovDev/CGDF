@@ -301,7 +301,7 @@ HashSlot* HashTable_get_slot(HashTable *table, size_t index) {
 
 
 // Удалить элемент из таблицы:
-bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool free_data) {
+bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool free_key, bool free_value) {
     if (!table || !key) return false;
 
     // Проверяем лимит пробирований:
@@ -329,11 +329,11 @@ bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool f
 
         // Иначе сравниваем ключи:
         if (slot->hash == hash && slot->key_size == key_size && memcmp(slot->key, key, key_size) == 0) {
-            if (free_data) {
+            if (free_key || free_value) {
                 if (slot->key == slot->value) mm_free(slot->key);
                 else {
-                    if (slot->key) mm_free(slot->key);
-                    if (slot->value) mm_free(slot->value);
+                    if (free_key && slot->key) mm_free(slot->key);
+                    if (free_value && slot->value) mm_free(slot->value);
                 }
             }
             slot->key = NULL;
@@ -409,17 +409,17 @@ void HashTable_print(HashTable *table, FILE *out, HashTablePrintMode key_mode, H
 
 
 // Очистить таблицу (без освобождения памяти по умолчанию):
-void HashTable_clear(HashTable *table, bool free_data) {
+void HashTable_clear(HashTable *table, bool free_key, bool free_value) {
     if (!table) return;
 
     // Если надо удалять данные (ключ и значение):
-    if (free_data) {
+    if (free_key || free_value) {
         for (size_t i = 0; i < table->capacity; i++) {
             HashSlot *slot = &table->data[i];
             if (slot->key == slot->value) mm_free(slot->key);
             else {
-                if (slot->key) mm_free(slot->key);
-                if (slot->value) mm_free(slot->value);
+                if (free_key && slot->key) mm_free(slot->key);
+                if (free_value && slot->value) mm_free(slot->value);
             }
         }
     }

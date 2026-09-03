@@ -105,7 +105,7 @@ static void flush_mesh(Model *model, Array *vertices, Array *indices, Material *
     Model_add_mesh(model, mesh);
     Array_clear(vertices, false);
     Array_clear(indices, false);
-    HashTable_clear(vertex_cache, false);
+    HashTable_clear(vertex_cache, false, false);
 }
 
 // Закончить текущую модель и добавить в массив моделей:

@@ -49,7 +49,7 @@ extern CpuInfo g_Info_cpu_info_cache_;
 const char* Info_get_cpu_arch_name(Info_cpu_arch arch);
 
 // Функция для получения информации о процессоре:
-CpuInfo Info_get_cpu();
+CpuInfo Info_get_cpu(void);
 
 // Функция для получения ОЗУ (в байтах):
-MemInfo Info_get_mem();
+MemInfo Info_get_mem(void);

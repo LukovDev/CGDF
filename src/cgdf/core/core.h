@@ -25,6 +25,7 @@ extern "C" {
 #include "math.h"
 #include "mm.h"
 #include "node.h"
+#include "noise.h"
 #include "pixmap.h"
 #include "platform.h"
 #include "time.h"

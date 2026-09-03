@@ -30,14 +30,14 @@ static OBJFile objfile_ship2;
 static OBJFile model;
 
 
-static void print_before_free() {
+static void print_before_free(void) {
     log_msg("[I] (Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
             mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
             mm_get_block_header_size());
 }
 
 
-static void print_after_free() {
+static void print_after_free(void) {
     log_msg("[I] (After free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
             mm_get_used_size_kb(), mm_get_used_size(), mm_get_allocated_blocks(), mm_get_absolute_used_size(),
             mm_get_block_header_size());

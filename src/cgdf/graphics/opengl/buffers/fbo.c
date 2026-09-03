@@ -86,7 +86,7 @@ static void fbo_check_complete(const char *tag) {
 
 
 // Создать буфер кадра:
-BufferFBO* BufferFBO_create() {
+BufferFBO* BufferFBO_create(void) {
     BufferFBO *fbo = (BufferFBO*)mm_alloc(sizeof(BufferFBO));
 
     // Заполняем поля:

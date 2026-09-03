@@ -40,23 +40,26 @@ struct TexUnit {
 extern TextureUnits g_texunits_gl;
 
 
+// -------- API текстурных юнитов: --------
+
+
 // Инициализировать текстурные юниты (вызывается автоматически):
 void TextureUnits_init(Renderer *renderer);
 
 // Уничтожить текстурные юниты (вызывается автоматически):
-void TextureUnits_destroy();
+void TextureUnits_destroy(void);
 
 // Получить всего возможных юнитов:
-size_t TexUnits_get_total_units();
+size_t TexUnits_get_total_units(void);
 
 // Получить количество занятых юнитов:
-size_t TexUnits_get_used_units();
+size_t TexUnits_get_used_units(void);
 
 // Получить количество свободных юнитов:
-size_t TexUnits_get_free_units();
+size_t TexUnits_get_free_units(void);
 
 // Отвязать все текстуры:
-void TexUnits_unbind_all();
+void TexUnits_unbind_all(void);
 
 // Деактивировать определённую текстуру во всех юнитах:
 void TexUnits_invalidate_texture(uint32_t tex_id);

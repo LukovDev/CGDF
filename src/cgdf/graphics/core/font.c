@@ -272,7 +272,7 @@ static bool font_expand_and_repack(FontPixmap *self) {
             self->glyphs = old_glyphs;
             self->added_glyphs_count = old_added_count;
             // Удаляем новое состояние:
-            HashTable_clear(new_glyphs, true);
+            HashTable_clear(new_glyphs, true, true);
             HashTable_destroy(&new_glyphs);
             Texture_destroy(&new_atlas);
             return false;
@@ -280,7 +280,7 @@ static bool font_expand_and_repack(FontPixmap *self) {
     }
 
     // Успех. Удаляем старые данные:
-    HashTable_clear(old_glyphs, true);
+    HashTable_clear(old_glyphs, true, true);
     HashTable_destroy(&old_glyphs);
     Texture_destroy(&old_atlas);
     return true;
@@ -376,7 +376,7 @@ void FontPixmap_destroy(FontPixmap **font) {
     Array_destroy(&(*font)->glyphs_array);
     mm_free((*font)->ttf_buffer);  // Уничтожаем загруженный шрифт.
 
-    HashTable_clear((*font)->glyphs, true);  // Уничтожаем ключи и глифы из памяти.
+    HashTable_clear((*font)->glyphs, true, true);  // Уничтожаем ключи и глифы из памяти.
     HashTable_destroy(&(*font)->glyphs);
 
     mm_free(*font);

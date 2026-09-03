@@ -10,37 +10,6 @@
 #include <cglm/cglm.h>
 
 
-// Перевести градусы в радианы:
-static inline double radians(double degrees) { return degrees * (GLM_PI / 180.0); }
-
-// Перевести радианы в градусы:
-static inline double degrees(double radians) { return radians * (180.0 / GLM_PI); }
-
-// Сравнение двух вещественных чисел:
-static inline bool cmp_float(float a, float b) {
-    float epsilon = 1e-6f;
-    return fabsf(a-b) < epsilon;
-}
-
-
-// Зациклить вещественное число:
-static inline float wrap_float(float v, float min, float max) {
-    float range = max - min;
-    v = fmodf(v - min, range);
-    if (v < 0.0f) v += range;
-    return v + min;
-}
-
-
-// Нормализовать угол:
-static inline double normalize_deg(double a) {
-    a = fmod(a, 360.0);
-    if (a < -180.0) a += 360.0;
-    if (a >  180.0) a -= 360.0;
-    return a;
-}
-
-
 // -------- Реализация простых базовых векторов: --------
 
 
@@ -171,4 +140,49 @@ static inline Vec4d Vec4d_norm(Vec4d v) {
     double l = Vec4d_len(v);
     if (l == 0.0) return (Vec4d){0.0, 0.0, 0.0, 0.0};
     return (Vec4d){v.x / l, v.y / l, v.z / l, v.w / l};
+}
+
+
+// -------- Реализация полезных функций: --------
+
+
+// Перевести градусы в радианы:
+static inline double radians(double degrees) { return degrees * (GLM_PI / 180.0); }
+
+// Перевести радианы в градусы:
+static inline double degrees(double radians) { return radians * (180.0 / GLM_PI); }
+
+// Сравнение двух вещественных чисел:
+static inline bool cmp_float(float a, float b) {
+    float epsilon = 1e-6f;
+    return fabsf(a-b) < epsilon;
+}
+
+
+// Зациклить вещественное число:
+static inline float wrap_float(float v, float min, float max) {
+    float range = max - min;
+    v = fmodf(v - min, range);
+    if (v < 0.0f) v += range;
+    return v + min;
+}
+
+
+// Нормализовать угол:
+static inline double normalize_deg(double a) {
+    a = fmod(a, 360.0);
+    if (a < -180.0) a += 360.0;
+    if (a >  180.0) a -= 360.0;
+    return a;
+}
+
+
+// Смешать цвета:
+static inline Vec4f mix_colors(Vec4f c1, Vec4f c2, float fraction, bool mix_alpha) {
+    return (Vec4f){
+        c1.x + (c2.x - c1.x) * fraction,
+        c1.y + (c2.y - c1.y) * fraction,
+        c1.z + (c2.z - c1.z) * fraction,
+        mix_alpha ? c1.w + (c2.w - c1.w) * fraction : 1.0f
+    };
 }

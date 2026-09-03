@@ -50,13 +50,13 @@ extern BufferGC_GL g_buffer_gc_gl;
 
 
 // Инициализация стеков буферов:
-void BufferGC_GL_init();
+void BufferGC_GL_init(void);
 
 // Уничтожение стеков буферов:
-void BufferGC_GL_destroy();
+void BufferGC_GL_destroy(void);
 
 // Добавить буфер на уничтожение:
 void BufferGC_GL_push(BufferGC_GL_Type type, unsigned int id);
 
 // Очистка всех буферов:
-void BufferGC_GL_flush();
+void BufferGC_GL_flush(void);

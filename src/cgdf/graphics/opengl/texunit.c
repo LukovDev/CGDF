@@ -90,7 +90,7 @@ void TextureUnits_init(Renderer *renderer) {
 }
 
 // Уничтожить текстурные юниты:
-void TextureUnits_destroy() {
+void TextureUnits_destroy(void) {
     // Отвязываем текстурные юниты:
     TexUnits_unbind_all();
 
@@ -101,22 +101,22 @@ void TextureUnits_destroy() {
 }
 
 // Получить всего возможных юнитов:
-size_t TexUnits_get_total_units() {
+size_t TexUnits_get_total_units(void) {
     return g_texunits_gl.total;
 }
 
 // Получить количество занятых юнитов:
-size_t TexUnits_get_used_units() {
+size_t TexUnits_get_used_units(void) {
     return g_texunits_gl.used;
 }
 
 // Получить количество свободных юнитов:
-size_t TexUnits_get_free_units() {
+size_t TexUnits_get_free_units(void) {
     return g_texunits_gl.total - g_texunits_gl.used;
 }
 
 // Отвязать все текстуры:
-void TexUnits_unbind_all() {
+void TexUnits_unbind_all(void) {
     // Проходимся по стеку:
     for (size_t i=1; i < Array_len(g_texunits_gl.stack); i++) {
         TexUnit *unit = (TexUnit*)Array_get(g_texunits_gl.stack, i);

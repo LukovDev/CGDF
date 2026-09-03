@@ -90,7 +90,7 @@ void* HashTable_get(HashTable *table, const void *key, size_t key_size, size_t *
 HashSlot* HashTable_get_slot(HashTable *table, size_t index);
 
 // Удалить элемент из таблицы:
-bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool free_data);
+bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool free_key, bool free_value);
 
 // Возвращает true, если ключ есть в таблице:
 bool HashTable_has(HashTable *table, const void *key, size_t key_size);
@@ -105,4 +105,4 @@ size_t HashTable_capacity(HashTable *table);
 void HashTable_print(HashTable *table, FILE *out, HashTablePrintMode key_mode, HashTablePrintMode value_mode);
 
 // Очистить таблицу (без освобождения памяти по умолчанию):
-void HashTable_clear(HashTable *table, bool free_data);
+void HashTable_clear(HashTable *table, bool free_key, bool free_value);
