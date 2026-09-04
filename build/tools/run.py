@@ -20,9 +20,13 @@ def log(msg: str, end: str = "\n") -> None:
 # Основная функция:
 def main() -> None:
     config_file = f"{Vars.build_dn}/config.json"
+    args, skip = [], False
     for arg in sys.argv[1:]:
+        if skip: skip = False; continue
         if arg in ["-cfg", "-config"]:
             config_file = sys.argv[sys.argv.index(arg)+1]
+            skip = True
+        else: args.append(arg)
 
     # Инициализируем переменные:
     os.chdir("../../")
@@ -38,7 +42,7 @@ def main() -> None:
     if os.path.isfile(file_path):
         log(f"\n{' '*20}{'~<[PROGRAM OUTPUT]>~':-^40}{' '*20}")
         start_time = time.time()
-        result = subprocess.run([os.path.normpath(file_path), ' '.join(sys.argv[1:])]).returncode
+        result = subprocess.run([os.path.normpath(file_path)] + (list(args) if args else [])).returncode
         print(f"\nProcess returned: {result} <{hex(result)}>")
         print(f"Execution time: {round(time.time()-start_time, 4)}s")
         if result in [3221225477, -11, 11]:

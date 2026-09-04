@@ -31,26 +31,30 @@ static double _perlin_lerp_(double t, double a, double b) {
 
 // Вычисление скалярного произведения случайного градиентного вектора и вектора до точки:
 static double _perlin_grad_(int hash, double x, double y) {
+    // Используем 8 классических 2D-направлений:
     switch (hash & 7) {
-        case 0: return  x + y;
-        case 1: return -x + y;
-        case 2: return  x - y;
-        case 3: return -x - y;
-        case 4: return  x * 1.41421356;
-        case 5: return -x * 1.41421356;
-        case 6: return  y * 1.41421356;
-        case 7: return -y * 1.41421356;
+        case 0: return  1.0 * x +  0.0 * y;
+        case 1: return -1.0 * x +  0.0 * y;
+        case 2: return  0.0 * x +  1.0 * y;
+        case 3: return  0.0 * x + -1.0 * y;
+        case 4: return  0.7071067811865476 * x +  0.7071067811865476 * y;
+        case 5: return -0.7071067811865476 * x +  0.7071067811865476 * y;
+        case 6: return  0.7071067811865476 * x + -0.7071067811865476 * y;
+        case 7: return -0.7071067811865476 * x + -0.7071067811865476 * y;
         default: return 0;
     }
 }
 
 // Базовая функция одиночной октавы шума Перлина (возвращает значение от -1.0 до 1.0):
 double Noise_perlin2d(double x, double y, uint64_t seed) {
-    int fX = (int)floor(x);
-    int fY = (int)floor(y);
+    double fX_floor = floor(x);
+    double fY_floor = floor(y);
 
-    x -= floor(x);
-    y -= floor(y);
+    int fX = (int)fX_floor;
+    int fY = (int)fY_floor;
+
+    x -= fX_floor;
+    y -= fY_floor;
 
     double u = _perlin_fade_(x);
     double v = _perlin_fade_(y);
@@ -60,14 +64,13 @@ double Noise_perlin2d(double x, double y, uint64_t seed) {
     int ba = _perlin_hash_(fX + 1, fY,     seed);
     int bb = _perlin_hash_(fX + 1, fY + 1, seed);
 
-    double n = _perlin_lerp_(v,
-        _perlin_lerp_(u, _perlin_grad_(aa, x, y),
-        _perlin_grad_(ba, x - 1.0, y)),
-        _perlin_lerp_(u, _perlin_grad_(ab, x, y - 1.0),
-        _perlin_grad_(bb, x - 1.0, y - 1.0))
-    ) * 1.7071067812;
-    if (n >  1.0) n =  1.0;
-    if (n < -1.0) n = -1.0;
+    double low_x  = _perlin_lerp_(u, _perlin_grad_(aa, x, y),       _perlin_grad_(ba, x - 1.0, y));
+    double high_x = _perlin_lerp_(u, _perlin_grad_(ab, x, y - 1.0), _perlin_grad_(bb, x - 1.0, y - 1.0));
+    double n = _perlin_lerp_(v, low_x, high_x);
+
+    // Масштабируем и мягко контрастируем для получения честного диапазона [-1.0, 1.0]:
+    n *= 2.0;
+    n = n * (1.5 - 0.5 * n * n);
     return n;
 }
 
@@ -79,13 +82,13 @@ double Noise_perlin_fbm(double x, double y, uint64_t seed, int octaves, double p
     double max_value = 0.0;
 
     for (int i = 0; i < octaves; i++) {
-        // Получаем шум для текущей октавы (передаем i как смещение сида, чтобы слои не накладывались одинаково):
         total += Noise_perlin2d(x * frequency, y * frequency, seed + i) * amplitude;
         max_value += amplitude;
         amplitude *= persistence;
         frequency *= lacunarity;
     }
-
-    // Возвращаем результат, строго нормализованный в диапазон [-1.0, 1.0]:
-    return total / max_value;
+    double result = total / max_value;
+    if (result > 1.0)  return 1.0;
+    if (result < -1.0) return -1.0;
+    return result;
 }
