@@ -316,7 +316,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
         // Делаем задержку между кадрами:
         if (!self->config->vsync && cfg->fps > 0) {
-            double target = 1.0f / (float)cfg->fps;
+            double target = 1.0 / (float)cfg->fps;
             double elapsed;  // Сколько прошло времени с начала кадра в секундах.
             do {
                 elapsed = Window_get_time(self) - frame_start;
