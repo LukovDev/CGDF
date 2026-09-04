@@ -29,11 +29,13 @@ typedef struct JobTask JobTask;      // Задача которую мы буд�
 
 // Структура работы с задачами (потоками):
 struct JobSystem {
-    bool initialized;          // Инициализирована ли работа с задачами.
-    size_t worker_count;       // Текущее количество потоков.
-    size_t max_workers_count;  // Максимальное количество задач.
-    Array *stack;              // Стек задач.
-    mtx_t mutex;               // Мьютекс для защиты работы стека и счетчиков.
+    bool initialized;           // Инициализирована ли работа с задачами.
+    size_t workers_count;       // Текущее количество потоков (виртуальных).
+    size_t max_workers_count;   // Максимальное количество задач.
+    size_t real_workers_count;  // Количество реальных потоков.
+    Array *stack;               // Стек задач (виртуальный пул потоков).
+    mtx_t mutex;                // Мьютекс для защиты работы стека и счетчиков.
+    cnd_t cond_var;             // Переменная ожидания.
 };
 
 
@@ -63,8 +65,11 @@ bool JobSystem_has_active_jobs(void);
 // Получить количество задач в очереди (стеке):
 size_t JobSystem_get_jobs_count(void);
 
-// Получить количество активных потоков:
+// Получить количество активных потоков (виртуальных):
 size_t JobSystem_get_active_workers_count(void);
+
+// Получить количество реальных потоков:
+size_t JobSystem_get_real_workers_count(void);
 
 // Получить максимальное количество потоков:
 size_t JobSystem_get_max_workers_count(void);
