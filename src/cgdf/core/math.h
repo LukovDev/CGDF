@@ -152,6 +152,11 @@ static inline double radians(double degrees) { return degrees * (GLM_PI / 180.0)
 // Перевести радианы в градусы:
 static inline double degrees(double radians) { return radians * (180.0 / GLM_PI); }
 
+// Плавное смешивание:
+static inline double lerp(double a, double b, double t) {
+    return a + t * (b - a);
+}
+
 // Сравнение двух вещественных чисел:
 static inline bool cmp_float(float a, float b) {
     float epsilon = 1e-6f;

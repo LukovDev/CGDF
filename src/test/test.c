@@ -212,7 +212,7 @@ void start(Window *self) {
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
-    model = ObjLoader_load(self->renderer, "data/obj/home/Cottage.obj");
+    model = ObjLoader_load(self->renderer, "data/obj/abandoned_warehouse/abandoned_warehouse.obj");
 
     // Model *model0 = Array_get_ptr(model.models, 0);
     // for (size_t i=0; i<Array_len(model0->meshes); i++) {
@@ -333,15 +333,16 @@ void render(Window *self, float dtime) {
         Model_render(cat, false);
     }
 
-    Model *sphere = Array_get_ptr(model.models, 0);
-    if (sphere) {
-        glm_mat4_identity(sphere->transform);
-        glm_translate(sphere->transform, (vec3){0, 0, 0});
-        // glm_rotate(sphere->transform, radians(-time*10), (vec3){0, 1, 0});
-        // glm_rotate(sphere->transform, radians(time*10), (vec3){1, 0, 0});
-        // glm_rotate(sphere->transform, radians(-time*10), (vec3){0, 0, 1});
-        glm_scale(sphere->transform, (vec3){0.5f, 0.5f, 0.5f});
-        Model_render(sphere, false);
+    for (size_t i=0; i < Array_len(model.models); i++) {
+        Model *mdl = Array_get_ptr(model.models, i);
+        if (!mdl) continue;
+        glm_mat4_identity(mdl->transform);
+        glm_translate(mdl->transform, (vec3){0, 0, 0});
+        // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+        // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+        // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+        glm_scale(mdl->transform, (vec3){10.0f, 10.0f, 10.0f});
+        Model_render(mdl, false);
     }
 
     for (size_t i=0; i < Array_len(objfile2.models); i++) {
