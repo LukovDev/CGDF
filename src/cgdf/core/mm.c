@@ -13,10 +13,6 @@
 #include "mm.h"
 
 
-// Определения:
-#define MM_RETRY_ALLOC_AGAIN 1  // 0 = В случае ошибки выделения - крах. 1 = Повторять выделение в случае ошибки.
-
-
 // Определения функций аллокатора которые используются в этой обертке (пока что используется базовый аллокатор):
 void* (*_m_alloc)   (size_t s)           = malloc;
 void* (*_m_calloc)  (size_t c, size_t s) = calloc;
@@ -140,10 +136,7 @@ void* mm_alloc_aligned(size_t size, size_t alignment) {
     size_t total = sizeof(MM_BlockHeader) + size + (alignment - 1u);
     mm_last_request_size = total;
 
-    char *base_ptr = NULL;
-    if (MM_RETRY_ALLOC_AGAIN) {
-        while (!base_ptr) base_ptr = (char*)_m_alloc(total);
-    } else base_ptr = (char*)_m_alloc(total);
+    char *base_ptr = (char*)_m_alloc(total);
     if (!base_ptr) { mm_alloc_error(); return NULL; }
 
     uintptr_t aligned_up = mm_align_up_uintptr((uintptr_t)base_ptr + sizeof(MM_BlockHeader), alignment);

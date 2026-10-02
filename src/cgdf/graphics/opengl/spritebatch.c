@@ -235,8 +235,23 @@ void SpriteBatch_set_custom_shader(SpriteBatch *self, Shader *shader) {
 
 // Установить размер пакета спрайтов (обязательно сделайте это перед первым вызовом `begin()` функции!):
 void SpriteBatch_set_batch_size(SpriteBatch *self, uint32_t size) {
-    if (!self) return;
+    if (!self || self->batch_size == size) return;
+    if (size == 0) { log_msg("[W] SpriteBatch_set_batch_size: Batch size cannot be 0.\n"); return; }
+    if (self->_is_begin_) {
+        log_msg("[W] SpriteBatch_set_batch_size: You cannot change the size between begin and end.\n");
+        return;
+    }
+
     self->batch_size = size;
+
+    // Удаляем буферы:
+    BufferVBO_destroy(&self->vbo);
+    BufferEBO_destroy(&self->ebo);
+    if (self->array) { mm_free(self->array); self->array = NULL; }
+    self->_buffers_init_ = false;
+
+    // Пересоздаём буферы:
+    _create_buffers_(self);
 }
 
 // Добавить 2D спрайт в пакет данных:

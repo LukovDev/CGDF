@@ -173,13 +173,15 @@ static Texture* load_texture(Renderer *renderer, const char *mtl_dir, const char
     char *path = Files_path_join(mtl_dir, raw_path);
     if (!path) return NULL;
 
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        log_msg("[W] ObjLoader_load: texture not loaded: %s\n", path);
+        mm_free(path);
+        return NULL;
+    }
+    fclose(f);
     Texture *texture = Texture_create(renderer);
     Texture_load(texture, path, true);
-    if (!texture || texture->id == 0) {
-        Texture_destroy(&texture);
-        log_msg("[W] ObjLoader_load: texture not loaded: %s\n", path);
-    }
-
     mm_free(path);
     return texture;
 }

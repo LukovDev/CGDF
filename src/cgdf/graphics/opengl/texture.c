@@ -309,22 +309,17 @@ void Texture_set_data(
 
     Texture_begin(self);
 
-    // UNPACK alignment для RGB/BGR:
+    // UNPACK alignment:
     int prev_unpack = 0;
     glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack);
-    if (gl_format == GL_RGB || gl_format == GL_BGR) {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     // Загрузка данных текстуры:
     self->format = format;
     self->internal = internal;
     self->dtype = dtype;
     glTexImage2D(GL_TEXTURE_2D, 0, gl_internal, self->width, self->height, 0, gl_format, gl_data_type, data);
-
-    if (gl_format == GL_RGB || gl_format == GL_BGR) {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
-    }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
 
     // Если надо использовать мипмапы, создаём их:
     self->has_mipmap = use_mipmap;
@@ -351,20 +346,15 @@ void Texture_set_subdata(
 
     Texture_begin(self);
 
-    // UNPACK alignment для RGB/BGR:
+    // UNPACK alignment:
     int prev_unpack = 0;
     glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack);
-    if (gl_format == GL_RGB || gl_format == GL_BGR) {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     self->format = format;
     self->dtype = dtype;
     glTexSubImage2D(GL_TEXTURE_2D, miplevel, offset_x, offset_y, width, height, gl_format, gl_data_type, data);
-
-    if (gl_format == GL_RGB || gl_format == GL_BGR) {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
-    }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
 
     // Если надо использовать мипмапы, создаём их:
     if (self->has_mipmap) glGenerateMipmap(GL_TEXTURE_2D);
@@ -403,13 +393,9 @@ Pixmap* Texture_get_pixmap(Texture *self, int channels) {
     Texture_begin(self);
     int32_t prev_pack = 0;
     glGetIntegerv(GL_PACK_ALIGNMENT, &prev_pack);
-    if (gl_format == GL_RGB || gl_format == GL_BGR) {
-        glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    }
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glGetTexImage(GL_TEXTURE_2D, 0, gl_format, get_data_type(type), data);
-    if (gl_format == GL_RGB || gl_format == GL_BGR) {
-        glPixelStorei(GL_PACK_ALIGNMENT, prev_pack);
-    }
+    glPixelStorei(GL_PACK_ALIGNMENT, prev_pack);
     Texture_end(self);
 
     // Создаём изображение:

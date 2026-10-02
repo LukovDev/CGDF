@@ -1,5 +1,5 @@
 //
-// tinycthread.c - Был модифицирован LukovDev 2026 для поддержки работы на Linux системах.
+// tinycthread.c - Был модифицирован для поддержки работы на Linux системах.
 //
 
 /* -*- mode: c; tab-width: 2; indent-tabs-mode: nil; -*-
