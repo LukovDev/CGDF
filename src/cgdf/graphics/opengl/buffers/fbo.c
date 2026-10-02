@@ -50,8 +50,8 @@ static void fbo_blit(BufferFBO *self, uint32_t dest_fbo_id, int x, int y, int wi
     glBindFramebuffer(GL_READ_FRAMEBUFFER, self->id);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dest_fbo_id);
     glBlitFramebuffer(
-        x, y, width, height,
-        x, y, width, height,
+        x, y, x + width, y + height,
+        x, y, x + width, y + height,
         mode, GL_NEAREST
     );
 

@@ -66,11 +66,8 @@ double Noise_perlin2d(double x, double y, uint64_t seed) {
 
     double low_x  = _perlin_lerp_(u, _perlin_grad_(aa, x, y),       _perlin_grad_(ba, x - 1.0, y));
     double high_x = _perlin_lerp_(u, _perlin_grad_(ab, x, y - 1.0), _perlin_grad_(bb, x - 1.0, y - 1.0));
-    double n = _perlin_lerp_(v, low_x, high_x);
-
-    // Масштабируем и мягко контрастируем для получения честного диапазона [-1.0, 1.0]:
-    n *= 2.0;
-    n = n * (1.5 - 0.5 * n * n);
+    // Переводим диапазон классического 2D Перлина [-0.707, 0.707] в [-1, 1]:
+    double n = _perlin_lerp_(v, low_x, high_x) * 1.41421356;
     return n;
 }
 

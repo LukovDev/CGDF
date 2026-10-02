@@ -167,7 +167,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
         // Сброс состояний клавиатуры и мыши (обнуляем поля):
         input->mouse->rel = (Vec2i){0, 0};
-        input->mouse->wheel = (Vec2i){0, 0};
+        input->mouse->wheel = (Vec2f){0, 0};
         memset(input->mouse->down, 0, input->mouse->max_keys * sizeof(bool));
         memset(input->mouse->up,   0, input->mouse->max_keys * sizeof(bool));
         memset(input->keyboard->down, 0, input->keyboard->max_keys * sizeof(bool));
@@ -251,16 +251,16 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если мышь передвинулась:
                 case SDL_EVENT_MOUSE_MOTION: {
-                    input->mouse->rel.x = event.motion.xrel;
-                    input->mouse->rel.y = event.motion.yrel;
+                    input->mouse->rel.x += event.motion.xrel;
+                    input->mouse->rel.y += event.motion.yrel;
                     input->mouse->pos.x = event.motion.x;
                     input->mouse->pos.y = event.motion.y;
                 } break;
 
                 // Если колёсико мыши провернулось:
                 case SDL_EVENT_MOUSE_WHEEL: {
-                    input->mouse->wheel.x = event.wheel.x;
-                    input->mouse->wheel.y = event.wheel.y;
+                    input->mouse->wheel.x += event.wheel.x;
+                    input->mouse->wheel.y += event.wheel.y;
                 } break;
 
                 // Если нажимают кнопку мыши:
@@ -446,6 +446,12 @@ bool Window_open(Window *self) {
     vars->closing = false;
 
     // Настройка окна:
+    if (cfg->icon) {
+        // Если есть иконка, устанавливаем ее. Делаем копию потому что set_icon удаляет cfg->icon и заменяет переданной:
+        Pixmap *icon = Pixmap_copy(cfg->icon);
+        Window_set_icon(self, icon);
+        Pixmap_destroy(&icon);
+    }
     Window_set_vsync(self, cfg->vsync);
     Window_set_fps(self, cfg->fps);
     Window_set_position(self, cfg->x, cfg->y);
@@ -509,21 +515,28 @@ void Window_set_icon(Window *self, Pixmap *icon) {
     if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
 
+    if (icon && (icon->channels < 3 || icon->channels > 4 || icon->is_hdr)) {
+        if (icon->channels < 3) log_msg("[W] Window_set_icon: Icon must have at least 3 channels.\n");
+        if (icon->channels > 4) log_msg("[W] Window_set_icon: Icon should have no more than 4 channels.\n");
+        if (icon->is_hdr) log_msg("[W] Window_set_icon: Icon should not be HDR.\n");
+        return;
+    }
+
     if (self->config->icon) Pixmap_destroy(&self->config->icon);
     self->config->icon = Pixmap_copy(icon);
 
     if (!icon) {
         SDL_Surface *empty_icon = SDL_CreateSurface(1, 1, SDL_PIXELFORMAT_RGBA32);
-        SDL_memset(empty_icon->pixels, 0, empty_icon->h * empty_icon->pitch);
         if (empty_icon) {
+            SDL_memset(empty_icon->pixels, 0, empty_icon->h * empty_icon->pitch);
             SDL_SetWindowIcon(vars->window, empty_icon);
             SDL_DestroySurface(empty_icon);
         }
     } else {
         SDL_Surface *sdl_icon = SDL_CreateSurfaceFrom(
-            icon->width, icon->height, SDL_PIXELFORMAT_RGBA32,
+            icon->width, icon->height, icon->channels == 4 ? SDL_PIXELFORMAT_RGBA32 : SDL_PIXELFORMAT_RGB24,
             icon->data, icon->width * icon->channels);
-        if (icon) {
+        if (sdl_icon) {
             SDL_SetWindowIcon(vars->window, sdl_icon);
             SDL_DestroySurface(sdl_icon);
         }
@@ -859,8 +872,9 @@ void Window_clear(Window *self, float r, float g, float b) {
 void Window_display(Window *self) {
     if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
-    // Очищаем массив моделей рендерера (дублирующе на всякий случай):
+    // Очищаем массив моделей и их трансформаций:
     Array_clear(self->renderer->models, false);
+    Array_clear(self->renderer->model_transforms, false);
     SDL_GL_SwapWindow(vars->window);
 }
 

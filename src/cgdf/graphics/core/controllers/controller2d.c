@@ -48,7 +48,7 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
     Camera2D *camera = self->camera;
     Vec2i mouse_pos = Input_get_mouse_pos(window);
     Vec2i mouse_rel = Input_get_mouse_rel(window);
-    float mouse_scroll = (float)Input_get_mouse_wheel(window).y;
+    float mouse_scroll = Input_get_mouse_wheel(window).y;
     bool is_zooming = !pressed_pass || Input_get_mouse_pressed(window)[0];
     float meter = camera->meter;
 

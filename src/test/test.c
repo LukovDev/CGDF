@@ -178,15 +178,15 @@ void start(Window *self) {
     Texture *floor_emission = Texture_create(self->renderer);
     Texture *floor_height = Texture_create(self->renderer);
 
-    #define PACKTYPE "roads"
-    #define PACKNAME "square-block-vegetation"  // beige-stonework, square-block-vegetation, wedged-cobblestone
-    Texture_load(floor_albedo, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/albedo.png", true);
-    Texture_load(floor_normal, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/normal.png", true);
-    Texture_load(floor_occlusion, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/ao.png", true);
-    Texture_load(floor_roughness, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/roughness.png", true);
-    Texture_load(floor_metallic, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/metallic.png", true);
-    Texture_load(floor_emission, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/albedo.png", true);
-    Texture_load(floor_height, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/height.png", true);
+    #define PACKTYPE2 "roads"
+    #define PACKNAME2 "square-block-vegetation"  // beige-stonework, square-block-vegetation, wedged-cobblestone
+    Texture_load(floor_albedo, "data/packs/pbr-pack/"PACKTYPE2"/"PACKNAME2"/albedo.png", true);
+    Texture_load(floor_normal, "data/packs/pbr-pack/"PACKTYPE2"/"PACKNAME2"/normal.png", true);
+    Texture_load(floor_occlusion, "data/packs/pbr-pack/"PACKTYPE2"/"PACKNAME2"/ao.png", true);
+    Texture_load(floor_roughness, "data/packs/pbr-pack/"PACKTYPE2"/"PACKNAME2"/roughness.png", true);
+    Texture_load(floor_metallic, "data/packs/pbr-pack/"PACKTYPE2"/"PACKNAME2"/metallic.png", true);
+    Texture_load(floor_emission, "data/packs/pbr-pack/"PACKTYPE2"/"PACKNAME2"/albedo.png", true);
+    Texture_load(floor_height, "data/packs/pbr-pack/"PACKTYPE2"/"PACKNAME2"/height.png", true);
 
     floor_material = Material_create(
         "Material 02",
@@ -235,6 +235,7 @@ void start(Window *self) {
 
 // Вызывается при закрытии окна:
 void destroy(Window *self) {
+    (void)self;
     log_msg("[I] Destroy called.\n");
     print_before_free();
     Texture_destroy(&tex1);
@@ -537,6 +538,7 @@ void render(Window *self, float dtime) {
 
 // Вызывается при изменении размера окна:
 void resize(Window *self, int width, int height) {
+    (void)self;
     log_msg("[I] Resize called.\n");
     Camera3D_resize(camera3d, width, height, false);
     Camera2D_resize(camera2d, width, height);
@@ -545,12 +547,14 @@ void resize(Window *self, int width, int height) {
 
 // Вызывается при разворачивании окна:
 void show(Window *self) {
+    (void)self;
     log_msg("[I] Show called.\n");
 }
 
 
 // Вызывается при сворачивании окна:
 void hide(Window *self) {
+    (void)self;
     log_msg("[I] Hide called.\n");
 }
 
@@ -568,6 +572,7 @@ WindowScene TestScene = {
 
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
+    (void)argc; (void)argv;
     CGDF_init();
 
     log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(NULL, 0));

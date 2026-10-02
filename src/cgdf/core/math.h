@@ -15,7 +15,7 @@
 
 // Вектор двумерный целочисленный:
 typedef struct Vec2i { int x, y; } Vec2i;
-static inline int Vec2i_len(Vec2i v) { return sqrtf(v.x*v.x + v.y*v.y); }
+static inline float Vec2i_len(Vec2i v) { return sqrtf((float)v.x*v.x+(float)v.y*v.y); }
 static inline void Vec2i_sub(Vec2i *a, Vec2i b) { a->x -= b.x; a->y -= b.y; }
 static inline void Vec2i_add(Vec2i *a, Vec2i b) { a->x += b.x; a->y += b.y; }
 static inline void Vec2i_mul(Vec2i *a, Vec2i b) { a->x *= b.x; a->y *= b.y; }
@@ -26,7 +26,7 @@ static inline void Vec2i_div(Vec2i *a, Vec2i b) {
 
 // Вектор трехмерный целочисленный:
 typedef struct Vec3i { int x, y, z; } Vec3i;
-static inline int Vec3i_len(Vec3i v) { return sqrtf(v.x*v.x + v.y*v.y + v.z*v.z); }
+static inline float Vec3i_len(Vec3i v) { return sqrtf((float)v.x*v.x+(float)v.y*v.y+(float)v.z*v.z); }
 static inline void Vec3i_sub(Vec3i *a, Vec3i b) { a->x -= b.x; a->y -= b.y; a->z -= b.z; }
 static inline void Vec3i_add(Vec3i *a, Vec3i b) { a->x += b.x; a->y += b.y; a->z += b.z; }
 static inline void Vec3i_mul(Vec3i *a, Vec3i b) { a->x *= b.x; a->y *= b.y; a->z *= b.z; }
@@ -37,7 +37,7 @@ static inline void Vec3i_div(Vec3i *a, Vec3i b) {
 
 // Вектор четырехмерный целочисленный:
 typedef struct Vec4i { int x, y, z, w; } Vec4i;
-static inline int Vec4i_len(Vec4i v) { return sqrtf(v.x*v.x + v.y*v.y + v.z*v.z + v.w*v.w); }
+static inline float Vec4i_len(Vec4i v) { return sqrtf((float)v.x*v.x+(float)v.y*v.y+(float)v.z*v.z+(float)v.w*v.w); }
 static inline void Vec4i_sub(Vec4i *a, Vec4i b) { a->x -= b.x; a->y -= b.y; a->z -= b.z; a->w -= b.w; }
 static inline void Vec4i_add(Vec4i *a, Vec4i b) { a->x += b.x; a->y += b.y; a->z += b.z; a->w += b.w; }
 static inline void Vec4i_mul(Vec4i *a, Vec4i b) { a->x *= b.x; a->y *= b.y; a->z *= b.z; a->w *= b.w; }

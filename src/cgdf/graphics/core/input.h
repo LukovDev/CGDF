@@ -164,7 +164,7 @@ struct Input_MouseState {
     bool visible;   // Видимость курсора.
     Vec2i pos;      // Позиция курсора.
     Vec2i rel;      // Смещение за кадр.
-    Vec2i wheel;    // Прокрутка колёсика мыши.
+    Vec2f wheel;    // Прокрутка колёсика мыши.
 };
 
 
@@ -227,7 +227,7 @@ Vec2i Input_get_mouse_rel(Window *self);
 bool Input_get_mouse_focused(Window *self);
 
 // Получить вращение колёсика мыши:
-Vec2i Input_get_mouse_wheel(Window *self);
+Vec2f Input_get_mouse_wheel(Window *self);
 
 // Установить позицию мыши:
 void Input_set_mouse_pos(Window *self, int x, int y);

@@ -34,17 +34,15 @@ void FrameAnimator2D_destroy(FrameAnimator2D **animator) {
 
 // Обновить анимацию:
 void FrameAnimator2D_update(FrameAnimator2D *self, float dtime) {
-    if (!self) return;
+    if (!self || !self->frames || self->duration <= 0) return;
 
     // Если анимация не на паузе:
     if (!self->_paused_) {
         self->count += 1.0f / self->duration * dtime;
     }
 
-    // Если счётчик превысил количество кадров, обнуляем его:
-    if ((uint32_t)self->count >= self->frames) {
-        self->count = 0.0f;
-    }
+    // Зацикливаем счётчик по количеству кадров (сохраняя остаток времени):
+    self->count = fmodf(self->count, (float)self->frames);
 }
 
 // Запустить анимацию:

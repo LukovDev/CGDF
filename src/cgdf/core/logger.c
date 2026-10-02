@@ -34,7 +34,6 @@ static inline const char* code_to_string(int code) {
         case SIGILL:  return "Error: Illegal instruction";
         case SIGTERM: return "Termination request";
         case SIGINT:  return "Interrupt (Ctrl+C)";
-        case ENOMEM:  return "Error: Out of memory";
         default: return "Error: Unknown signal";
     }
 }
@@ -81,7 +80,6 @@ void Logger_init(void) {
     signal(SIGILL,  crash_handler);
     signal(SIGTERM, crash_handler);
     signal(SIGINT,  crash_handler);
-    signal(ENOMEM,  crash_handler);
 }
 
 

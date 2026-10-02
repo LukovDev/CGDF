@@ -23,13 +23,6 @@ Input_MouseState* Input_MouseState_create(int max_keys) {
     ms->pressed = (bool*)mm_calloc(max_keys, sizeof(bool));
     ms->down    = (bool*)mm_calloc(max_keys, sizeof(bool));
     ms->up      = (bool*)mm_calloc(max_keys, sizeof(bool));
-    if (!ms->pressed || !ms->down || !ms->up) {
-        if (ms->pressed) mm_free(ms->pressed);
-        if (ms->down) mm_free(ms->down);
-        if (ms->up) mm_free(ms->up);
-        mm_free(ms);
-        mm_alloc_error();
-    }
     return ms;
 }
 
@@ -51,13 +44,6 @@ Input_KeyboardState* Input_KeyboardState_create(int max_keys) {
     kb->pressed = (bool*)mm_calloc(max_keys, sizeof(bool));
     kb->down    = (bool*)mm_calloc(max_keys, sizeof(bool));
     kb->up      = (bool*)mm_calloc(max_keys, sizeof(bool));
-    if (!kb->pressed || !kb->down || !kb->up) {
-        if (kb->pressed) mm_free(kb->pressed);
-        if (kb->down) mm_free(kb->down);
-        if (kb->up) mm_free(kb->up);
-        mm_free(kb);
-        mm_alloc_error();
-    }
     return kb;
 }
 
@@ -135,8 +121,8 @@ bool Input_get_mouse_focused(Window *self) {
 }
 
 // Получить вращение колёсика мыши:
-Vec2i Input_get_mouse_wheel(Window *self) {
-    if (!self || !self->input || !self->input->mouse) return (Vec2i){0, 0};
+Vec2f Input_get_mouse_wheel(Window *self) {
+    if (!self || !self->input || !self->input->mouse) return (Vec2f){0, 0};
     return self->input->mouse->wheel;
 }
 
