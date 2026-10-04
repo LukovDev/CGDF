@@ -108,9 +108,10 @@ static inline TimeOffsetUTC Time_get_utc_offset(void) {
         gmtime_s(&gmt, &now);
         localtime_s(&loc, &now);
     #else
-        gmt = *gmtime(&now);
-        loc = *localtime(&now);
+        gmtime_r(&now, &gmt);
+        localtime_r(&now, &loc);
     #endif
+    gmt.tm_isdst = loc.tm_isdst;
     time_t gmt_sec = mktime(&gmt);
     time_t loc_sec = mktime(&loc);
 

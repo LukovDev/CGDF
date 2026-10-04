@@ -119,11 +119,12 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     // Плавное масштабирование расстояния, вращение и обзора камеры:
     float fr = 1.0f - self->friction;
     if (fr > 0.0f) {
-        self->distance += ((self->target_dst - self->distance) * 1.0f/fr) * dtime;
-        self->target_rot.x += ((self->euler.x - self->target_rot.x) * 1.0f/fr) * dtime;
-        self->target_rot.y += ((self->euler.y - self->target_rot.y) * 1.0f/fr) * dtime;
-        self->target_rot.z += ((self->euler.z - self->target_rot.z) * 1.0f/fr) * dtime;
-        camera->fov += ((self->target_fov - camera->fov) * 1.0f/fr) * dtime;
+        float alpha = 1.0f - expf(-dtime / fr);
+        self->distance += (self->target_dst - self->distance) * alpha;
+        self->target_rot.x += (self->euler.x - self->target_rot.x) * alpha;
+        self->target_rot.y += (self->euler.y - self->target_rot.y) * alpha;
+        self->target_rot.z += (self->euler.z - self->target_rot.z) * alpha;
+        camera->fov += (self->target_fov - camera->fov) * alpha;
     } else {
         self->distance = self->target_dst;
         self->target_rot = (Vec3d){self->euler.x, self->euler.y, self->euler.z};

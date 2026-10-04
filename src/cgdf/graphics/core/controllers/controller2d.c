@@ -69,21 +69,21 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
         self->fixed_mouse_pos = (Vec2i){mouse_pos.x, mouse_pos.y};
     }
 
-    float fr = 1.0f - self->friction;
-
     // Масштабирование камеры:
     if (is_zooming) self->target_zoom -= mouse_scroll * self->target_zoom * 0.1f;
     if (self->target_zoom*meter < self->min_zoom) self->target_zoom = self->min_zoom*1.0f/meter;
     if (self->target_zoom > self->max_zoom) self->target_zoom = self->max_zoom;
-    if (fr > 0.0f) camera->zoom += ((self->target_zoom - camera->zoom) * 1.0f/fr) * dtime;
-    else camera->zoom = self->target_zoom;
 
     // Плавное перемещение камеры:
+    float fr = 1.0f - self->friction;
     if (fr > 0.0f) {
-        camera->position.x += ((self->target_pos.x - camera->position.x) * 1.0f/fr) * dtime;
-        camera->position.y += ((self->target_pos.y - camera->position.y) * 1.0f/fr) * dtime;
+        float alpha = 1.0f - expf(-dtime / fr);
+        camera->position.x += (self->target_pos.x - camera->position.x) * alpha;
+        camera->position.y += (self->target_pos.y - camera->position.y) * alpha;
+        camera->zoom += (self->target_zoom - camera->zoom) * alpha;
     } else {
         camera->position = (Vec2d){self->target_pos.x, self->target_pos.y};
+        camera->zoom = self->target_zoom;
     }
 
     // Если позиция сломана:

@@ -26,11 +26,6 @@ static int _JobSystem_task_work_(void *args) {
     (void)args;  // Не используется.
     JobTask current_job;
 
-    // Увеличиваем счетчик реальных потоков:
-    mtx_lock(&g_JobSystem.mutex);
-    g_JobSystem.real_workers_count++;
-    mtx_unlock(&g_JobSystem.mutex);
-
     // Вечный цикл потока:
     while (true) {
         mtx_lock(&g_JobSystem.mutex);
@@ -83,6 +78,7 @@ void JobSystem_init(void) {
     for (size_t i = 0; i < g_JobSystem.max_workers_count; i++) {
         thrd_t thread;
         if (thrd_create(&thread, _JobSystem_task_work_, NULL) == thrd_success) {
+            g_JobSystem.real_workers_count++;
             thrd_detach(thread);
         } else {
             log_msg("[E] JobSystem: Init failed to create thread %zu!\n", i);
@@ -140,6 +136,7 @@ void JobSystem_create_job(JobFunction func, void *args) {
         for (size_t i = 0; i < missing_workers; i++) {
             thrd_t thread;
             if (thrd_create(&thread, _JobSystem_task_work_, NULL) == thrd_success) {
+                g_JobSystem.real_workers_count++;
                 thrd_detach(thread);
             } else {
                 log_msg("[E] JobSystem: Integrity check failed to revive thread!\n");

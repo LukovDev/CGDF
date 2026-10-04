@@ -122,7 +122,7 @@ void Window_destroy(Window **window) {
         Window_quit(*window);
     }
 
-    // Удаляем рендерер:
+    // Удаляем рендерер (если окно так и не открылось. Страховка):
     if ((*window)->renderer) Renderer_destroy(&(*window)->renderer);
 
     // Освобождаем память системы ввода:
@@ -350,6 +350,9 @@ static void ClosingStage(Window *self) {
         Renderer_clear_caches(self->renderer);
     }
 
+    // Удаляем рендерер:
+    if (self->renderer) Renderer_destroy(&self->renderer);
+
     // Уничтожаем контекст рендеринга:
     SDL_GL_DestroyContext(vars->context);
     vars->context = NULL;
@@ -431,7 +434,7 @@ bool Window_open(Window *self) {
     if (!rnd->initialized) {
         log_msg("[E] Renderer_init: Initializing renderer failed.\n");
         vars->create_failed = true;
-        Renderer_destroy(&rnd);
+        Renderer_destroy(&self->renderer);
         SDL_GL_DestroyContext(vars->context);
         SDL_DestroyWindow(window);
         SDL_Quit();

@@ -272,6 +272,7 @@ void Shader_compile(Shader *self) {
 
     // Удаляем шейдерную программу, если она существует:
     if (self->id) {
+        _clear_caches_(self, false);
         glDeleteProgram(self->id);
         self->id = 0;
     }
@@ -324,9 +325,6 @@ void Shader_compile(Shader *self) {
         }
     }
     self->id = program;
-
-    // Очищаем кэш:
-    _clear_caches_(self, false);
 }
 
 // Получить ошибку компиляции или линковки:

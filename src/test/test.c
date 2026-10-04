@@ -105,8 +105,6 @@ void start(Window *self) {
         0.01f, 5000.0f,
         false
     );
-    Renderer_set_cull_faces(self->renderer, false);
-    Renderer_set_depth_test(self->renderer, false);
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
     ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f);
     ctrl_planet = CameraPlanetController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);

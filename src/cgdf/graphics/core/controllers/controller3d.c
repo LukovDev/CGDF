@@ -173,10 +173,11 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     // Плавное перемещение камеры:
     float fr = 1.0f - self->friction;
     if (fr > 0.0f) {
-        camera->position.x += ((self->target_pos.x - camera->position.x) * (1.0f / fr)) * dtime;
-        camera->position.y += ((self->target_pos.y - camera->position.y) * (1.0f / fr)) * dtime;
-        camera->position.z += ((self->target_pos.z - camera->position.z) * (1.0f / fr)) * dtime;
-        camera->fov += ((self->target_fov - camera->fov) * 1.0f/fr) * dtime;
+        float alpha = 1.0f - expf(-dtime / fr);
+        camera->position.x += (self->target_pos.x - camera->position.x) * alpha;
+        camera->position.y += (self->target_pos.y - camera->position.y) * alpha;
+        camera->position.z += (self->target_pos.z - camera->position.z) * alpha;
+        camera->fov += (self->target_fov - camera->fov) * alpha;
     } else {
         camera->position = self->target_pos;
         camera->fov = self->target_fov;

@@ -78,6 +78,7 @@ void Camera2D_update(Camera2D *self) {
 
     // Обновляем данные матриц в шейдере по умолчанию:
     Renderer_set_depth_test(renderer, false);
+    Renderer_set_cull_faces(renderer, false);
     Shader *shader = renderer->shader;
     if (!shader) return;
     Shader_begin(shader);
@@ -112,6 +113,10 @@ void Camera2D_ui_begin(Camera2D *self) {
     if (!self || self->_ui_begin_ || !self->window->renderer) return;
     Renderer *renderer = self->window->renderer;
     self->_ui_begin_ = true;
+
+    // Отключаем отсечение и проверку глубины для интерфейса:
+    Renderer_set_depth_test(renderer, false);
+    Renderer_set_cull_faces(renderer, false);
 
     // Сохраняем текущую матрицу камеры и переключаемся на отдельный UI-view:
     glm_mat4_copy(self->view, self->old_view);
@@ -258,6 +263,9 @@ void Camera3D_update(Camera3D *self) {
 
     // Высчитываем матрицу взгляда:
     glm_mat4_mul(self->proj, self->view, self->view_proj);
+
+    Renderer_set_depth_test(renderer, true);  // Включаем тест глубины.
+    Renderer_set_depth_mask(renderer, true);  // Включаем запись в буфер глубины.
 
     // Устанавливаем активную камеру:
     Renderer_set_camera(renderer, (void*)self, RENDERER_CAMERA_3D);

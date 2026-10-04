@@ -71,10 +71,12 @@ struct Renderer {
     Array *model_transforms;  // Массив трансформаций моделей.
     size_t draw_calls_count;  // Количество вызовов отрисовки.
     GBuffer *gbuffer;         // G-Buffer.
+    bool gbuffer_dirty;       // Флаг для очистки гбуфера.
 
     // Другое:
     Mesh *sprite_mesh;          // Сетка спрайта.
     Texture *fallback_texture;  // Пустая текстура как заглушка для шейдеров.
+    Material *fallback_mat;     // Материал по умолчанию.
 };
 
 
