@@ -156,7 +156,7 @@ void start(Window *self) {
         "Material 01",
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
-        1.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f, 0.05f, 16.0f, 128.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
         albedo, normal, occlusion,
@@ -193,7 +193,7 @@ void start(Window *self) {
         "Material 02",
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
-        1.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f, 0.05f, 16.0f, 128.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
         floor_albedo, floor_normal, floor_occlusion,
@@ -327,7 +327,7 @@ void update(Window *self, float dtime) {
         Array_clear(objfile3.materials, false);
     }
     if (orbit_enabled) {
-        ctrl_orbit->target_pos = (Vec3d){0.0f, 1.5f, 0.0f};
+        ctrl_orbit->target_pos = (Vec3d){0.0f, 1.0f, 0.0f};
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
         // CameraPlanetController3D_update(ctrl_planet, dtime, false);
         ctrl3d->euler = Camera3D_get_euler(camera3d);
@@ -337,6 +337,11 @@ void update(Window *self, float dtime) {
     }
 
     Camera3D_update(camera3d);
+
+    double time = Window_get_time(self);
+    Light3D_set_sun_dir(self->renderer->lightning, Vec3f_norm((Vec3f){radians(sin(time)), radians(sin(time)), radians(cos(time))}));
+
+    Light3D_set_sun_intensity(self->renderer->lightning, glm_clamp(-Light3D_get_sun_dir(self->renderer->lightning).y, 0.0f, 1.0f));
 }
 
 // Вызывается каждый кадр (отрисовка окна):
@@ -370,7 +375,7 @@ void render(Window *self, float dtime) {
         if (!mdl) continue;
         for (size_t g=0; g<Array_len(mdl->meshes); g++) {
             Mesh *mesh = Array_get_ptr(mdl->meshes, g);
-            for (int j = 0; j < 3; j++) {
+            for (int j = 0; j < 4; j++) {
                 if (j == 0) {
                     glm_mat4_identity(mdl->transform);
                     glm_translate(mdl->transform, (vec3){0, 1, 0});
@@ -399,6 +404,17 @@ void render(Window *self, float dtime) {
                     glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, mat_2);
+                    Model_render(mdl, false);
+                }
+                if (j == 3) {
+                    glm_mat4_identity(mdl->transform);
+                    Vec3f p = Light3D_get_sun_dir(self->renderer->lightning);
+                    glm_translate(mdl->transform, (vec3){-p.x*25.0f, -p.y*25.0f, -p.z*25.0f});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+                    // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+                    // glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
+                    Mesh_set_material(mesh, Mesh_get_material(Array_get_ptr(cat->meshes, 0)));
                     Model_render(mdl, false);
                 }
             }

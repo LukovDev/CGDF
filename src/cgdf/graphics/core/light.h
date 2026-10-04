@@ -67,8 +67,23 @@ void Light3D_resize(Light3D *self, int width, int height);
 // Получить текстуру 3D освещения:
 Texture* Light3D_get_light_tex(Light3D *self);
 
-// Установить настройки солнца:
-void Light3D_set_sun(Light3D *self, Vec3f direction, Vec3f color, float intensity);
+// Установить направление солнца:
+void Light3D_set_sun_dir(Light3D *self, Vec3f direction);
+
+// Получить направление солнца:
+Vec3f Light3D_get_sun_dir(Light3D *self);
+
+// Установить цвет солнца:
+void Light3D_set_sun_color(Light3D *self, Vec3f color);
+
+// Получить цвет солнца:
+Vec3f Light3D_get_sun_color(Light3D *self);
+
+// Установить интенсивность солнца:
+void Light3D_set_sun_intensity(Light3D *self, float intensity);
+
+// Получить интенсивность солнца:
+float Light3D_get_sun_intensity(Light3D *self);
 
 // Установить настройки фонового освещения:
 void Light3D_set_ambient(Light3D *self, Vec3f color, Vec3f ground_color, float intensity);

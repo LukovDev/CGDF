@@ -247,12 +247,40 @@ Texture* Light3D_get_light_tex(Light3D *self) {
     return self->light_tex;
 }
 
-// Установить настройки солнца:
-void Light3D_set_sun(Light3D *self, Vec3f direction, Vec3f color, float intensity) {
+// Установить направление солнца:
+void Light3D_set_sun_dir(Light3D *self, Vec3f direction) {
     if (!self) return;
     self->sun_direction = direction;
+}
+
+// Получить направление солнца:
+Vec3f Light3D_get_sun_dir(Light3D *self) {
+    if (!self) return (Vec3f){0};
+    return self->sun_direction;
+}
+
+// Установить цвет солнца:
+void Light3D_set_sun_color(Light3D *self, Vec3f color) {
+    if (!self) return;
     self->sun_color = color;
+}
+
+// Получить цвет солнца:
+Vec3f Light3D_get_sun_color(Light3D *self) {
+    if (!self) return (Vec3f){0};
+    return self->sun_color;
+}
+
+// Установить интенсивность солнца:
+void Light3D_set_sun_intensity(Light3D *self, float intensity) {
+    if (!self) return;
     self->sun_intensity = intensity;
+}
+
+// Получить интенсивность солнца:
+float Light3D_get_sun_intensity(Light3D *self) {
+    if (!self) return 0.0f;
+    return self->sun_intensity;
 }
 
 // Установить настройки фонового освещения:
