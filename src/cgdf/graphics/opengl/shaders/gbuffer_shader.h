@@ -1,5 +1,5 @@
 //
-// gbuffer_shader.h - Шейдер GBuffer.
+// gbuffer_shader.h - Шейдеры GBuffer.
 //
 
 #pragma once

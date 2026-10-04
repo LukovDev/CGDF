@@ -30,6 +30,7 @@ static OBJFile objfile3;
 static OBJFile objfile_ship1;
 static OBJFile objfile_ship2;
 static OBJFile model;
+static OBJFile home;
 
 
 static void print_before_free(void) {
@@ -231,6 +232,7 @@ void start(Window *self) {
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
     model = ObjLoader_load(self->renderer, "data/obj/example/sphere.obj");
+    home = ObjLoader_load(self->renderer, "data/obj/home/Cottage.obj");
 
     // Model *model0 = Array_get_ptr(model.models, 0);
     // for (size_t i=0; i<Array_len(model0->meshes); i++) {
@@ -280,6 +282,7 @@ void destroy(Window *self) {
     destroy_objfile(objfile_ship1);
     destroy_objfile(objfile_ship2);
     destroy_objfile(model);
+    destroy_objfile(home);
 }
 
 
@@ -352,6 +355,14 @@ void render(Window *self, float dtime) {
         glm_rotate(cat->transform, radians(-90.0f), (vec3){1, 0, 0});
         glm_scale(cat->transform, (vec3){0.2f, 0.2f, 0.2f});
         Model_render(cat, false);
+    }
+
+    Model *hm = Array_get_ptr(home.models, 0);
+    if (hm) {
+        glm_mat4_identity(hm->transform);
+        glm_translate(hm->transform, (vec3){0.0f, 0.0f, -8.0f});
+        glm_scale(hm->transform, (vec3){0.25f, 0.25f, 0.25f});
+        Model_render(hm, false);
     }
 
     for (size_t i=0; i < Array_len(model.models); i++) {
@@ -558,7 +569,7 @@ void render(Window *self, float dtime) {
         "GBuffer Textures used: %.2f MB\n\n"
         "FPS: %.2f\n"
         "CamPos: %.2f %.2f %.2f\n"
-        "CamFov: %.2f\n",
+        "CamFov: %f\n",
         cpu_info.model,
         Info_get_cpu_arch_name(cpu_info.arch),
         cpu_info.threads,

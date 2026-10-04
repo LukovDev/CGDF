@@ -211,7 +211,7 @@ void Camera3D_update(Camera3D *self) {
     Renderer *renderer = self->window->renderer;
 
     // Ограничиваем диапазон значений:
-    self->fov = glm_clamp(self->fov, 0.0f, 180.0f);  // Устанавливаем границы угла обзора (от 0 до 180 градусов).
+    self->fov = glm_clamp(self->fov, 0.001f, 179.999f);  // Устанавливаем границы угла обзора.
     self->z_far = glm_max(self->z_far, 0.00002f);    // Минимальное расстояние дальнего отсечения.
     self->z_near = glm_max(self->z_near, 0.00001f);  // Минимальное расстояние ближнего отсечения.
 

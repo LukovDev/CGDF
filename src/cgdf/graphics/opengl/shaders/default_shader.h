@@ -1,5 +1,5 @@
 //
-// default_shader.h - Шейдер по умолчанию (затычка).
+// default_shader.h - Шейдеры по умолчанию (затычка).
 //
 
 #pragma once
