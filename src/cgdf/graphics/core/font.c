@@ -394,8 +394,9 @@ FontGlyph* FontPixmap_get_glyph(FontPixmap *self, uint32_t codepoint) {
 
     // Ищем глиф в хэш-таблице:
     uint32_t lookup_key = codepoint;  // Для поиска можно временный ключ на стеке.
-    FontGlyph *glyph = (FontGlyph*)HashTable_get(self->glyphs, &lookup_key, sizeof(lookup_key), NULL);
-    if (glyph) return glyph;  // Нашли глиф. Возвращаем его.
+    void *found = NULL;
+    if (HashTable_get(self->glyphs, &lookup_key, sizeof(lookup_key), &found, NULL)) return (FontGlyph*)found;
+    FontGlyph *glyph = NULL;
 
     // Пытаемся создать глиф:
     while (1) {

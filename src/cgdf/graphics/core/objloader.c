@@ -105,7 +105,7 @@ static void flush_mesh(Model *model, Array *vertices, Array *indices, Material *
     Model_add_mesh(model, mesh);
     Array_clear(vertices, false);
     Array_clear(indices, false);
-    HashTable_clear(vertex_cache, false, false);
+    HashTable_clear(vertex_cache, true, false);
 }
 
 // Закончить текущую модель и добавить в массив моделей:
@@ -142,15 +142,17 @@ static uint32_t get_or_create_vertex(
 ) {
     // Ищем вершину в кэше вершин. Если нашли, возвращаем:
     ObjIndex key = { .p = idx.p, .t = idx.t, .n = idx.n };
-    void *found = HashTable_get(cache, &key, sizeof(ObjIndex), NULL);
-    if (found) return (uint32_t)(uintptr_t)found;
+    void *found = NULL;
+    if (HashTable_get(cache, &key, sizeof(ObjIndex), &found, NULL)) return (uint32_t)(uintptr_t)found;
 
     // Если не нашли, создаём новую вершину и добавляем её индекс из массива в кэш:
     Vertex vertex;
     if (!make_vertex(idx, positions, normals, texcoords, &vertex)) return UINT32_MAX;
     uint32_t new_index = (uint32_t)Array_len(vertices);
     Array_push(vertices, &vertex);
-    HashTable_set(cache, &key, sizeof(ObjIndex), (void*)(uintptr_t)new_index, sizeof(uint32_t));
+    ObjIndex *stored = mm_alloc(sizeof(ObjIndex));
+    *stored = key;
+    HashTable_set(cache, stored, sizeof(ObjIndex), (void*)(uintptr_t)new_index, sizeof(uint32_t));
     return new_index;
 }
 
@@ -521,6 +523,7 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
     Array_destroy(&texcoords);
     Array_destroy(&vertices);
     Array_destroy(&indices);
+    HashTable_clear(vertex_cache, true, false);
     HashTable_destroy(&vertex_cache);
     mm_free(obj_dir);
     fclose(f);

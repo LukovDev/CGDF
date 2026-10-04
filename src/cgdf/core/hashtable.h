@@ -10,7 +10,7 @@
 
 
 // Определения:
-#define HASHTABLE_DEFAULT_CAPACITY 4096  // Размер хэш-таблицы по-умолчанию.
+#define HASHTABLE_DEFAULT_CAPACITY 1024  // Размер хэш-таблицы по-умолчанию.
 #define HASHTABLE_MIN_CAPACITY     1024  // Минимальный размер хэш-таблицы.
 #define HASHTABLE_GROWTH_FACTOR    2     // Коэффициент увеличения таблицы.
 #define HASHTABLE_SHRINK_FACTOR    2     // Коэффициент сжатия таблицы (формула: cap = len*SHRINK_FACTOR).
@@ -83,8 +83,9 @@ void HashTable_destroy(HashTable **table);
 // Добавить элемент в хэш-таблицу или обновить его значение:
 bool HashTable_set(HashTable *table, const void *key, size_t key_size, const void *value, size_t value_size);
 
-// Получить элемент по ключу. Возвращает указатель на value, иначе NULL:
-void* HashTable_get(HashTable *table, const void *key, size_t key_size, size_t *out_value_size);
+// Получить элемент по ключу. Возвращает true, если ключ найден.
+// Значение и его размер записываются в out_value и out_value_size (оба можно передать NULL):
+bool HashTable_get(HashTable *table, const void *key, size_t key_size, void **out_value, size_t *out_value_size);
 
 // Получить слот из таблицы по индексу:
 HashSlot* HashTable_get_slot(HashTable *table, size_t index);

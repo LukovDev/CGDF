@@ -88,7 +88,7 @@ static inline void reset_probs(HashTable *table) {
 
 // Перераспределение хэш-таблицы:
 static inline void rehash(HashTable *table, size_t new_capacity) {
-    if (!table || table->len <= 0 || table->capacity <= 0) return;
+    if (!table || table->capacity <= 0) return;
 
     // Подготавливаем данные:
     HashSlot *old_data = table->data;
@@ -184,6 +184,23 @@ static inline void check_maybe_problimit(HashTable *table) {
 }
 
 
+// Заполнить слот данными (используется при вставке нового элемента):
+static inline void slot_fill(
+    HashTable *table, HashSlot *slot,
+    const void *key, size_t key_size,
+    const void *value, size_t value_size,
+    size_t hash
+) {
+    slot->key = (void*)key;
+    slot->key_size = key_size;
+    slot->value = (void*)value;
+    slot->value_size = value_size;
+    slot->hash = hash;
+    slot->deleted = false;
+    table->len++;
+}
+
+
 // Создать хэш-таблицу:
 HashTable* HashTable_create(void) {
     size_t capacity = HASHTABLE_DEFAULT_CAPACITY;
@@ -222,6 +239,9 @@ bool HashTable_set(HashTable *table, const void *key, size_t key_size, const voi
     size_t prob_idx = table->prob_index++ % HASHTABLE_PROBING_COUNT;
     table->prob_count[prob_idx] = 0;  // Обнуляем для этой сессии пробингов.
 
+    // Первое встреченное надгробие (сюда вставим, если ключа в таблице нет):
+    HashSlot *first_deleted = NULL;
+
     // Проходим от 0 до конца массива с wrap-around:
     for (size_t i = 0; i < table->capacity; i++) {
         table->prob_count[prob_idx]++;  // Увеличиваем пробинг.
@@ -230,34 +250,42 @@ bool HashTable_set(HashTable *table, const void *key, size_t key_size, const voi
         size_t index = (idx + i) % table->capacity;
         HashSlot *slot = &table->data[index];
 
-        // Если слот пуст (нет ключа = нет элемента) или помечен как удалённый:
-        if (!slot->key || slot->deleted) {
-            slot->key = (void*)key;
-            slot->key_size = key_size;
-            slot->value = (void*)value;
-            slot->value_size = value_size;
-            slot->hash = hash;
-            slot->deleted = false;
-            table->len++;
+        // Если слот помечен как удалённый (надгробие), запоминаем первый такой и ищем дальше,
+        // так как наш ключ может лежать дальше по цепочке:
+        if (slot->deleted) {
+            if (!first_deleted) first_deleted = slot;
+            continue;
+        }
+
+        // Если слот пуст, ключа точно нет в таблице. Вставляем в первое надгробие (если было) или сюда:
+        if (!slot->key) {
+            slot_fill(table, first_deleted ? first_deleted : slot, key, key_size, value, value_size, hash);
             return true;
         }
 
-        // Если нашли слот, совпадают хэш и размер ключа, и ключи равны - обновляем значение:
+        // Если нашли слот, совпадают хэш и размер ключа, и ключи равны, то обновляем значение:
         if (slot->hash == hash && slot->key_size == key_size && memcmp(slot->key, key, key_size) == 0) {
             slot->value = (void*)value;
             slot->value_size = value_size;
-            slot->deleted = false;
             return true;
         }
         // Иначе пробуем искать дальше...
     }
-    return false;  // Не удалось добавить элемент.
+
+    // Пустых слотов не нашлось (таблица в надгробиях и элементах), но надгробие есть, вставляем туда:
+    if (first_deleted) {
+        slot_fill(table, first_deleted, key, key_size, value, value_size, hash);
+        return true;
+    }
+    return false;  // Не удалось добавить элемент (таблица полностью заполнена).
 }
 
 
-// Получить элемент по ключу. Возвращает указатель на value, иначе NULL:
-void* HashTable_get(HashTable *table, const void *key, size_t key_size, size_t *out_value_size) {
-    if (!table || !key) return NULL;
+// Получить элемент по ключу. Возвращает true, если ключ найден.
+// Значение и его размер записываются в out_value и out_value_size (оба можно передать NULL):
+bool HashTable_get(HashTable *table, const void *key, size_t key_size, void **out_value, size_t *out_value_size) {
+    if (out_value) *out_value = NULL;
+    if (!table || !key) return false;
 
     // Проверяем лимит пробирований:
     check_maybe_problimit(table);
@@ -280,17 +308,16 @@ void* HashTable_get(HashTable *table, const void *key, size_t key_size, size_t *
         if (slot->deleted) continue;
 
         // Если слот пуст (нет ключа = нет элемента):
-        if (!slot->key) {
-            return NULL;
-        }
+        if (!slot->key) return false;
 
         // Иначе сравниваем ключи:
         if (slot->hash == hash && slot->key_size == key_size && memcmp(slot->key, key, key_size) == 0) {
-            if (out_value_size) *out_value_size = slot->value_size;  // Возвращаем размер значения.
-            return slot->value;
+            if (out_value) *out_value = slot->value;
+            if (out_value_size) *out_value_size = slot->value_size;
+            return true;
         }
     }
-    return NULL;  // Не удалось найти элемент.
+    return false;  // Не удалось найти элемент.
 }
 
 
@@ -355,7 +382,7 @@ bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool f
 // Возвращает true, если ключ есть в таблице:
 bool HashTable_has(HashTable *table, const void *key, size_t key_size) {
     if (!table) return false;
-    return HashTable_get(table, key, key_size, NULL) != NULL;
+    return HashTable_get(table, key, key_size, NULL, NULL);
 }
 
 

@@ -354,6 +354,8 @@ void Array_clear(Array *arr, bool free_data) {
 
     // Обнуляем массив:
     arr->len = 0;
-    arr->capacity = arr->init_cap;
-    arr->data = mm_realloc(arr->data, arr->item_size * arr->capacity);
+    if (arr->capacity != arr->init_cap) {
+        arr->capacity = arr->init_cap;
+        arr->data = mm_realloc(arr->data, arr->item_size * arr->capacity);
+    }
 }
