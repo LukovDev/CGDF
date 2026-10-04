@@ -106,7 +106,7 @@ void main(void) {\n\
     B = normalize(cross(N_base, T)); \n\
     mat3 TBN = mat3(T, B, N_base);\n\
     \n\
-    vec2 texCoords = fract(v_texcoord);\n\
+    vec2 texCoords = v_texcoord;\n\
     \n\
     // Накладываем эффект POM (параллакс):\n\
     if (u_use_tex_height) {\n\
@@ -138,8 +138,9 @@ void main(void) {\n\
         texCoords = prev_UVs * weight + UVs * (1.0f - weight);  // Интерполяция (сглаживание шагов).\n\
         \n\
         // Удаляем фрагменты за пределами координат:\n\
-        if (texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0) {\n\
-            if (u_pom_cutoff_enabled) discard;\n\
+        if (u_pom_cutoff_enabled) {\n\
+            vec2 tile = floor(v_texcoord);   // В каком тайле находится исходный пиксель.\n\
+            if (any(lessThan(texCoords, tile)) || any(greaterThan(texCoords, tile + 1.0))) { discard; }\n\
         }\n\
     }\n\
     \n\

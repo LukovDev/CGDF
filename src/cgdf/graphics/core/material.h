@@ -39,12 +39,12 @@ struct Material {
     float distortion_aberration;  // Сила искажения цвета.
 
     // Текстуры:
-    Texture *albedo_map;        // Текстура цвета (RGB = цвет, A = альфа opacity).
+    Texture *albedo_map;        // Текстура цвета (RGB = цвет, A = альфа opacity). Должен быть TEX_INTERNAL_SRGBA8.
     Texture *normal_map;        // Текстура нормалей материала.
     Texture *occlusion_map;     // Текстура внешней окклюзии (Ambient Occlusion).
     Texture *roughness_map;     // Текстура шероховатости (Roughness).
     Texture *metallic_map;      // Текстура металличности (Metallic).
-    Texture *emissive_map;      // Текстура свечения.
+    Texture *emissive_map;      // Текстура свечения. Должен быть TEX_INTERNAL_SRGBA8.
     Texture *height_map;        // Текстура высоты (параллакс).
 
     // Владеет ли материал текстурами (true = автоматически удалить текстуру при удалении материала):

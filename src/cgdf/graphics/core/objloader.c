@@ -171,7 +171,7 @@ static Material* find_material(Array *materials, const char *name) {
 }
 
 // Загрузить текстуру из MTL-файла:
-static Texture* load_texture(Renderer *renderer, const char *mtl_dir, const char *raw_path) {
+static Texture* load_texture(Renderer *renderer, const char *mtl_dir, const char *raw_path, bool albedo) {
     char *path = Files_path_join(mtl_dir, raw_path);
     if (!path) return NULL;
 
@@ -183,7 +183,11 @@ static Texture* load_texture(Renderer *renderer, const char *mtl_dir, const char
     }
     fclose(f);
     Texture *texture = Texture_create(renderer);
-    Texture_load(texture, path, true);
+    if (albedo) {
+        Texture_load_advanced(texture, path, true, TEX_FORMAT_RGBA, TEX_INTERNAL_SRGBA8, TEX_DATA_UBYTE);
+    } else {
+        Texture_load(texture, path, true);
+    }
     mm_free(path);
     return texture;
 }
@@ -219,6 +223,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
     char *mtl_dir = Files_dirname_dup(filepath);
     char line[2048];
     Material *mat = NULL;  // Текущий материал.
+    bool roughness_set = false, metallic_set = false;
 
     // Читаем файл построчно:
     while (fgets(line, sizeof(line), f)) {
@@ -232,6 +237,8 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
 
         // Создаём новый материал:
         if (strncmp(s, "newmtl", 6) == 0 && (s[6] == ' ' || s[6] == '\t')) {
+            roughness_set = false;
+            metallic_set = false;
             char *name = skip_ws(s + 6);
             // Если не нашли материал в массиве материалов, то создаем новый и добавляем его:
             if (!find_material(materials, name)) {
@@ -291,19 +298,21 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         // PBR: Металличность:
         else if (mat && strncmp(s, "Pm", 2) == 0 && (s[2] == ' ' || s[2] == '\t')) {
             sscanf(s + 2, "%f", &mat->metallic);
+            metallic_set = true;
         }
 
         // PBR: Шероховатость:
         else if (mat && strncmp(s, "Pr", 2) == 0 && (s[2] == ' ' || s[2] == '\t')) {
             sscanf(s + 2, "%f", &mat->roughness);
+            roughness_set = true;
         }
 
         // Текстура альбедо:
         else if (mat && strncmp(s, "map_Kd", 6) == 0 && (s[6] == ' ' || s[6] == '\t')) {
             char *path = parse_texture_path(skip_ws(s + 6));
-            // Загружает только если текстура не указана:
+            // Загружает только если текстура еще не указана:
             if (path && !mat->albedo_map) {
-                mat->albedo_map = load_texture(renderer, mtl_dir, path);
+                mat->albedo_map = load_texture(renderer, mtl_dir, path, true);
                 mat->owns_albedo_map = mat->albedo_map != NULL;
             }
         }
@@ -322,9 +331,9 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
                 || strncmp(s, "bump", 4) == 0 || strncmp(s, "norm", 4) == 0)) {
             char *args = s + (s[0] == 'b' ? 4 : (s[4] == '_' ? 8 : 4));
             char *path = parse_texture_path(skip_ws(args));
-            // Загружает только если текстура не указана:
+            // Загружает только если текстура еще не указана:
             if (path && !mat->normal_map) {
-                mat->normal_map = load_texture(renderer, mtl_dir, path);
+                mat->normal_map = load_texture(renderer, mtl_dir, path, false);
                 mat->owns_normal_map = mat->normal_map != NULL;
             }
         }
@@ -332,9 +341,9 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         // Текстура свечения:
         else if (mat && strncmp(s, "map_Ke", 6) == 0 && (s[6] == ' ' || s[6] == '\t')) {
             char *path = parse_texture_path(skip_ws(s + 6));
-            // Загружает только если текстура не указана:
+            // Загружает только если текстура еще не указана:
             if (path && !mat->emissive_map) {
-                mat->emissive_map = load_texture(renderer, mtl_dir, path);
+                mat->emissive_map = load_texture(renderer, mtl_dir, path, true);
                 mat->owns_emissive_map = mat->emissive_map != NULL;
                 if (mat->emissive_map && mat->emissive_strength == 0.0f) mat->emissive_strength = 1.0f;
             }
@@ -344,9 +353,9 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         else if (mat && (strncmp(s, "disp", 4) == 0 || strncmp(s, "map_disp", 8) == 0)) {
             char *args = s + (s[0] == 'd' ? 4 : 8);
             char *path = parse_texture_path(skip_ws(args));
-            // Загружает только если текстура не указана:
+            // Загружает только если текстура еще не указана:
             if (path && !mat->height_map) {
-                mat->height_map = load_texture(renderer, mtl_dir, path);
+                mat->height_map = load_texture(renderer, mtl_dir, path, false);
                 mat->owns_height_map = mat->height_map != NULL;
             }
         }
@@ -355,9 +364,9 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         else if (mat && (strncmp(s, "map_Ao", 6) == 0 ||
                 strncmp(s, "map_ao", 6) == 0) && (s[6] == ' ' || s[6] == '\t')) {
             char *path = parse_texture_path(skip_ws(s + 6));
-            // Загружает только если текстура не указана:
+            // Загружает только если текстура еще не указана:
             if (path && !mat->occlusion_map) {
-                mat->occlusion_map = load_texture(renderer, mtl_dir, path);
+                mat->occlusion_map = load_texture(renderer, mtl_dir, path, false);
                 mat->owns_occlusion_map = mat->occlusion_map != NULL;
             }
         }
@@ -365,20 +374,22 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         // PBR: Карта шероховатости (Roughness):
         else if (mat && strncmp(s, "map_Pr", 6) == 0 && (s[6] == ' ' || s[6] == '\t')) {
             char *path = parse_texture_path(skip_ws(s + 6));
-            // Загружает только если текстура не указана:
+            // Загружает только если текстура еще не указана:
             if (path && !mat->roughness_map) {
-                mat->roughness_map = load_texture(renderer, mtl_dir, path);
+                mat->roughness_map = load_texture(renderer, mtl_dir, path, false);
                 mat->owns_roughness_map = mat->roughness_map != NULL;
+                if (mat->roughness_map && !roughness_set) mat->roughness = 1.0f;
             }
         }
 
         // PBR: Карта металличности (Metallic):
         else if (mat && strncmp(s, "map_Pm", 6) == 0 && (s[6] == ' ' || s[6] == '\t')) {
             char *path = parse_texture_path(skip_ws(s + 6));
-            // Загружает только если текстура не указана:
+            // Загружает только если текстура еще не указана:
             if (path && !mat->metallic_map) {
-                mat->metallic_map = load_texture(renderer, mtl_dir, path);
+                mat->metallic_map = load_texture(renderer, mtl_dir, path, false);
                 mat->owns_metallic_map = mat->metallic_map != NULL;
+                if (mat->metallic_map && !metallic_set) mat->metallic = 1.0f;
             }
         }
     }

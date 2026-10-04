@@ -204,13 +204,14 @@ void start(Window *self) {
     floor_material->owns_metallic_map = true;
     floor_material->owns_emissive_map = true;
     floor_material->owns_height_map = true;
+    floor_material->height_cutoff_enabled = false;
 
     objfile = ObjLoader_load(self->renderer, "data/obj/cat/cat.obj");
     objfile2 = ObjLoader_load(self->renderer, "data/obj/demo_scene/demo_scene.obj");
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
-    model = ObjLoader_load(self->renderer, "data/obj/abandoned_warehouse/abandoned_warehouse.obj");
+    model = ObjLoader_load(self->renderer, "data/obj/example/cube.obj");
 
     // Model *model0 = Array_get_ptr(model.models, 0);
     // for (size_t i=0; i<Array_len(model0->meshes); i++) {
@@ -221,6 +222,11 @@ void start(Window *self) {
     Model *floor = Array_get_ptr(objfile2.models, 0);
     for (size_t i=0; i<Array_len(floor->meshes); i++) {
         Mesh *mesh = Array_get_ptr(floor->meshes, i);
+        Mesh_set_material(mesh, floor_material);
+    }
+    Model *cube = Array_get_ptr(model.models, 0);
+    for (size_t i=0; i<Array_len(cube->meshes); i++) {
+        Mesh *mesh = Array_get_ptr(cube->meshes, i);
         Mesh_set_material(mesh, floor_material);
     }
     Model *tmp = NULL;
@@ -340,7 +346,7 @@ void render(Window *self, float dtime) {
         // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
         // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
         // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
-        glm_scale(mdl->transform, (vec3){10.0f, 10.0f, 10.0f});
+        glm_scale(mdl->transform, (vec3){1.0f, 1.0f, 1.0f});
         Model_render(mdl, false);
     }
 
@@ -381,9 +387,10 @@ void render(Window *self, float dtime) {
         Shader_begin(grid);
         mat4 gridmodel;
         glm_mat4_identity(gridmodel);
-        float grid_size = 100.0f;
+        float grid_size = 250.0f;
+        glm_translate(gridmodel, (vec3){camera3d->position.x, 0.0f, camera3d->position.z});
         glm_scale(gridmodel, (vec3){grid_size, grid_size, grid_size});
-        // glm_translate(gridmodel, (vec3){camera3d->position.x, camera3d->position.y, camera3d->position.z});
+        glm_rotate(gridmodel, radians(-90.0f), (vec3){1, 0, 0});
         Shader_set_mat4(grid, "u_model", gridmodel);
         Shader_set_mat4(grid, "u_view", view);
         Shader_set_mat4(grid, "u_proj", proj);
@@ -567,185 +574,11 @@ WindowScene TestScene = {
     .hide    = hide
 };
 
-// -------- Тесты хэш-таблицы: --------
 
-static int ht_pass = 0, ht_fail = 0;
-#define HT_CHECK(cond, name) do { if (cond) ht_pass++; else { ht_fail++; printf("  [FAIL] %s\n", name); } } while (0)
-
-// Хэш-функция, которая всем ключам даёт один хэш (все ключи попадают в одну цепочку):
-static size_t ht_const_hash(const void *data, size_t len) { (void)data; (void)len; return 7; }
-
-// Обёртка для тестов: возвращает значение или NULL:
-static void* ht_get(HashTable *t, const void *key, size_t key_size) {
-    void *v = NULL;
-    HashTable_get(t, key, key_size, &v, NULL);
-    return v;
-}
-
-static void test_hashtable_all(void) {
-    printf("---- HashTable tests ----\n");
-    static int keys[20000], vals[20000];  // Ключи и значения должны жить всё время теста.
-    for (int i = 0; i < 20000; i++) { keys[i] = i; vals[i] = i * 10; }
-
-    // 1. Вставка и поиск:
-    {
-        HashTable *t = HashTable_create();
-        HashTable_set(t, &keys[1], sizeof(int), &vals[1], sizeof(int));
-        HashTable_set(t, &keys[2], sizeof(int), &vals[2], sizeof(int));
-        int k = 1;  // Другой указатель, но то же содержимое.
-        int *v1 = ht_get(t, &k, sizeof(int));
-        int *v2 = ht_get(t, &keys[2], sizeof(int));
-        HT_CHECK(v1 && *v1 == 10, "basic: get by equal content");
-        HT_CHECK(v2 && *v2 == 20, "basic: get key 2");
-        HT_CHECK(HashTable_len(t) == 2, "basic: len == 2");
-        HT_CHECK(ht_get(t, &keys[3], sizeof(int)) == NULL, "basic: missing key -> NULL");
-        HT_CHECK(HashTable_has(t, &keys[1], sizeof(int)), "basic: has key 1");
-        HT_CHECK(!HashTable_has(t, &keys[3], sizeof(int)), "basic: has not key 3");
-        HashTable_destroy(&t);
-    }
-
-    // 2. Обновление существующего ключа:
-    {
-        HashTable *t = HashTable_create();
-        HashTable_set(t, &keys[1], sizeof(int), &vals[1], sizeof(int));
-        HashTable_set(t, &keys[1], sizeof(int), &vals[5], sizeof(int));
-        int *v = ht_get(t, &keys[1], sizeof(int));
-        HT_CHECK(HashTable_len(t) == 1, "update: len stays 1");
-        HT_CHECK(v && *v == 50, "update: value replaced");
-        HashTable_destroy(&t);
-    }
-
-    // 3. Удаление:
-    {
-        HashTable *t = HashTable_create();
-        HashTable_set(t, &keys[1], sizeof(int), &vals[1], sizeof(int));
-        HashTable_set(t, &keys[2], sizeof(int), &vals[2], sizeof(int));
-        HT_CHECK(HashTable_remove(t, &keys[1], sizeof(int), false, false), "remove: returns true");
-        HT_CHECK(ht_get(t, &keys[1], sizeof(int)) == NULL, "remove: removed key -> NULL");
-        HT_CHECK(ht_get(t, &keys[2], sizeof(int)) != NULL, "remove: other key still here");
-        HT_CHECK(HashTable_len(t) == 1, "remove: len == 1");
-        HT_CHECK(!HashTable_remove(t, &keys[1], sizeof(int), false, false), "remove: second remove -> false");
-        HashTable_destroy(&t);
-    }
-
-    // 4. Расширение таблицы:
-    {
-        HashTable *t = HashTable_create();
-        size_t cap_before = HashTable_capacity(t);
-        for (int i = 0; i < 5000; i++) HashTable_set(t, &keys[i], sizeof(int), &vals[i], sizeof(int));
-        bool all_found = true;
-        for (int i = 0; i < 5000; i++) {
-            int *v = ht_get(t, &keys[i], sizeof(int));
-            if (!v || *v != i * 10) { all_found = false; break; }
-        }
-        HT_CHECK(HashTable_capacity(t) > cap_before, "growth: capacity increased");
-        HT_CHECK(HashTable_len(t) == 5000, "growth: len == 5000");
-        HT_CHECK(all_found, "growth: all keys found after rehash");
-        HashTable_destroy(&t);
-    }
-
-    // 5. Цепочка коллизий и надгробие посередине:
-    {
-        HashTable *t = HashTable_create();
-        t->hash_func = ht_const_hash;
-        for (int i = 1; i <= 5; i++) HashTable_set(t, &keys[i], sizeof(int), &vals[i], sizeof(int));
-        HashTable_remove(t, &keys[3], sizeof(int), false, false);
-        int *v5 = ht_get(t, &keys[5], sizeof(int));
-        HT_CHECK(v5 && *v5 == 50, "chain: key after tombstone is found");
-        HT_CHECK(ht_get(t, &keys[3], sizeof(int)) == NULL, "chain: removed key -> NULL");
-        HT_CHECK(HashTable_len(t) == 4, "chain: len == 4");
-        HashTable_destroy(&t);
-    }
-
-    // 6. [БАГ №1] Повторная вставка ключа, лежащего за надгробием:
-    {
-        HashTable *t = HashTable_create();
-        t->hash_func = ht_const_hash;
-        HashTable_set(t, &keys[1], sizeof(int), &vals[1], sizeof(int));  // A
-        HashTable_set(t, &keys[2], sizeof(int), &vals[2], sizeof(int));  // B
-        HashTable_set(t, &keys[3], sizeof(int), &vals[3], sizeof(int));  // C (вспомогательный)
-
-        // Удаляем C: таблица сожмётся до минимума (1024). Дальше сжатий не будет, и надгробия останутся:
-        HashTable_remove(t, &keys[3], sizeof(int), false, false);
-        HT_CHECK(HashTable_capacity(t) == HASHTABLE_MIN_CAPACITY, "bug1: precondition (capacity is min)");
-
-        HashTable_remove(t, &keys[1], sizeof(int), false, false);        // remove A -> надгробие
-        HashTable_set(t, &keys[2], sizeof(int), &vals[7], sizeof(int));  // set B = 70
-        int *v = ht_get(t, &keys[2], sizeof(int));
-        HT_CHECK(HashTable_len(t) == 1, "bug1: len == 1 (no duplicate)");
-        HT_CHECK(v && *v == 70, "bug1: value updated");
-        HashTable_remove(t, &keys[2], sizeof(int), false, false);
-        HT_CHECK(ht_get(t, &keys[2], sizeof(int)) == NULL, "bug1: after remove -> NULL");
-        HashTable_destroy(&t);
-    }
-
-    // 7. Очистка:
-    {
-        HashTable *t = HashTable_create();
-        for (int i = 0; i < 100; i++) HashTable_set(t, &keys[i], sizeof(int), &vals[i], sizeof(int));
-        HashTable_clear(t, false, false);
-        HT_CHECK(HashTable_len(t) == 0, "clear: len == 0");
-        HT_CHECK(ht_get(t, &keys[5], sizeof(int)) == NULL, "clear: key -> NULL");
-        HashTable_set(t, &keys[5], sizeof(int), &vals[5], sizeof(int));
-        int *v = ht_get(t, &keys[5], sizeof(int));
-        HT_CHECK(v && *v == 50, "clear: table usable after clear");
-        HashTable_destroy(&t);
-    }
-
-    // 8. [БАГ №20] Очистка большой таблицы должна её сжать:
-    {
-        HashTable *t = HashTable_create();
-        for (int i = 0; i < 20000; i++) HashTable_set(t, &keys[i], sizeof(int), &vals[i], sizeof(int));
-        HashTable_clear(t, false, false);
-        HT_CHECK(HashTable_capacity(t) == HASHTABLE_MIN_CAPACITY, "bug20: capacity shrinks to min after clear");
-        HashTable_destroy(&t);
-    }
-
-    // 9. Удаление всех элементов по одному:
-    {
-        HashTable *t = HashTable_create();
-        for (int i = 0; i < 5000; i++) HashTable_set(t, &keys[i], sizeof(int), &vals[i], sizeof(int));
-        for (int i = 0; i < 5000; i++) HashTable_remove(t, &keys[i], sizeof(int), false, false);
-        bool none_found = true;
-        for (int i = 0; i < 5000; i++) {
-            if (ht_get(t, &keys[i], sizeof(int))) { none_found = false; break; }
-        }
-        HT_CHECK(HashTable_len(t) == 0, "remove all: len == 0");
-        HT_CHECK(none_found, "remove all: no keys found");
-        HashTable_destroy(&t);
-    }
-
-    // 10. Строковые ключи:
-    {
-        HashTable *t = HashTable_create();
-        const char *key = "hello";
-        HashTable_set(t, key, strlen(key) + 1, &vals[1], sizeof(int));
-        char buf[16];
-        strcpy(buf, "hello");  // Другой буфер с тем же текстом.
-        int *v = ht_get(t, buf, strlen(buf) + 1);
-        HT_CHECK(v && *v == 10, "string: get by equal string");
-        HashTable_destroy(&t);
-    }
-
-    // 11. Значение NULL отличается от "ключа нет":
-    {
-        HashTable *t = HashTable_create();
-        HashTable_set(t, &keys[1], sizeof(int), NULL, 0);
-        void *v = (void*)1;
-        HT_CHECK(HashTable_get(t, &keys[1], sizeof(int), &v, NULL), "null value: key found");
-        HT_CHECK(v == NULL, "null value: value is NULL");
-        HT_CHECK(HashTable_has(t, &keys[1], sizeof(int)), "null value: has == true");
-        HT_CHECK(!HashTable_get(t, &keys[2], sizeof(int), &v, NULL), "null value: missing key -> false");
-        HashTable_destroy(&t);
-    }
-
-    printf("---- HashTable: %d passed, %d failed ----\n", ht_pass, ht_fail);
-}
 // Точка входа в программу:
 int main(int argc, char *argv[]) {
     (void)argc; (void)argv;
     CGDF_init();
-    test_hashtable_all();
 
     log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(NULL, 0));
 

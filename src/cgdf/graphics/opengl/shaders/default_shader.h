@@ -52,7 +52,7 @@ void main(void) {\n\
         if (u_gbuffer_view == 0) {\n\
             FragColor = vec4(s.rgba);\n\
         } else if (u_gbuffer_view == 1) {\n\
-            FragColor = vec4(s.rgb * 2.0 - 1.0, 1.0);\n\
+            FragColor = vec4(s.rgb / 2.0 + 0.5, 1.0);\n\
         } else if (u_gbuffer_view == 2) {\n\
             FragColor = vec4(s.rgb, 1.0);\n\
         } else if (u_gbuffer_view == 3) {\n\
