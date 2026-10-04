@@ -10,6 +10,7 @@
 #include <cgdf/core/math.h>
 #include <cgdf/core/array.h>
 #include "gbuffer.h"
+#include "light.h"
 #include "mesh.h"
 #include "shader.h"
 #include "texture.h"
@@ -26,6 +27,14 @@ typedef enum {
     RENDERER_CAMERA_2D,
     RENDERER_CAMERA_3D,
 } RendererCameraType;
+
+
+// Тип тонмаппинга:
+typedef enum {
+    RENDERER_TONEMAP_NONE = 0,
+    RENDERER_TONEMAP_ACES,
+    RENDERER_TONEMAP_COUNT
+} RendererTonemapType;
 
 
 // Настройка дебага рендеринга:
@@ -61,17 +70,21 @@ struct Renderer {
     RendererCameraType camera_type;  // Тип камеры который используется (для корректировок).
 
     // Шейдеры:
-    Shader *shader;              // Дефолтная шейдерная программа.
-    Shader *shader_gbuffer;      // Шейдер gbuffer.
-    Shader *shader_spritebatch;  // Шейдер пакетной отрисовки спрайтов.
-    Shader *shader_light2d;      // Шейдер 2D освещения.
+    Shader *shader;               // Дефолтная шейдерная программа.
+    Shader *shader_gbuffer;       // Шейдер gbuffer.
+    Shader *shader_lightning;     // Шейдер прохода освещения.
+    Shader *shader_final;         // Шейдер финального прохода.
+    Shader *shader_spritebatch;   // Шейдер пакетной отрисовки спрайтов.
+    Shader *shader_light2d;       // Шейдер 2D освещения.
 
     // Отрисовка сцены:
-    Array *models;            // Массив указателей на модели для отрисовки.
-    Array *model_transforms;  // Массив трансформаций моделей.
-    size_t draw_calls_count;  // Количество вызовов отрисовки.
-    GBuffer *gbuffer;         // G-Buffer.
-    bool gbuffer_dirty;       // Флаг для очистки гбуфера.
+    Array *draw_commands;         // Массив команд на отрисовку.
+    size_t draw_calls_count;      // Количество вызовов отрисовки.
+    GBuffer *gbuffer;             // G-Buffer.
+    bool gbuffer_dirty;           // Флаг для очистки гбуфера.
+    Light3D *lightning;           // 3D освещение сцены.
+    float exposure;               // Экспозиция освещения.
+    RendererTonemapType tonemap;  // Тонмаппинг.
 
     // Другое:
     Mesh *sprite_mesh;          // Сетка спрайта.
@@ -172,3 +185,12 @@ void Renderer_set_front_face_onright(Renderer *self);
 
 // Установить размер viewport:
 void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height);
+
+// Создать команду отрисовки:
+void Renderer_create_draw_command(Renderer *self, Mesh *mesh, Material *material, mat4 transform, bool wireframe);
+
+// Установить экспозицию:
+void Renderer_set_exposure(Renderer *self, float exposure);
+
+// Установить тонмаппинг:
+void Renderer_set_tonemapping(Renderer *self, RendererTonemapType tonemap);

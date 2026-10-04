@@ -8,22 +8,23 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/math.h>
-#include "renderer.h"
 
 
 // Объявление структур:
-typedef struct Light2D Light2D;  // Простое освещение в 2D.
+typedef struct Light2D Light2D;    // 2D освещение.
+typedef struct Light3D Light3D;    // 3D освещение.
+typedef struct Renderer Renderer;  // Повторное локальное определение.
 
-// (Определение структуры Light2D находится в реализации).
+// (Определение структуры Light2D и Light3D находится в реализации).
 
 
-// -------- API простого 2D освещения: --------
+// -------- API 2D освещения: --------
 
 
-// Создать простое 2D освещение:
+// Создать 2D освещение:
 Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity);
 
-// Уничтожить простое 2D освещение:
+// Уничтожить 2D освещение:
 void Light2D_destroy(Light2D **light);
 
 // Начать захватывать отрисовку сцены:
@@ -47,5 +48,30 @@ void Light2D_set_ambient(Light2D *self, Vec3f ambient);
 // Установить интенсивность 2D освещения:
 void Light2D_set_intensity(Light2D *self, float intensity);
 
-// Изменить размер 2D освещения:
+// Изменить размер текстур 2D освещения:
 void Light2D_resize(Light2D *self, int width, int height);
+
+
+// -------- API 3D освещения: --------
+
+
+// Создать 3D освещение:
+Light3D* Light3D_create(Renderer *renderer);
+
+// Уничтожить 3D освещение:
+void Light3D_destroy(Light3D **light);
+
+// Изменить размер текстур 3D освещения:
+void Light3D_resize(Light3D *self, int width, int height);
+
+// Получить текстуру 3D освещения:
+Texture* Light3D_get_light_tex(Light3D *self);
+
+// Установить настройки солнца:
+void Light3D_set_sun(Light3D *self, Vec3f direction, Vec3f color, float intensity);
+
+// Установить настройки фонового освещения:
+void Light3D_set_ambient(Light3D *self, Vec3f color, Vec3f ground_color, float intensity);
+
+// Отрисовать освещение:
+void Light3D_render(Light3D *self, mat4 proj, mat4 view);

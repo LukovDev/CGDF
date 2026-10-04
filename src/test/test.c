@@ -20,6 +20,8 @@ static SimpleDraw *draw;
 static Shader *grid;
 static Shader *atmo;
 static FontPixmap *font;
+static Material *mat_1;
+static Material *mat_2;
 static Material *material;
 static Material *floor_material;
 static OBJFile objfile;
@@ -154,7 +156,7 @@ void start(Window *self) {
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
         1.0f, 1.0f, 0.0f, 1.0f,
-        (Vec3f){1, 1, 1}, 1.0f, 0.05f, 16.0f, 128.0f, false,
+        (Vec3f){1, 1, 1}, 0.0f, 0.05f, 16.0f, 128.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
         albedo, normal, occlusion,
         roughness, metallic, emission,
@@ -191,7 +193,7 @@ void start(Window *self) {
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
         1.0f, 1.0f, 0.0f, 1.0f,
-        (Vec3f){1, 1, 1}, 1.0f, 0.05f, 16.0f, 128.0f, false,
+        (Vec3f){1, 1, 1}, 0.0f, 0.05f, 16.0f, 128.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
         floor_albedo, floor_normal, floor_occlusion,
         floor_roughness, floor_metallic, floor_emission,
@@ -205,13 +207,30 @@ void start(Window *self) {
     floor_material->owns_emissive_map = true;
     floor_material->owns_height_map = true;
     floor_material->height_cutoff_enabled = false;
+    floor_material->roughness = 0.25f;
+    floor_material->metallic = 0.75f;
+
+    mat_1 = Material_create(
+        "Material_Sphere_1", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
+        0.0f, 0.25f, 1.0f, 1.0f,
+        (Vec3f){1, 1, 1}, 0.0f,
+        0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
+        0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    );
+    mat_2 = Material_create(
+        "Material_Sphere_2", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
+        1.0f, 0.25f, 1.0f, 1.0f,
+        (Vec3f){1, 1, 1}, 0.0f,
+        0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
+        0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    );
 
     objfile = ObjLoader_load(self->renderer, "data/obj/cat/cat.obj");
     objfile2 = ObjLoader_load(self->renderer, "data/obj/demo_scene/demo_scene.obj");
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
-    model = ObjLoader_load(self->renderer, "data/obj/example/cube.obj");
+    model = ObjLoader_load(self->renderer, "data/obj/example/sphere.obj");
 
     // Model *model0 = Array_get_ptr(model.models, 0);
     // for (size_t i=0; i<Array_len(model0->meshes); i++) {
@@ -222,11 +241,6 @@ void start(Window *self) {
     Model *floor = Array_get_ptr(objfile2.models, 0);
     for (size_t i=0; i<Array_len(floor->meshes); i++) {
         Mesh *mesh = Array_get_ptr(floor->meshes, i);
-        Mesh_set_material(mesh, floor_material);
-    }
-    Model *cube = Array_get_ptr(model.models, 0);
-    for (size_t i=0; i<Array_len(cube->meshes); i++) {
-        Mesh *mesh = Array_get_ptr(cube->meshes, i);
         Mesh_set_material(mesh, floor_material);
     }
     Model *tmp = NULL;
@@ -257,6 +271,8 @@ void destroy(Window *self) {
 
     Material_destroy(&material);
     Material_destroy(&floor_material);
+    Material_destroy(&mat_1);
+    Material_destroy(&mat_2);
 
     destroy_objfile(objfile);
     destroy_objfile(objfile2);
@@ -341,13 +357,41 @@ void render(Window *self, float dtime) {
     for (size_t i=0; i < Array_len(model.models); i++) {
         Model *mdl = Array_get_ptr(model.models, i);
         if (!mdl) continue;
-        glm_mat4_identity(mdl->transform);
-        glm_translate(mdl->transform, (vec3){0, 0, 0});
-        // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
-        // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
-        // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
-        glm_scale(mdl->transform, (vec3){1.0f, 1.0f, 1.0f});
-        Model_render(mdl, false);
+        for (size_t g=0; g<Array_len(mdl->meshes); g++) {
+            Mesh *mesh = Array_get_ptr(mdl->meshes, g);
+            for (int j = 0; j < 3; j++) {
+                if (j == 0) {
+                    glm_mat4_identity(mdl->transform);
+                    glm_translate(mdl->transform, (vec3){0, 1, 0});
+                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+                    glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+                    glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
+                    Mesh_set_material(mesh, material);
+                    Model_render(mdl, false);
+                }
+                if (j == 1) {
+                    glm_mat4_identity(mdl->transform);
+                    glm_translate(mdl->transform, (vec3){1, 1, 1});
+                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+                    glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+                    glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
+                    Mesh_set_material(mesh, mat_1);
+                    Model_render(mdl, false);
+                }
+                if (j == 2) {
+                    glm_mat4_identity(mdl->transform);
+                    glm_translate(mdl->transform, (vec3){-1, 1, -1});
+                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+                    glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+                    glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
+                    Mesh_set_material(mesh, mat_2);
+                    Model_render(mdl, false);
+                }
+            }
+        }
     }
 
     for (size_t i=0; i < Array_len(objfile2.models); i++) {
@@ -437,8 +481,7 @@ void render(Window *self, float dtime) {
         Shader_set_bool(self->renderer->shader, "u_use_gbuffer", true);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 0);
         Shader_end(self->renderer->shader);
-        Sprite2D_render(self->renderer, albedo_roughness, 0, 0, albedo_roughness->width, albedo_roughness->height, 0.0f, (Vec4f){1, 1, 1, 1}, false);
-        Sprite2D_render(self->renderer, albedo_roughness, x1 - w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+        Sprite2D_render(self->renderer, Light3D_get_light_tex(self->renderer->lightning), x1 - w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
         Shader_begin(self->renderer->shader);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 1);
@@ -475,7 +518,7 @@ void render(Window *self, float dtime) {
     FontPixmap_set_line_height(font, 16.0f);
 
     if (true) {
-        FontPixmap_render(font, 8 + x1 - w, 8 + y1, 0, "Albedo/Roughness");
+        FontPixmap_render(font, 8 + x1 - w, 8 + y1, 0, "Lightning");
         FontPixmap_render(font, 8 + x2 - w, 8 + y2, 0, "Normal+AO");
         FontPixmap_render(font, 8 + x3 - w, 8 + y3, 0, "PBR (R-Metall, G-Height, B-Aberration, A-Distortion)");
         FontPixmap_render(font, 8 + x4 - w, 8 + y4, 0, "Emissive");

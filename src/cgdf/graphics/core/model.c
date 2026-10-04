@@ -30,7 +30,6 @@ Model* Model_create(Renderer *renderer) {
     model->renderer = renderer;
     glm_mat4_identity(model->transform);
     model->meshes = Array_create(sizeof(Mesh*), MODEL_DEFAULT_MESHES_COUNT);
-    model->wireframe = false;
     return model;
 }
 
@@ -81,8 +80,10 @@ void Model_delete_mesh(Model *self, Mesh *mesh) {
 void Model_render(Model *self, bool wireframe) {
     if (!self) return;
 
-    // Добавляем себя в массив моделей для отрисовки:
-    self->wireframe = wireframe;
-    Array_push(self->renderer->models, &self);
-    Array_push(self->renderer->model_transforms, &self->transform);
+    // Проходимся по сеткам и добавляем их:
+    for (size_t i = 0; i < Array_len(self->meshes); i++) {
+        Mesh *mesh = (Mesh*)Array_get_ptr(self->meshes, i);
+        Material *material = Mesh_get_material(mesh);
+        Renderer_create_draw_command(self->renderer, mesh, material, self->transform, wireframe);
+    }
 }

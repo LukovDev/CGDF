@@ -1,5 +1,5 @@
 //
-// gbuffer_shader.h - Шейдеры GBuffer.
+// gbuffer_shader.h - Шейдер GBuffer.
 //
 
 #pragma once
@@ -94,6 +94,7 @@ vec3 get_normal_from_map(vec3 N, vec2 coords, mat3 out_TBN, vec2 duv1, vec2 duv2
 void main(void) {\n\
     // Рассчет TBN:\n\
     vec3 N_base = normalize(v_normal_world);\n\
+    if (!gl_FrontFacing) N_base = -N_base;\n\
     vec3 dp1  = dFdx(v_pos_world);\n\
     vec3 dp2  = dFdy(v_pos_world);\n\
     vec2 duv1 = dFdx(v_texcoord);\n\
@@ -103,7 +104,8 @@ void main(void) {\n\
     vec3 T = (dp1 * duv2.y - dp2 * duv1.y) * sign_det;\n\
     vec3 B = (dp2 * duv1.x - dp1 * duv2.x) * sign_det;\n\
     T = normalize(T - N_base * dot(T, N_base));\n\
-    B = normalize(cross(N_base, T)); \n\
+    if (!gl_FrontFacing) { B = normalize(cross(T, N_base)); }\n\
+    else { B = normalize(cross(N_base, T)); }\n\
     mat3 TBN = mat3(T, B, N_base);\n\
     \n\
     vec2 texCoords = v_texcoord;\n\
@@ -163,7 +165,7 @@ void main(void) {\n\
     if (u_use_tex_occlusion) { ao *= texture(u_tex_occlusion, texCoords).r; }\n\
     \n\
     // 3. Normal:\n\
-    vec3 normal = normalize(v_normal_world);\n\
+    vec3 normal = N_base;\n\
     if (u_use_tex_normal) { normal = get_normal_from_map(normal, texCoords, TBN, duv1, duv2); }\n\
     \n\
     // 4. Height:\n\

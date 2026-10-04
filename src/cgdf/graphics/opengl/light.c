@@ -1,5 +1,5 @@
 //
-// light.c - Реализация простого освещения в OpenGL.
+// light.c - Реализация освещения в OpenGL.
 //
 
 
@@ -7,6 +7,7 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/math.h>
+#include "../core/camera.h"
 #include "../core/renderer.h"
 #include "../core/shader.h"
 #include "../core/texture.h"
@@ -15,7 +16,7 @@
 #include "gl.h"
 
 
-// Структура простого освещения в 2D:
+// Структура освещения в 2D:
 struct Light2D {
     Renderer  *renderer;     // Рендерер.
     Vec3f     ambient;       // Фоновое освещение.
@@ -28,6 +29,23 @@ struct Light2D {
 };
 
 
+// Структура освещения в 3D:
+struct Light3D {
+    Renderer  *renderer;     // Рендерер.
+    BufferFBO *framebuffer;  // Буфер кадра освещения.
+    Texture   *light_tex;    // Результат освещения (HDR, RGBA16F).
+
+    // Параметры освещения (временно, до API на шаге 1.3):
+    Vec3f sun_direction;
+    Vec3f sun_color;
+    float sun_intensity;
+
+    Vec3f ambient_color;
+    Vec3f ambient_ground_color;
+    float ambient_intensity;
+};
+
+
 // Перечисление видов текстур в кадровом буфере:
 typedef enum {
     LIGHT2D_TEXTURE_ALBEDO = 0,
@@ -36,10 +54,17 @@ typedef enum {
 } Light2DTextureType;
 
 
-// -------- API простого 2D освещения: --------
+// Перечисление видов текстур в кадровом буфере:
+typedef enum {
+    LIGHT3D_TEXTURE_LIGHT = 0,
+    LIGHT3D_TEXTURE_COUNT
+} Light3DTextureType;
 
 
-// Создать простое 2D освещение:
+// -------- API 2D освещения: --------
+
+
+// Создать 2D освещение:
 Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity) {
     if (!renderer) return NULL;
     Light2D *light = (Light2D*)mm_alloc(sizeof(Light2D));
@@ -57,7 +82,7 @@ Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity) {
     light->_is_scene_begin_ = false;
     light->_is_light_begin_ = false;
 
-    // Обновляем размеры текстур и кадрового буфера:
+    // Обновляем размеры текстур кадрового буфера:
     Light2D_resize(light, width, height);
 
     // Привязываем текстуры к буферу кадра:
@@ -69,7 +94,7 @@ Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity) {
     return light;
 }
 
-// Уничтожить простое 2D освещение:
+// Уничтожить 2D освещение:
 void Light2D_destroy(Light2D **light) {
     if (!light || !*light) return;
 
@@ -157,9 +182,132 @@ void Light2D_set_intensity(Light2D *self, float intensity) {
     self->intensity = intensity;
 }
 
-// Изменить размер 2D освещения:
+// Изменить размер текстур 2D освещения:
 void Light2D_resize(Light2D *self, int width, int height) {
     if (!self) return;
-    Texture_empty(self->albedo_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_UBYTE);
-    Texture_empty(self->light_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_UBYTE);
+    Texture_empty(self->albedo_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_FLOAT);
+    Texture_empty(self->light_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_FLOAT);
+}
+
+
+// -------- API 3D освещения: --------
+
+
+// Создать 3D освещение:
+Light3D* Light3D_create(Renderer *renderer) {
+    Light3D *light = (Light3D*)mm_alloc(sizeof(Light3D));
+
+    // Заполняем поля:
+    light->renderer = renderer;
+    light->framebuffer = BufferFBO_create();
+    light->light_tex = Texture_create(renderer);
+    light->sun_direction = (Vec3f){-0.4f, -1.0f, -0.3f};
+    light->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
+    light->sun_intensity = 3.0f;
+    light->ambient_color = (Vec3f){0.6f, 0.7f, 1.0f};
+    light->ambient_ground_color = (Vec3f){0.2f, 0.1f, 0.0f};
+    light->ambient_intensity = 0.15f;
+
+    // Обновляем размеры текстур кадрового буфера:
+    Light3D_resize(light, Renderer_get_width(renderer), Renderer_get_height(renderer));
+
+    // Привязываем текстуры к буферу кадра:
+    BufferFBO_begin(light->framebuffer);
+    BufferFBO_attach(light->framebuffer, BUFFER_FBO_COLOR, LIGHT3D_TEXTURE_LIGHT, light->light_tex->id);
+    BufferFBO_apply(light->framebuffer);
+    BufferFBO_end(light->framebuffer);
+    return light;
+}
+
+// Уничтожить 3D освещение:
+void Light3D_destroy(Light3D **light) {
+    if (!light || !*light) return;
+
+    // Восстанавливаем состояние в случае если проходы рендеринга активны:
+    BufferFBO_end((*light)->framebuffer);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Режим перекрытия цвета (для обычного рендеринга).
+
+    // Удаляем:
+    Texture_destroy(&(*light)->light_tex);
+    BufferFBO_destroy(&(*light)->framebuffer);
+
+    mm_free(*light);
+    *light = NULL;
+}
+
+// Изменить размер текстур 3D освещения:
+void Light3D_resize(Light3D *self, int width, int height) {
+    if (!self) return;
+    Texture_empty(self->light_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_FLOAT);
+}
+
+// Получить текстуру 3D освещения:
+Texture* Light3D_get_light_tex(Light3D *self) {
+    if (!self) return NULL;
+    return self->light_tex;
+}
+
+// Установить настройки солнца:
+void Light3D_set_sun(Light3D *self, Vec3f direction, Vec3f color, float intensity) {
+    if (!self) return;
+    self->sun_direction = direction;
+    self->sun_color = color;
+    self->sun_intensity = intensity;
+}
+
+// Установить настройки фонового освещения:
+void Light3D_set_ambient(Light3D *self, Vec3f color, Vec3f ground_color, float intensity) {
+    if (!self) return;
+    self->ambient_color = color;
+    self->ambient_ground_color = ground_color;
+    self->ambient_intensity = intensity;
+}
+
+// Отрисовать освещение:
+void Light3D_render(Light3D *self, mat4 proj, mat4 view) {
+    if (!self || !self->renderer || !self->renderer->camera) return;
+    Renderer *rnd = self->renderer;
+
+    Vec3f camera_pos = {0};
+    if (rnd->camera_type == RENDERER_CAMERA_2D) {
+        Vec2d pos = ((Camera2D*)rnd->camera)->position;
+        camera_pos = (Vec3f){pos.x, pos.y, 0.0f};
+    } else {
+        Vec3d pos = ((Camera3D*)rnd->camera)->position;
+        camera_pos = (Vec3f){pos.x, pos.y, pos.z};
+    }
+
+    // Обратная матрица (проекция * вид):
+    mat4 view_proj, inv_view_proj;
+    glm_mat4_mul(proj, view, view_proj);
+    glm_mat4_inv(view_proj, inv_view_proj);
+
+    // Включаем и очищаем буфер кадра:
+    BufferFBO_begin(self->framebuffer);
+    BufferFBO_apply(self->framebuffer);
+    BufferFBO_clear(self->framebuffer, 0.0f, 0.0f, 0.0f, 0.0f);
+
+    // Настраиваем состояние рендеринга:
+    Renderer_set_depth_test(rnd, false);
+    Renderer_set_blending(rnd, false);
+    Renderer_set_cull_faces(rnd, false);
+
+    Shader *sh = rnd->shader_lightning;
+    Shader_begin(sh);
+    Shader_set_tex2d(sh, "u_albedo_roughness",  GBuffer_get_tex_albedo_roughness(rnd->gbuffer)->id);
+    Shader_set_tex2d(sh, "u_normal_ao",         GBuffer_get_tex_normal_ao(rnd->gbuffer)->id);
+    Shader_set_tex2d(sh, "u_pbr",               GBuffer_get_tex_pbr_properties(rnd->gbuffer)->id);
+    Shader_set_tex2d(sh, "u_emissive",          GBuffer_get_tex_emissive(rnd->gbuffer)->id);
+    Shader_set_tex2d(sh, "u_depth",             GBuffer_get_tex_depth(rnd->gbuffer)->id);
+    Shader_set_mat4(sh, "u_inv_view_proj",      inv_view_proj);
+    Shader_set_vec3(sh, "u_camera_pos",         camera_pos);
+    Shader_set_vec3(sh, "u_sun_dir",            self->sun_direction);
+    Shader_set_vec3(sh, "u_sun_color",          self->sun_color);
+    Shader_set_float(sh, "u_sun_intensity",     self->sun_intensity);
+    Shader_set_vec3(sh, "u_ambient_color",      self->ambient_color);
+    Shader_set_vec3(sh, "u_ambient_ground",     self->ambient_ground_color);
+    Shader_set_float(sh, "u_ambient_intensity", self->ambient_intensity);
+    Mesh_render(rnd->sprite_mesh, false);
+    Shader_end(sh);
+    BufferFBO_end(self->framebuffer);
 }

@@ -876,8 +876,7 @@ void Window_display(Window *self) {
     if (!self || !self->vars || !self->vars->window) return;
     WinVars *vars = self->vars;
     // Очищаем массив моделей и их трансформаций:
-    Array_clear(self->renderer->models, false);
-    Array_clear(self->renderer->model_transforms, false);
+    Array_clear(self->renderer->draw_commands, false);
     SDL_GL_SwapWindow(vars->window);
 }
 
