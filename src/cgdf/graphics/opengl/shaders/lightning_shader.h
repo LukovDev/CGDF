@@ -33,9 +33,8 @@ uniform vec3 u_sun_dir;  // Направление, КУДА светит сол
 uniform vec3 u_sun_color;\n\
 uniform float u_sun_intensity;\n\
 \n\
-// Фоновый свет (пока вместо отражений окружения):\n\
+// Фоновый свет:\n\
 uniform vec3 u_ambient_color;\n\
-uniform vec3 u_ambient_ground;\n\
 uniform float u_ambient_intensity;\n\
 \n\
 in vec2 v_texcoord;\n\
@@ -114,8 +113,7 @@ void main(void) {\n\
     vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;\n\
     \n\
     // Фоновый свет:\n\
-    vec3 ambient_light = mix(u_ambient_ground, u_ambient_color, N.y * 0.5 + 0.5) * u_ambient_intensity;\n\
-    vec3 ambient = ambient_light * albedo * ao;\n\
+    vec3 ambient = u_ambient_color * u_ambient_intensity * albedo * ao;\n\
     \n\
     FragColor = vec4(ambient + Lo + emissive, 1.0);\n\
 }";

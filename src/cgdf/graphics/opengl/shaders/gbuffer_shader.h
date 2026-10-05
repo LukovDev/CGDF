@@ -99,6 +99,7 @@ void main(void) {\n\
     vec3 dp2  = dFdy(v_pos_world);\n\
     vec2 duv1 = dFdx(v_texcoord);\n\
     vec2 duv2 = dFdy(v_texcoord);\n\
+    bool has_uv_basis = max(length(duv1), length(duv2)) > 1e-6;  // Чтобы не было артефактов на одинаковых UV.\n\
     float r = duv1.x * duv2.y - duv1.y * duv2.x;\n\
     float sign_det = (r >= 0.0) ? 1.0 : -1.0;\n\
     vec3 T = (dp1 * duv2.y - dp2 * duv1.y) * sign_det;\n\
@@ -111,43 +112,47 @@ void main(void) {\n\
     vec2 texCoords = v_texcoord;\n\
     \n\
     // Накладываем эффект POM (параллакс):\n\
-    if (u_use_tex_height) {\n\
+    if (u_use_tex_height && u_height_strength > 0.0f && has_uv_basis) {\n\
         vec3 view_dir = normalize(u_camera_pos - v_pos_world);\n\
         vec3 tangent_view_dir = normalize(transpose(TBN) * view_dir);\n\
-        tangent_view_dir.y = -tangent_view_dir.y;\n\
-        \n\
-        float num_layers = mix(u_pom_max_layers, u_pom_min_layers, abs(dot(vec3(0, 0, 1), tangent_view_dir)));\n\
-        float layer_depth = 1.0f / num_layers;\n\
-        float current_layer_depth = 0.0f;\n\
-        \n\
-        vec2 P = tangent_view_dir.xy / max(tangent_view_dir.z, 0.00001) * u_height_strength;\n\
-        vec2 deltaUVs = P / num_layers;\n\
-        vec2 UVs = texCoords;\n\
-        float current_depth_map_value = 1.0f - texture(u_tex_height, UVs).r;\n\
-        \n\
-        // Проходися по слоям пока не попадем по высоте:\n\
-        for (; current_layer_depth < current_depth_map_value; current_layer_depth += layer_depth) {\n\
-            UVs -= deltaUVs;\n\
-            current_depth_map_value = 1.0f - texture(u_tex_height, UVs).r;\n\
-        }\n\
-        \n\
-        // Применяем иллюзию:\n\
-        vec2 prev_UVs = UVs + deltaUVs;\n\
-        float afterDepth = current_depth_map_value - current_layer_depth;\n\
-        float beforeDepth = 1.0f - texture(u_tex_height, prev_UVs).r - current_layer_depth + layer_depth;\n\
-        float weight = 0.0;\n\
-        if (abs(afterDepth - beforeDepth) > 0.0001) { weight = afterDepth / (afterDepth - beforeDepth); }\n\
-        texCoords = prev_UVs * weight + UVs * (1.0f - weight);  // Интерполяция (сглаживание шагов).\n\
-        \n\
-        // Удаляем фрагменты за пределами координат:\n\
-        if (u_pom_cutoff_enabled) {\n\
-            vec2 tile = floor(v_texcoord);   // В каком тайле находится исходный пиксель.\n\
-            if (any(lessThan(texCoords, tile)) || any(greaterThan(texCoords, tile + 1.0))) { discard; }\n\
+        if (!any(isnan(tangent_view_dir)) && !any(isinf(tangent_view_dir))) {\n\
+            tangent_view_dir.y = -tangent_view_dir.y;\n\
+            \n\
+            float num_layers = mix(u_pom_max_layers, u_pom_min_layers, abs(dot(vec3(0, 0, 1), tangent_view_dir)));\n\
+            float layer_depth = 1.0f / num_layers;\n\
+            float current_layer_depth = 0.0f;\n\
+            \n\
+            vec2 P = tangent_view_dir.xy / max(tangent_view_dir.z, 0.01) * u_height_strength;\n\
+            vec2 deltaUVs = P / num_layers;\n\
+            vec2 UVs = texCoords;\n\
+            float current_depth_map_value = 1.0f - textureGrad(u_tex_height, UVs, duv1, duv2).r;\n\
+            \n\
+            // Проходися по слоям пока не попадем по высоте:\n\
+            int max_steps = int(u_pom_max_layers) + 1;  // Больше этого шагов при правильной работе не бывает.\n\
+            for (int steps = 0; current_layer_depth < current_depth_map_value && steps < max_steps; steps++) {\n\
+                current_layer_depth += layer_depth;\n\
+                UVs -= deltaUVs;\n\
+                current_depth_map_value = 1.0f - textureGrad(u_tex_height, UVs, duv1, duv2).r;\n\
+            }\n\
+            \n\
+            // Применяем иллюзию:\n\
+            vec2 prev_UVs = UVs + deltaUVs;\n\
+            float afterDepth = current_depth_map_value - current_layer_depth;\n\
+            float beforeDepth = 1.0f-textureGrad(u_tex_height, prev_UVs, duv1, duv2).r-current_layer_depth+layer_depth;\n\
+            float weight = 0.0;\n\
+            if (abs(afterDepth - beforeDepth) > 0.0001) { weight = afterDepth / (afterDepth - beforeDepth); }\n\
+            texCoords = prev_UVs * weight + UVs * (1.0f - weight);  // Интерполяция (сглаживание шагов).\n\
+            \n\
+            // Удаляем фрагменты за пределами координат:\n\
+            if (u_pom_cutoff_enabled) {\n\
+                vec2 tile = floor(v_texcoord);   // В каком тайле находится исходный пиксель.\n\
+                if (any(lessThan(texCoords, tile)) || any(greaterThan(texCoords, tile + 1.0))) { discard; }\n\
+            }\n\
         }\n\
     }\n\
     \n\
     // 1. Albedo & Alpha cutoff:\n\
-    vec4 albedo_tex = u_use_tex_albedo ? texture(u_tex_albedo, texCoords) : vec4(1.0);\n\
+    vec4 albedo_tex = u_use_tex_albedo ? textureGrad(u_tex_albedo, texCoords, duv1, duv2) : vec4(1.0);\n\
     vec4 final_albedo = u_albedo * albedo_tex * v_color;\n\
     \n\
     // Alpha cutoff (отсечение прозрачных пикселей):\n\
@@ -156,25 +161,25 @@ void main(void) {\n\
     \n\
     // 2. Rroughness & Mmetallic & AO:\n\
     float roughness = u_roughness;\n\
-    if (u_use_tex_roughness) { roughness *= texture(u_tex_roughness, texCoords).r; }\n\
+    if (u_use_tex_roughness) { roughness *= textureGrad(u_tex_roughness, texCoords, duv1, duv2).r; }\n\
     \n\
     float metallic = u_metallic;\n\
-    if (u_use_tex_metallic) { metallic *= texture(u_tex_metallic, texCoords).r; }\n\
+    if (u_use_tex_metallic) { metallic *= textureGrad(u_tex_metallic, texCoords, duv1, duv2).r; }\n\
     \n\
     float ao = u_ao;\n\
-    if (u_use_tex_occlusion) { ao *= texture(u_tex_occlusion, texCoords).r; }\n\
+    if (u_use_tex_occlusion) { ao *= textureGrad(u_tex_occlusion, texCoords, duv1, duv2).r; }\n\
     \n\
     // 3. Normal:\n\
     vec3 normal = N_base;\n\
-    if (u_use_tex_normal) { normal = get_normal_from_map(normal, texCoords, TBN, duv1, duv2); }\n\
+    if (u_use_tex_normal && has_uv_basis) { normal = get_normal_from_map(normal, texCoords, TBN, duv1, duv2); }\n\
     \n\
     // 4. Height:\n\
     float height = 0.0;\n\
-    if (u_use_tex_height) { height = texture(u_tex_height, texCoords).r; }\n\
+    if (u_use_tex_height) { height = textureGrad(u_tex_height, texCoords, duv1, duv2).r; }\n\
     \n\
     // 5. Emissive:\n\
     vec3 emissive = u_emissive_color * u_emissive_strength;\n\
-    if (u_use_tex_emissive) { emissive *= texture(u_tex_emissive, texCoords).rgb; }\n\
+    if (u_use_tex_emissive) { emissive *= textureGrad(u_tex_emissive, texCoords, duv1, duv2).rgb; }\n\
     \n\
     // 6. Distortion:\n\
     float distortion = u_distortion;\n\

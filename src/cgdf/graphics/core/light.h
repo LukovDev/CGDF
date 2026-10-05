@@ -85,8 +85,17 @@ void Light3D_set_sun_intensity(Light3D *self, float intensity);
 // Получить интенсивность солнца:
 float Light3D_get_sun_intensity(Light3D *self);
 
-// Установить настройки фонового освещения:
-void Light3D_set_ambient(Light3D *self, Vec3f color, Vec3f ground_color, float intensity);
+// Установить цвет фонового освещения:
+void Light3D_set_ambient_color(Light3D *self, Vec3f color);
+
+// Получить цвет фонового освещения:
+Vec3f Light3D_get_ambient_color(Light3D *self);
+
+// Установить интенсивность фонового освещения:
+void Light3D_set_ambient_intensity(Light3D *self, float intensity);
+
+// Получить интенсивность фонового освещения:
+float Light3D_get_ambient_intensity(Light3D *self);
 
 // Отрисовать освещение:
 void Light3D_render(Light3D *self, mat4 proj, mat4 view);

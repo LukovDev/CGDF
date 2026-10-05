@@ -29,6 +29,24 @@ typedef enum {
 } RendererCameraType;
 
 
+// Режим отсечения:
+typedef enum {
+    RENDERER_CULL_NONE = 0,
+    RENDERER_CULL_BACK,
+    RENDERER_CULL_FRONT,
+    RENDERER_CULL_FRONT_AND_BACK,
+    RENDERER_CULL_COUNT
+} RendererCullMode;
+
+
+// В какую сторону отсекать:
+typedef enum {
+    RENDERER_WINDING_CCW = 0,  // Против часовой стрелки (обычно по умолчанию).
+    RENDERER_WINDING_CW,       // По часовой стрелке.
+    RENDERER_WINDING_COUNT
+} RendererWindingOrder;
+
+
 // Тип тонмаппинга:
 typedef enum {
     RENDERER_TONEMAP_NONE = 0,
@@ -46,10 +64,6 @@ struct RendererDebugConfig {
     bool level_medium;   // Уровень поступления сообщений: Средний.
     bool level_high;     // Уровень поступления сообщений: Высокий.
 };
-
-
-// Глобальная конфигурация дебага рендеринга:
-extern RendererDebugConfig g_Renderer_debug_config;
 
 
 // Информация рендерера:
@@ -93,6 +107,10 @@ struct Renderer {
 };
 
 
+// Глобальная конфигурация дебага рендеринга:
+extern RendererDebugConfig g_Renderer_debug_config;
+
+
 // -------- API рендерера: --------
 
 
@@ -107,6 +125,9 @@ void Renderer_init(Renderer *self);
 
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self);
+
+// Создать команду отрисовки:
+void Renderer_create_draw_command(Renderer *self, Mesh *mesh, Material *material, mat4 transform, bool wireframe);
 
 // Получить количество вызовов отрисовки:
 size_t Renderer_get_draw_calls_count(Renderer *self);
@@ -169,28 +190,67 @@ void Renderer_set_depth_mask(Renderer *self, bool enabled);
 void Renderer_set_blending(Renderer *self, bool enabled);
 
 // Установить отсечение граней:
-void Renderer_set_cull_faces(Renderer *self, bool enabled);
+void Renderer_set_cull_mode(Renderer *self, RendererCullMode mode);
 
-// Отсекать только задние грани:
-void Renderer_set_back_face_culling(Renderer *self);
-
-// Отсекать только передние грани:
-void Renderer_set_front_face_culling(Renderer *self);
-
-// Передняя грань против часовой стрелки (CCW):
-void Renderer_set_front_face_onleft(Renderer *self);
-
-// Передняя грань по часовой стрелке (CW):
-void Renderer_set_front_face_onright(Renderer *self);
+// Установить направление отсечения граней:
+void Renderer_set_front_face(Renderer *self, RendererWindingOrder order);
 
 // Установить размер viewport:
 void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height);
 
-// Создать команду отрисовки:
-void Renderer_create_draw_command(Renderer *self, Mesh *mesh, Material *material, mat4 transform, bool wireframe);
+// Получить текстуру albedo_roughness:
+Texture* Renderer_get_texture_albedo_roughness(Renderer *self);
+
+// Получить текстуру normal_ao:
+Texture* Renderer_get_texture_normal_ao(Renderer *self);
+
+// Получить текстуру pbr_properties:
+Texture* Renderer_get_texture_pbr_properties(Renderer *self);
+
+// Получить текстуру emissive:
+Texture* Renderer_get_texture_emissive(Renderer *self);
+
+// Получить текстуру depth:
+Texture* Renderer_get_texture_depth(Renderer *self);
 
 // Установить экспозицию:
 void Renderer_set_exposure(Renderer *self, float exposure);
 
+// Получить экспозицию:
+float Renderer_get_exposure(Renderer *self);
+
 // Установить тонмаппинг:
 void Renderer_set_tonemapping(Renderer *self, RendererTonemapType tonemap);
+
+// Получить тонмаппинг:
+RendererTonemapType Renderer_get_tonemapping(Renderer *self);
+
+// Установить направление солнца:
+void Renderer_set_sun_dir(Renderer *self, Vec3f direction);
+
+// Получить направление солнца:
+Vec3f Renderer_get_sun_dir(Renderer *self);
+
+// Установить цвет солнца:
+void Renderer_set_sun_color(Renderer *self, Vec3f color);
+
+// Получить цвет солнца:
+Vec3f Renderer_get_sun_color(Renderer *self);
+
+// Установить интенсивность солнца:
+void Renderer_set_sun_intensity(Renderer *self, float intensity);
+
+// Получить интенсивность солнца:
+float Renderer_get_sun_intensity(Renderer *self);
+
+// Установить цвет фонового освещения:
+void Renderer_set_ambient_color(Renderer *self, Vec3f color);
+
+// Получить цвет фонового освещения:
+Vec3f Renderer_get_ambient_color(Renderer *self);
+
+// Установить интенсивность фонового освещения:
+void Renderer_set_ambient_intensity(Renderer *self, float intensity);
+
+// Получить интенсивность фонового освещения:
+float Renderer_get_ambient_intensity(Renderer *self);

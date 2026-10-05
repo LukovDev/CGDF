@@ -31,18 +31,14 @@ struct Light2D {
 
 // Структура освещения в 3D:
 struct Light3D {
-    Renderer  *renderer;     // Рендерер.
-    BufferFBO *framebuffer;  // Буфер кадра освещения.
-    Texture   *light_tex;    // Результат освещения (HDR, RGBA16F).
-
-    // Параметры освещения (временно, до API на шаге 1.3):
-    Vec3f sun_direction;
-    Vec3f sun_color;
-    float sun_intensity;
-
-    Vec3f ambient_color;
-    Vec3f ambient_ground_color;
-    float ambient_intensity;
+    Renderer  *renderer;      // Рендерер.
+    BufferFBO *framebuffer;   // Буфер кадра освещения.
+    Texture   *light_tex;     // Результат освещения (HDR, RGBA16F).
+    Vec3f sun_direction;      // Направление солнца.
+    Vec3f sun_color;          // Цвет солнца.
+    float sun_intensity;      // Интенсивность солнца.
+    Vec3f ambient_color;      // Цвет фонового освещения.
+    float ambient_intensity;  // Интенсивность фонового освещения.
 };
 
 
@@ -201,11 +197,10 @@ Light3D* Light3D_create(Renderer *renderer) {
     light->renderer = renderer;
     light->framebuffer = BufferFBO_create();
     light->light_tex = Texture_create(renderer);
-    light->sun_direction = (Vec3f){-0.4f, -1.0f, -0.3f};
+    light->sun_direction = (Vec3f){-0.57735, -0.57735, -0.57735};
     light->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
     light->sun_intensity = 3.0f;
     light->ambient_color = (Vec3f){0.6f, 0.7f, 1.0f};
-    light->ambient_ground_color = (Vec3f){0.2f, 0.1f, 0.0f};
     light->ambient_intensity = 0.15f;
 
     // Обновляем размеры текстур кадрового буфера:
@@ -283,12 +278,28 @@ float Light3D_get_sun_intensity(Light3D *self) {
     return self->sun_intensity;
 }
 
-// Установить настройки фонового освещения:
-void Light3D_set_ambient(Light3D *self, Vec3f color, Vec3f ground_color, float intensity) {
+// Установить цвет фонового освещения:
+void Light3D_set_ambient_color(Light3D *self, Vec3f color) {
     if (!self) return;
     self->ambient_color = color;
-    self->ambient_ground_color = ground_color;
+}
+
+// Получить цвет фонового освещения:
+Vec3f Light3D_get_ambient_color(Light3D *self) {
+    if (!self) return (Vec3f){0};
+    return self->ambient_color;
+}
+
+// Установить интенсивность фонового освещения:
+void Light3D_set_ambient_intensity(Light3D *self, float intensity) {
+    if (!self) return;
     self->ambient_intensity = intensity;
+}
+
+// Получить интенсивность фонового освещения:
+float Light3D_get_ambient_intensity(Light3D *self) {
+    if (!self) return 0.0f;
+    return self->ambient_intensity;
 }
 
 // Отрисовать освещение:
@@ -318,7 +329,7 @@ void Light3D_render(Light3D *self, mat4 proj, mat4 view) {
     // Настраиваем состояние рендеринга:
     Renderer_set_depth_test(rnd, false);
     Renderer_set_blending(rnd, false);
-    Renderer_set_cull_faces(rnd, false);
+    Renderer_set_cull_mode(rnd, RENDERER_CULL_NONE);
 
     Shader *sh = rnd->shader_lightning;
     Shader_begin(sh);
@@ -327,13 +338,12 @@ void Light3D_render(Light3D *self, mat4 proj, mat4 view) {
     Shader_set_tex2d(sh, "u_pbr",               GBuffer_get_tex_pbr_properties(rnd->gbuffer)->id);
     Shader_set_tex2d(sh, "u_emissive",          GBuffer_get_tex_emissive(rnd->gbuffer)->id);
     Shader_set_tex2d(sh, "u_depth",             GBuffer_get_tex_depth(rnd->gbuffer)->id);
-    Shader_set_mat4(sh, "u_inv_view_proj",      inv_view_proj);
-    Shader_set_vec3(sh, "u_camera_pos",         camera_pos);
-    Shader_set_vec3(sh, "u_sun_dir",            self->sun_direction);
-    Shader_set_vec3(sh, "u_sun_color",          self->sun_color);
+    Shader_set_mat4(sh,  "u_inv_view_proj",     inv_view_proj);
+    Shader_set_vec3(sh,  "u_camera_pos",        camera_pos);
+    Shader_set_vec3(sh,  "u_sun_dir",           self->sun_direction);
+    Shader_set_vec3(sh,  "u_sun_color",         self->sun_color);
     Shader_set_float(sh, "u_sun_intensity",     self->sun_intensity);
-    Shader_set_vec3(sh, "u_ambient_color",      self->ambient_color);
-    Shader_set_vec3(sh, "u_ambient_ground",     self->ambient_ground_color);
+    Shader_set_vec3(sh,  "u_ambient_color",     self->ambient_color);
     Shader_set_float(sh, "u_ambient_intensity", self->ambient_intensity);
     Mesh_render(rnd->sprite_mesh, false);
     Shader_end(sh);

@@ -31,6 +31,8 @@ static OBJFile objfile_ship1;
 static OBJFile objfile_ship2;
 static OBJFile model;
 static OBJFile home;
+static OBJFile motocycle;
+static OBJFile automobile;
 
 
 static void print_before_free(void) {
@@ -211,20 +213,80 @@ void start(Window *self) {
     floor_material->roughness = 0.25f;
     floor_material->metallic = 0.75f;
 
+    Texture *mat_1_albedo = Texture_create(self->renderer);
+    Texture *mat_1_normal = Texture_create(self->renderer);
+    Texture *mat_1_occlusion = Texture_create(self->renderer);
+    Texture *mat_1_roughness = Texture_create(self->renderer);
+    Texture *mat_1_metallic = Texture_create(self->renderer);
+    Texture *mat_1_emission = Texture_create(self->renderer);
+    Texture *mat_1_height = Texture_create(self->renderer);
+
+    #define PACKTYPE3 "stones"
+    #define PACKNAME3 "gray-polished-granite"  // beige-stonework, square-block-vegetation, wedged-cobblestone
+    Texture_load(mat_1_albedo, "data/packs/pbr-pack/"PACKTYPE3"/"PACKNAME3"/albedo.png", true);
+    Texture_load(mat_1_normal, "data/packs/pbr-pack/"PACKTYPE3"/"PACKNAME3"/normal.png", true);
+    Texture_load(mat_1_occlusion, "data/packs/pbr-pack/"PACKTYPE3"/"PACKNAME3"/ao.png", true);
+    Texture_load(mat_1_roughness, "data/packs/pbr-pack/"PACKTYPE3"/"PACKNAME3"/roughness.png", true);
+    Texture_load(mat_1_metallic, "data/packs/pbr-pack/"PACKTYPE3"/"PACKNAME3"/metallic.png", true);
+    Texture_load(mat_1_emission, "data/packs/pbr-pack/"PACKTYPE3"/"PACKNAME3"/albedo.png", true);
+    Texture_load(mat_1_height, "data/packs/pbr-pack/"PACKTYPE3"/"PACKNAME3"/height.png", true);
     mat_1 = Material_create(
         "Material_Sphere_1", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         0.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
         0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
-        0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+        0.0f, 0.0f, mat_1_albedo, mat_1_normal, mat_1_occlusion,
+        mat_1_roughness, mat_1_metallic, mat_1_emission,
+        mat_1_height
     );
+    mat_1->owns_albedo_map = true;
+    mat_1->owns_normal_map = true;
+    mat_1->owns_occlusion_map = true;
+    mat_1->owns_roughness_map = true;
+    mat_1->owns_metallic_map = true;
+    mat_1->owns_emissive_map = true;
+    mat_1->owns_height_map = true;
+    mat_1->height_cutoff_enabled = false;
+    mat_1->roughness = 1.0f;
+    mat_1->metallic = 1.0f;
+
+    Texture *mat_2_albedo = Texture_create(self->renderer);
+    Texture *mat_2_normal = Texture_create(self->renderer);
+    Texture *mat_2_occlusion = Texture_create(self->renderer);
+    Texture *mat_2_roughness = Texture_create(self->renderer);
+    Texture *mat_2_metallic = Texture_create(self->renderer);
+    Texture *mat_2_emission = Texture_create(self->renderer);
+    Texture *mat_2_height = Texture_create(self->renderer);
+
+    #define PACKTYPE4 "metalls"
+    #define PACKNAME4 "used-stainless-steel"  // beige-stonework, square-block-vegetation, wedged-cobblestone
+    Texture_load(mat_2_albedo, "data/packs/pbr-pack/"PACKTYPE4"/"PACKNAME4"/albedo.png", true);
+    Texture_load(mat_2_normal, "data/packs/pbr-pack/"PACKTYPE4"/"PACKNAME4"/normal.png", true);
+    Texture_load(mat_2_occlusion, "data/packs/pbr-pack/"PACKTYPE4"/"PACKNAME4"/ao.png", true);
+    Texture_load(mat_2_roughness, "data/packs/pbr-pack/"PACKTYPE4"/"PACKNAME4"/roughness.png", true);
+    Texture_load(mat_2_metallic, "data/packs/pbr-pack/"PACKTYPE4"/"PACKNAME4"/metallic.png", true);
+    Texture_load(mat_2_emission, "data/packs/pbr-pack/"PACKTYPE4"/"PACKNAME4"/albedo.png", true);
+    Texture_load(mat_2_height, "data/packs/pbr-pack/"PACKTYPE4"/"PACKNAME4"/height.png", true);
+
     mat_2 = Material_create(
         "Material_Sphere_2", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         1.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
         0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
-        0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+        0.0f, 0.0f, mat_2_albedo, mat_2_normal, mat_2_occlusion,
+        mat_2_roughness, mat_2_metallic, mat_2_emission,
+        mat_2_height
     );
+    mat_2->owns_albedo_map = true;
+    mat_2->owns_normal_map = true;
+    mat_2->owns_occlusion_map = true;
+    mat_2->owns_roughness_map = true;
+    mat_2->owns_metallic_map = true;
+    mat_2->owns_emissive_map = true;
+    mat_2->owns_height_map = true;
+    mat_2->height_cutoff_enabled = false;
+    mat_2->roughness = 1.0f;
+    mat_2->metallic = 1.0f;
 
     objfile = ObjLoader_load(self->renderer, "data/obj/cat/cat.obj");
     objfile2 = ObjLoader_load(self->renderer, "data/obj/demo_scene/demo_scene.obj");
@@ -233,6 +295,8 @@ void start(Window *self) {
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
     model = ObjLoader_load(self->renderer, "data/obj/example/sphere.obj");
     home = ObjLoader_load(self->renderer, "data/obj/home/Cottage.obj");
+    motocycle = ObjLoader_load(self->renderer, "data/obj/bmw_s1000_rr/bmw_s1000_rr.obj");
+    automobile = ObjLoader_load(self->renderer, "data/obj/bugatti_chiron_mansory/bugatti_chiron_mansory.obj");
 
     // Model *model0 = Array_get_ptr(model.models, 0);
     // for (size_t i=0; i<Array_len(model0->meshes); i++) {
@@ -283,6 +347,8 @@ void destroy(Window *self) {
     destroy_objfile(objfile_ship2);
     destroy_objfile(model);
     destroy_objfile(home);
+    destroy_objfile(motocycle);
+    destroy_objfile(automobile);
 }
 
 
@@ -291,7 +357,11 @@ void update(Window *self, float dtime) {
     if (Input_get_key_down(self)[K_f]) Window_set_fullscreen(self, !Window_get_fullscreen(self));
 
     static bool orbit_enabled = false;
+    static bool tone_enabled = true;
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
+    if (Input_get_key_down(self)[K_l]) tone_enabled = !tone_enabled;
+    if (tone_enabled) Renderer_set_tonemapping(self->renderer, RENDERER_TONEMAP_ACES);
+    else Renderer_set_tonemapping(self->renderer, RENDERER_TONEMAP_NONE);
     if (Input_get_key_down(self)[K_2]) {
         for (size_t i=0; i < Array_len(objfile.models); i++) {
             Model *model = Array_get_ptr(objfile.models, i);
@@ -339,9 +409,9 @@ void update(Window *self, float dtime) {
     Camera3D_update(camera3d);
 
     double time = Window_get_time(self);
-    Light3D_set_sun_dir(self->renderer->lightning, Vec3f_norm((Vec3f){radians(sin(time)), radians(sin(time)), radians(cos(time))}));
+    // Light3D_set_sun_dir(self->renderer->lightning, Vec3f_norm((Vec3f){radians(sin(time)), radians(sin(time)), radians(cos(time))}));
 
-    Light3D_set_sun_intensity(self->renderer->lightning, glm_clamp(-Light3D_get_sun_dir(self->renderer->lightning).y, 0.0f, 1.0f));
+    // Light3D_set_sun_intensity(self->renderer->lightning, glm_clamp(-Light3D_get_sun_dir(self->renderer->lightning).y, 0.0f, 1.0f));
 }
 
 // Вызывается каждый кадр (отрисовка окна):
@@ -352,6 +422,9 @@ void render(Window *self, float dtime) {
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
 
+    static bool wireframe = false;
+    if (Input_get_key_down(self)[K_p]) wireframe = !wireframe;
+
     Model *cat = Array_get_ptr(objfile.models, 0);
     if (cat) {
         glm_mat4_identity(cat->transform);
@@ -359,7 +432,7 @@ void render(Window *self, float dtime) {
         glm_rotate(cat->transform, radians(90.0f), (vec3){0, 1, 0});
         glm_rotate(cat->transform, radians(-90.0f), (vec3){1, 0, 0});
         glm_scale(cat->transform, (vec3){0.2f, 0.2f, 0.2f});
-        Model_render(cat, false);
+        Model_render(cat, wireframe);
     }
 
     Model *hm = Array_get_ptr(home.models, 0);
@@ -367,7 +440,7 @@ void render(Window *self, float dtime) {
         glm_mat4_identity(hm->transform);
         glm_translate(hm->transform, (vec3){0.0f, 0.0f, -8.0f});
         glm_scale(hm->transform, (vec3){0.25f, 0.25f, 0.25f});
-        Model_render(hm, false);
+        Model_render(hm, wireframe);
     }
 
     for (size_t i=0; i < Array_len(model.models); i++) {
@@ -379,32 +452,32 @@ void render(Window *self, float dtime) {
                 if (j == 0) {
                     glm_mat4_identity(mdl->transform);
                     glm_translate(mdl->transform, (vec3){0, 1, 0});
-                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
-                    glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
-                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+                    // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, material);
-                    Model_render(mdl, false);
+                    Model_render(mdl, wireframe);
                 }
                 if (j == 1) {
                     glm_mat4_identity(mdl->transform);
-                    glm_translate(mdl->transform, (vec3){1, 1, 1});
-                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
-                    glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
-                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+                    glm_translate(mdl->transform, (vec3){1, 1, 0});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+                    // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, mat_1);
-                    Model_render(mdl, false);
+                    Model_render(mdl, wireframe);
                 }
                 if (j == 2) {
                     glm_mat4_identity(mdl->transform);
-                    glm_translate(mdl->transform, (vec3){-1, 1, -1});
-                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
-                    glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
-                    glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
+                    glm_translate(mdl->transform, (vec3){-1, 1, 0});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
+                    // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
+                    // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, mat_2);
-                    Model_render(mdl, false);
+                    Model_render(mdl, wireframe);
                 }
                 if (j == 3) {
                     glm_mat4_identity(mdl->transform);
@@ -415,7 +488,7 @@ void render(Window *self, float dtime) {
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     // glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, Mesh_get_material(Array_get_ptr(cat->meshes, 0)));
-                    Model_render(mdl, false);
+                    Model_render(mdl, wireframe);
                 }
             }
         }
@@ -423,7 +496,23 @@ void render(Window *self, float dtime) {
 
     for (size_t i=0; i < Array_len(objfile2.models); i++) {
         Model *model = Array_get_ptr(objfile2.models, i);
-        Model_render(model, false);
+        Model_render(model, wireframe);
+    }
+    for (size_t i=0; i < Array_len(motocycle.models); i++) {
+        Model *model = Array_get_ptr(motocycle.models, i);
+        glm_mat4_identity(model->transform);
+        glm_translate(model->transform, (vec3){3, 0.5f, 0});
+        glm_rotate(model->transform, radians(180.0f), (vec3){0, 1, 0});
+        // glm_scale(model->transform, (vec3){2.0f, 2.0f, 2.0f});
+        Model_render(model, wireframe);
+    }
+    for (size_t i=0; i < Array_len(automobile.models); i++) {
+        Model *model = Array_get_ptr(automobile.models, i);
+        glm_mat4_identity(model->transform);
+        glm_translate(model->transform, (vec3){-3, 0.8f, 0});
+        glm_rotate(model->transform, radians(180.0f), (vec3){0, 1, 0});
+        // glm_scale(model->transform, (vec3){2.0f, 2.0f, 2.0f});
+        Model_render(model, wireframe);
     }
 
     for (size_t i=0; i < Array_len(objfile_ship1.models); i++) {
@@ -437,7 +526,7 @@ void render(Window *self, float dtime) {
         glm_rotate(model->transform, radians(0), (vec3){1, 0, 0});
         glm_rotate(model->transform, radians(sinf(time)*45.0f), (vec3){0, 0, 1});
         // glm_scale(model->transform, (vec3){0.1f, 0.1f, 0.1f});
-        Model_render(model, false);
+        Model_render(model, wireframe);
     }
     for (size_t i=0; i < Array_len(objfile_ship2.models); i++) {
         Model *model = Array_get_ptr(objfile_ship2.models, i);
@@ -450,7 +539,7 @@ void render(Window *self, float dtime) {
         glm_rotate(model->transform, radians(0), (vec3){1, 0, 0});
         glm_rotate(model->transform, radians(sinf(time)*45.0f), (vec3){0, 0, 1});
         // glm_scale(model->transform, (vec3){0.1f, 0.1f, 0.1f});
-        Model_render(model, false);
+        Model_render(model, wireframe);
     }
     Renderer_display(self->renderer);
 
@@ -473,24 +562,15 @@ void render(Window *self, float dtime) {
         Shader_set_vec3(grid, "u_camera_pos", (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z});
         Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
         Shader_end(grid);
-
-        // Нарисовать линии:
-        // float line_dist = 1000;
-        // SimpleDraw_line(draw, (Vec4f){1, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){line_dist, 0, 0}, 1.0f);      // X+
-        // SimpleDraw_line(draw, (Vec4f){0.25, 0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){-line_dist, 0, 0}, 3.0f);  // X-
-        // SimpleDraw_line(draw, (Vec4f){0, 1, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, line_dist, 0}, 3.0f);      // Y+
-        // SimpleDraw_line(draw, (Vec4f){0, 0.25, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, -line_dist, 0}, 3.0f);  // Y-
-        // SimpleDraw_line(draw, (Vec4f){0, 0, 1, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, line_dist}, 3.0f);      // Z+
-        // SimpleDraw_line(draw, (Vec4f){0, 0, 0.25, 1}, (Vec3f){0, 0, 0}, (Vec3f){0, 0, -line_dist}, 3.0f);  // Z-
     }
 
     int width = Renderer_get_width(self->renderer);
     int height = Renderer_get_height(self->renderer);
-    Texture *albedo_roughness = GBuffer_get_tex_albedo_roughness(self->renderer->gbuffer);
-    Texture *normal_ao = GBuffer_get_tex_normal_ao(self->renderer->gbuffer);
-    Texture *pbr_properties = GBuffer_get_tex_pbr_properties(self->renderer->gbuffer);
-    Texture *emissive = GBuffer_get_tex_emissive(self->renderer->gbuffer);
-    Texture *depth = GBuffer_get_tex_depth(self->renderer->gbuffer);
+    Texture *albedo_roughness = Renderer_get_texture_albedo_roughness(self->renderer);
+    Texture *normal_ao = Renderer_get_texture_normal_ao(self->renderer);
+    Texture *pbr_properties = Renderer_get_texture_pbr_properties(self->renderer);
+    Texture *emissive = Renderer_get_texture_emissive(self->renderer);
+    Texture *depth = Renderer_get_texture_depth(self->renderer);
 
     Camera2D_update(camera2d);
     Camera2D_ui_begin(camera2d);
@@ -585,7 +665,10 @@ void render(Window *self, float dtime) {
         "GBuffer Textures used: %.2f MB\n\n"
         "FPS: %.2f\n"
         "CamPos: %.2f %.2f %.2f\n"
-        "CamFov: %f\n",
+        "CamFov: %f\n"
+        "Tonemap: %s\n"
+        "Exposure: %.2f\n"
+        "",
         cpu_info.model,
         Info_get_cpu_arch_name(cpu_info.arch),
         cpu_info.threads,
@@ -601,7 +684,9 @@ void render(Window *self, float dtime) {
         mm_get_used_size_mb(),
         (double)(calculate_mesh_size(&objfile) + calculate_mesh_size(&objfile2)) / 1024.0f / 1024.0f,
         (double)(Texture_get_size(albedo_roughness)+Texture_get_size(normal_ao)+Texture_get_size(pbr_properties)+Texture_get_size(emissive)+Texture_get_size(depth)) / 1024.0 / 1024.0,
-        fps, camera3d->position.x, camera3d->position.y, camera3d->position.z, camera3d->fov
+        fps, camera3d->position.x, camera3d->position.y, camera3d->position.z, camera3d->fov,
+        Renderer_get_tonemapping(self->renderer) == RENDERER_TONEMAP_ACES ? "ACES" : "NONE",
+        Renderer_get_exposure(self->renderer)
     );
     }
 

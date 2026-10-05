@@ -129,12 +129,12 @@ void Mesh_render(Mesh *self, bool wireframe) {
 
     // Рисуем как есть, используя текущий активный шейдер:
     BufferVAO_begin(self->vao);
-    GLint prev_mode = GL_FILL;
+    GLint prev_mode[2] = { GL_FILL, GL_FILL };  // [0] лицевые грани, [1] обратные.
     if (wireframe) {
-        glGetIntegerv(GL_POLYGON_MODE, &prev_mode);
+        glGetIntegerv(GL_POLYGON_MODE, prev_mode);
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
     glDrawElements(GL_TRIANGLES, self->index_count, GL_UNSIGNED_INT, 0);
-    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, prev_mode);
+    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, prev_mode[0]);
     BufferVAO_end(self->vao);
 }

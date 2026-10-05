@@ -83,7 +83,7 @@ Material* Material_create(
 Material* Material_create_default(const char *name) {
     return Material_create(
         name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, 0.5f, 1.0f,
-        1.0f, (Vec3f){0, 0, 0}, 0.0f, 0.0f, 16.0f, 128.0f, false, 0.0f,
+        1.0f, (Vec3f){0, 0, 0}, 0.0f, 0.05f, 16.0f, 128.0f, false, 0.0f,
         false, false, 0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
     );
 }

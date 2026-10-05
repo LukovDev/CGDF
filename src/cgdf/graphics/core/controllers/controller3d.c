@@ -54,6 +54,7 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     Camera3D *camera = self->camera;
     Vec2i mouse_rel = Input_get_mouse_rel(window);
     bool *keys = Input_get_key_pressed(window);
+    float wheel = Input_get_mouse_wheel(window).y;
 
     // Константы управления:
     const int k_forward = K_w;
@@ -117,6 +118,15 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
             glm_vec3_inv(move_forward);
         }
 
+        // Меняем скорость колесиком мыши:
+        if (keys[K_LSHIFT] || keys[K_RSHIFT]) {
+            self->shift_speed += wheel * self->mouse_sensitivity * self->shift_speed;
+            if (self->shift_speed < 0.0f) self->shift_speed = 0.0001f;
+        } else if (keys[K_LCTRL] || keys[K_RCTRL]) {
+            self->ctrl_speed += wheel * self->mouse_sensitivity * self->ctrl_speed;
+            if (self->ctrl_speed < 0.0f) self->ctrl_speed = 0.0001f;
+        }
+
         // Перемещение камеры:
         float speed = self->speed * dtime;
         if (keys[K_LSHIFT] || keys[K_RSHIFT])    speed = self->shift_speed * dtime;
@@ -162,12 +172,12 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     // Управление обзором камеры:
     if (keys[k_zoom]) {
         if (!camera->is_ortho) {
-            self->target_fov -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * self->target_fov;
+            self->target_fov -= wheel * self->mouse_sensitivity * self->target_fov;
             self->target_fov = glm_clamp(self->target_fov, 0.001f, 179.999f);
         } else {
-            camera->size.x -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.x;
-            camera->size.y -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.y;
-            camera->size.z -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.z;
+            camera->size.x -= wheel * self->mouse_sensitivity * camera->size.x;
+            camera->size.y -= wheel * self->mouse_sensitivity * camera->size.y;
+            camera->size.z -= wheel * self->mouse_sensitivity * camera->size.z;
         }
     }
 

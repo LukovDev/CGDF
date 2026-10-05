@@ -48,7 +48,7 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
     Camera2D *camera = self->camera;
     Vec2i mouse_pos = Input_get_mouse_pos(window);
     Vec2i mouse_rel = Input_get_mouse_rel(window);
-    float mouse_scroll = Input_get_mouse_wheel(window).y;
+    float wheel = Input_get_mouse_wheel(window).y;
     bool is_zooming = !pressed_pass || Input_get_mouse_pressed(window)[0];
     float meter = camera->meter;
 
@@ -70,7 +70,7 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
     }
 
     // Масштабирование камеры:
-    if (is_zooming) self->target_zoom -= mouse_scroll * self->target_zoom * 0.1f;
+    if (is_zooming) self->target_zoom -= wheel * self->target_zoom * 0.1f;
     if (self->target_zoom*meter < self->min_zoom) self->target_zoom = self->min_zoom*1.0f/meter;
     if (self->target_zoom > self->max_zoom) self->target_zoom = self->max_zoom;
 

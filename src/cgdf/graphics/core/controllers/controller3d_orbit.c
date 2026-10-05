@@ -53,6 +53,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     Camera3D *camera = self->camera;
     Vec2i mouse_rel = Input_get_mouse_rel(window);
     bool *keys = Input_get_key_pressed(window);
+    float wheel = Input_get_mouse_wheel(window).y;
 
     // Константы управления:
     const int k_zoom = K_LALT;
@@ -101,12 +102,12 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     // Управление обзором камеры:
     if (keys[k_zoom]) {
         if (!camera->is_ortho) {
-            self->target_fov -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * self->target_fov;
+            self->target_fov -= wheel * self->mouse_sensitivity * self->target_fov;
             self->target_fov = glm_clamp(self->target_fov, 0.001f, 179.999f);
         } else {
-            camera->size.x -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.x;
-            camera->size.y -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.y;
-            camera->size.z -= Input_get_mouse_wheel(window).y * self->mouse_sensitivity * camera->size.z;
+            camera->size.x -= wheel * self->mouse_sensitivity * camera->size.x;
+            camera->size.y -= wheel * self->mouse_sensitivity * camera->size.y;
+            camera->size.z -= wheel * self->mouse_sensitivity * camera->size.z;
         }
     }
 

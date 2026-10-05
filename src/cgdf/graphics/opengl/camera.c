@@ -78,7 +78,7 @@ void Camera2D_update(Camera2D *self) {
 
     // Обновляем данные матриц в шейдере по умолчанию:
     Renderer_set_depth_test(renderer, false);
-    Renderer_set_cull_faces(renderer, false);
+    Renderer_set_cull_mode(renderer, RENDERER_CULL_NONE);
     Shader *shader = renderer->shader;
     if (!shader) return;
     Shader_begin(shader);
@@ -116,7 +116,7 @@ void Camera2D_ui_begin(Camera2D *self) {
 
     // Отключаем отсечение и проверку глубины для интерфейса:
     Renderer_set_depth_test(renderer, false);
-    Renderer_set_cull_faces(renderer, false);
+    Renderer_set_cull_mode(renderer, RENDERER_CULL_NONE);
 
     // Сохраняем текущую матрицу камеры и переключаемся на отдельный UI-view:
     glm_mat4_copy(self->view, self->old_view);
@@ -187,11 +187,8 @@ Camera3D* Camera3D_create(
     Renderer_set_depth_test(window->renderer, true);  // Включаем тест глубины.
     Renderer_set_depth_mask(window->renderer, true);  // Включаем запись в буфер глубины.
     Renderer_set_blending(window->renderer, true);    // Включаем смешивание.
-    Renderer_set_cull_faces(window->renderer, true);  // Включаем отсечение граней.
-
-    // Отсекаем задние грани и рисуем те треугольники которые против часовой стрелки:
-    Renderer_set_back_face_culling(window->renderer);
-    Renderer_set_front_face_onleft(window->renderer);
+    Renderer_set_cull_mode(window->renderer, RENDERER_CULL_BACK);  // Включаем отсечение граней.
+    Renderer_set_front_face(window->renderer, RENDERER_WINDING_CCW);
 
     // Масштабирование и перемещение:
     Camera3D_update(camera);

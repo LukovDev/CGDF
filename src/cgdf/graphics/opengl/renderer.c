@@ -498,7 +498,7 @@ void Renderer_display(Renderer *self) {
         Shader_set_float(self->shader_gbuffer, "u_distortion", mat->distortion);
         Shader_set_float(self->shader_gbuffer, "u_distortion_aberration", mat->distortion_aberration);
 
-        Renderer_set_cull_faces(self, !mat->double_sided);
+        Renderer_set_cull_mode(self, mat->double_sided ? RENDERER_CULL_NONE : RENDERER_CULL_BACK);
         Mesh_render(cmd->mesh, cmd->wireframe);
         self->draw_calls_count++;
     }
@@ -517,7 +517,7 @@ void Renderer_display(Renderer *self) {
 
     // Пишем глубину сцены в экранный буфер всегда, независимо от того, что в нём было:
     Renderer_set_depth_test(self, true);
-    Renderer_set_cull_faces(self, false);
+    Renderer_set_cull_mode(self, RENDERER_CULL_NONE);
     Renderer_set_blending(self, true);
     glDepthFunc(GL_ALWAYS);
 
@@ -532,6 +532,15 @@ void Renderer_display(Renderer *self) {
 
     // Очищаем список команд отрисовки:
     Array_clear(self->draw_commands, false);
+}
+
+// Создать команду отрисовки:
+void Renderer_create_draw_command(Renderer *self, Mesh *mesh, Material *material, mat4 transform, bool wireframe) {
+    if (!self || !mesh) return;
+    if (!material) material = self->fallback_mat;
+    DrawCommand cmd = { .mesh = mesh, .material = material, .wireframe = wireframe };
+    glm_mat4_copy(transform, cmd.transform);  // Копируем матрицу.
+    Array_push(self->draw_commands, &cmd);
 }
 
 // Получить количество вызовов отрисовки:
@@ -682,33 +691,31 @@ void Renderer_set_blending(Renderer *self, bool enabled) {
 }
 
 // Установить отсечение граней:
-void Renderer_set_cull_faces(Renderer *self, bool enabled) {
+void Renderer_set_cull_mode(Renderer *self, RendererCullMode mode) {
     if (!self) return;
-    enabled ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
+
+    if (mode == RENDERER_CULL_NONE) {
+        glDisable(GL_CULL_FACE);
+    } else {
+        glEnable(GL_CULL_FACE);
+        switch (mode) {
+            case RENDERER_CULL_BACK:           glCullFace(GL_BACK);           break;
+            case RENDERER_CULL_FRONT:          glCullFace(GL_FRONT);          break;
+            case RENDERER_CULL_FRONT_AND_BACK: glCullFace(GL_FRONT_AND_BACK); break;
+            default: break;
+        }
+    }
 }
 
-// Отсекать только задние грани:
-void Renderer_set_back_face_culling(Renderer *self) {
+// Установить направление отсечения граней:
+void Renderer_set_front_face(Renderer *self, RendererWindingOrder order) {
     if (!self) return;
-    glCullFace(GL_BACK);
-}
 
-// Отсекать только передние грани:
-void Renderer_set_front_face_culling(Renderer *self) {
-    if (!self) return;
-    glCullFace(GL_FRONT);
-}
-
-// Передняя грань против часовой стрелки (CCW):
-void Renderer_set_front_face_onleft(Renderer *self) {
-    if (!self) return;
-    glFrontFace(GL_CCW);  // Против часовой стрелки.
-}
-
-// Передняя грань по часовой стрелке (CW):
-void Renderer_set_front_face_onright(Renderer *self) {
-    if (!self) return;
-    glFrontFace(GL_CW);  // По часовой стрелке.
+    switch (order) {
+        case RENDERER_WINDING_CCW: glFrontFace(GL_CCW); break;
+        case RENDERER_WINDING_CW:  glFrontFace(GL_CW);  break;
+        default: break;
+    }
 }
 
 // Установить размер viewport:
@@ -719,13 +726,34 @@ void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height) 
     Light3D_resize(self->lightning, width, height);
 }
 
-// Создать команду отрисовки:
-void Renderer_create_draw_command(Renderer *self, Mesh *mesh, Material *material, mat4 transform, bool wireframe) {
-    if (!self || !mesh) return;
-    if (!material) material = self->fallback_mat;
-    DrawCommand cmd = { .mesh = mesh, .material = material, .wireframe = wireframe };
-    glm_mat4_copy(transform, cmd.transform);  // Копируем матрицу.
-    Array_push(self->draw_commands, &cmd);
+// Получить текстуру albedo_roughness:
+Texture* Renderer_get_texture_albedo_roughness(Renderer *self) {
+    if (!self) return NULL;
+    return GBuffer_get_tex_albedo_roughness(self->gbuffer);
+}
+
+// Получить текстуру normal_ao:
+Texture* Renderer_get_texture_normal_ao(Renderer *self) {
+    if (!self) return NULL;
+    return GBuffer_get_tex_normal_ao(self->gbuffer);
+}
+
+// Получить текстуру pbr_properties:
+Texture* Renderer_get_texture_pbr_properties(Renderer *self) {
+    if (!self) return NULL;
+    return GBuffer_get_tex_pbr_properties(self->gbuffer);
+}
+
+// Получить текстуру emissive:
+Texture* Renderer_get_texture_emissive(Renderer *self) {
+    if (!self) return NULL;
+    return GBuffer_get_tex_emissive(self->gbuffer);
+}
+
+// Получить текстуру depth:
+Texture* Renderer_get_texture_depth(Renderer *self) {
+    if (!self) return NULL;
+    return GBuffer_get_tex_depth(self->gbuffer);
 }
 
 // Установить экспозицию:
@@ -734,8 +762,80 @@ void Renderer_set_exposure(Renderer *self, float exposure) {
     self->exposure = exposure;
 }
 
+// Получить экспозицию:
+float Renderer_get_exposure(Renderer *self) {
+    if (!self) return 0.0f;
+    return self->exposure;
+}
+
 // Установить тонмаппинг:
 void Renderer_set_tonemapping(Renderer *self, RendererTonemapType tonemap) {
     if (!self) return;
     self->tonemap = tonemap;
+}
+
+// Получить тонмаппинг:
+RendererTonemapType Renderer_get_tonemapping(Renderer *self) {
+    if (!self) return RENDERER_TONEMAP_NONE;
+    return self->tonemap;
+}
+
+// Установить направление солнца:
+void Renderer_set_sun_dir(Renderer *self, Vec3f direction) {
+    if (!self) return;
+    Light3D_set_sun_dir(self->lightning, direction);
+}
+
+// Получить направление солнца:
+Vec3f Renderer_get_sun_dir(Renderer *self) {
+    if (!self) return (Vec3f){0};
+    return Light3D_get_sun_dir(self->lightning);
+}
+
+// Установить цвет солнца:
+void Renderer_set_sun_color(Renderer *self, Vec3f color) {
+    if (!self) return;
+    Light3D_set_sun_color(self->lightning, color);
+}
+
+// Получить цвет солнца:
+Vec3f Renderer_get_sun_color(Renderer *self) {
+    if (!self) return (Vec3f){0};
+    return Light3D_get_sun_color(self->lightning);
+}
+
+// Установить интенсивность солнца:
+void Renderer_set_sun_intensity(Renderer *self, float intensity) {
+    if (!self) return;
+    Light3D_set_sun_intensity(self->lightning, intensity);
+}
+
+// Получить интенсивность солнца:
+float Renderer_get_sun_intensity(Renderer *self) {
+    if (!self) return 0.0f;
+    return Light3D_get_sun_intensity(self->lightning);
+}
+
+// Установить цвет фонового освещения:
+void Renderer_set_ambient_color(Renderer *self, Vec3f color) {
+    if (!self) return;
+    Light3D_set_ambient_color(self->lightning, color);
+}
+
+// Получить цвет фонового освещения:
+Vec3f Renderer_get_ambient_color(Renderer *self) {
+    if (!self) return (Vec3f){0};
+    return Light3D_get_ambient_color(self->lightning);
+}
+
+// Установить интенсивность фонового освещения:
+void Renderer_set_ambient_intensity(Renderer *self, float intensity) {
+    if (!self) return;
+    Light3D_set_ambient_intensity(self->lightning, intensity);
+}
+
+// Получить интенсивность фонового освещения:
+float Renderer_get_ambient_intensity(Renderer *self) {
+    if (!self) return 0.0f;
+    return Light3D_get_ambient_intensity(self->lightning);
 }
