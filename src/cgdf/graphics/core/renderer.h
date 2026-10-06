@@ -19,9 +19,10 @@
 // Объявление структур:
 typedef struct Camera3D Camera3D;
 typedef struct Camera2D Camera2D;
-typedef struct Renderer Renderer;          // Рендерер.
+typedef struct Renderer Renderer;  // Рендерер.
 typedef struct RendererInfo RendererInfo;  // Информация рендерера.
 typedef struct RendererDebugConfig RendererDebugConfig;  // Настройка дебага рендеринга.
+typedef struct Lightning3D Lightning3D;  // 3D освещение рендерпайплайна.
 
 
 // Тип используемой камеры:
@@ -89,6 +90,7 @@ struct Renderer {
     Shader *shader;               // Дефолтная шейдерная программа.
     Shader *shader_gbuffer;       // Шейдер gbuffer.
     Shader *shader_lightning;     // Шейдер прохода освещения.
+    Shader *shader_shadow;        // Шейдер теней.
     Shader *shader_final;         // Шейдер финального прохода.
     Shader *shader_spritebatch;   // Шейдер пакетной отрисовки спрайтов.
     Shader *shader_light2d;       // Шейдер 2D освещения.
@@ -98,7 +100,8 @@ struct Renderer {
     size_t draw_calls_count;      // Количество вызовов отрисовки.
     GBuffer *gbuffer;             // G-Buffer.
     bool gbuffer_dirty;           // Флаг для очистки гбуфера.
-    Light3D *lightning;           // 3D освещение сцены.
+    Lightning3D *lightning;       // 3D освещение сцены.
+    // Используется в final проходе:
     float exposure;               // Экспозиция освещения.
     RendererTonemapType tonemap;  // Тонмаппинг.
 
@@ -129,7 +132,10 @@ void Renderer_init(Renderer *self);
 void Renderer_display(Renderer *self);
 
 // Создать команду отрисовки:
-void Renderer_create_draw_command(Renderer *self, Mesh *mesh, Material *material, mat4 transform, bool wireframe);
+void Renderer_create_draw_command(
+    Renderer *self, Mesh *mesh, Material *material,
+    mat4 transform, bool cast_shadow, bool wireframe
+);
 
 // Получить количество вызовов отрисовки:
 size_t Renderer_get_draw_calls_count(Renderer *self);
@@ -213,19 +219,49 @@ void Renderer_set_front_face(Renderer *self, RendererWindingOrder order);
 void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height);
 
 // Получить текстуру albedo_roughness:
-Texture* Renderer_get_texture_albedo_roughness(Renderer *self);
+Texture* Renderer_get_tex_albedo_roughness(Renderer *self);
 
 // Получить текстуру normal_ao:
-Texture* Renderer_get_texture_normal_ao(Renderer *self);
+Texture* Renderer_get_tex_normal_ao(Renderer *self);
 
 // Получить текстуру pbr_properties:
-Texture* Renderer_get_texture_pbr_properties(Renderer *self);
+Texture* Renderer_get_tex_pbr_properties(Renderer *self);
 
 // Получить текстуру emissive:
-Texture* Renderer_get_texture_emissive(Renderer *self);
+Texture* Renderer_get_tex_emissive(Renderer *self);
 
 // Получить текстуру depth:
-Texture* Renderer_get_texture_depth(Renderer *self);
+Texture* Renderer_get_tex_depth(Renderer *self);
+
+// Получить текстуру освещения:
+Texture* Renderer_get_tex_light(Renderer *self);
+
+// Получить текстуру теней:
+Texture* Renderer_get_tex_shadows(Renderer *self);
+
+// Установить размер карты теней:
+void Renderer_set_shadows(Renderer *self, bool enabled);
+
+// Включены ли тени:
+bool Renderer_get_shadows(Renderer *self);
+
+// Сделать тени мягкими или жесткими:
+void Renderer_set_shadows_smooth(Renderer *self, bool smooth);
+
+// Мягкие ли тени:
+bool Renderer_get_shadows_smooth(Renderer *self);
+
+// Установить размер карты теней:
+void Renderer_set_shadows_size(Renderer *self, int size);
+
+// Получить размер карты теней:
+int Renderer_get_shadows_size(Renderer *self);
+
+// Установить дальность теней:
+void Renderer_set_shadows_distance(Renderer *self, float distance);
+
+// Получить дальность теней:
+float Renderer_get_shadows_distance(Renderer *self);
 
 // Установить экспозицию:
 void Renderer_set_exposure(Renderer *self, float exposure);

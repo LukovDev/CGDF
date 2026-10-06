@@ -25,10 +25,13 @@ typedef struct MM_BlockHeader {
     void *base_ptr;    // Сырой указатель от аллокатора.
     size_t size;       // Размер выделяемого блока.
     size_t alignment;  // Выравнивание.
+    size_t magic;      // Магическая константа.
 } MM_BlockHeader;
 
 
 // Локальные переменные:
+#define MM_MAGIC_CONST 0xA0B1C2D3E4F56789
+#define MM_MAGIC_DEAD  0x000000000000DEAD
 static const size_t _header_size_ = sizeof(MM_BlockHeader);  // Размер заголовка блока.
 static atomic_size_t mm_allocated_blocks = 0;                // Количество выделенных блоков.
 static atomic_size_t mm_used_size = 0;                       // Количество используемой виртуальной памяти.
@@ -146,6 +149,7 @@ void* mm_alloc_aligned(size_t size, size_t alignment) {
     header->base_ptr = base_ptr;
     header->size = size;
     header->alignment = alignment;
+    header->magic = MM_MAGIC_CONST;
 
     mm_used_size_add(size);
     mm_allocated_blocks++;
@@ -202,8 +206,22 @@ char* mm_strdup(const char *str) {
 void mm_free(void *ptr) {
     if (!ptr) return;
     MM_BlockHeader *header = mm_get_header(ptr);
+    if (header->magic != MM_MAGIC_CONST) {
+        log_msg("----------------\n");
+        log_msg("[E] Memory Manager Error!\n");
+        log_msg(
+            "Reason: %s\n"
+            "Pointer: %p\n"
+            "Magic: 0x%zX\n",
+            header->magic == MM_MAGIC_DEAD ? "Memory double free." : "Invalid pointer.",
+            ptr, ptr, header->magic, header->magic
+        );
+        log_msg("----------------\n");
+        abort();
+    }
     mm_used_size_sub(header->size);
     mm_allocated_blocks--;
+    header->magic = MM_MAGIC_DEAD;
     _m_free(header->base_ptr);
 }
 
@@ -211,7 +229,7 @@ void mm_free(void *ptr) {
 // Вызовите если получите проблему при выделении памяти:
 void mm_alloc_error(void) {
     log_msg("----------------\n");
-    log_msg("[E] Memory Allocation Error!\n");
+    log_msg("[E] Memory Manager Error!\n");
     log_msg("Memory used: %g kb (%zu b).\n", mm_get_used_size_kb(), mm_get_used_size());
     log_msg("Allocated blocks: %zu.\n", mm_get_allocated_blocks());
     log_msg("Absolute memory used: %zu b.\n", mm_get_absolute_used_size());

@@ -428,20 +428,7 @@ void Texture_set_filter(Texture *self, int name, int param) {
 void Texture_set_wrap(Texture *self, int axis, int param) {
     if (!self) return;
     Texture_begin(self);
-    switch (axis) {
-        case GL_TEXTURE_WRAP_S: {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, param);
-        } break;
-        case GL_TEXTURE_WRAP_T: {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, param);
-        } break;
-        case GL_TEXTURE_WRAP_R: { // Пригодится для 3D текстур.
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, param);
-        } break;
-        default: {
-            // Ничего не делаем.
-        } break;
-    }
+    glTexParameteri(GL_TEXTURE_2D, axis, param);
     Texture_end(self);
 }
 

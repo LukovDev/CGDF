@@ -12,10 +12,9 @@
 
 // Объявление структур:
 typedef struct Light2D Light2D;    // 2D освещение.
-typedef struct Light3D Light3D;    // 3D освещение.
 typedef struct Renderer Renderer;  // Повторное локальное определение.
 
-// (Определение структуры Light2D и Light3D находится в реализации).
+// (Определение структуры Light2D находится в реализации).
 
 
 // -------- API 2D освещения: --------
@@ -54,48 +53,4 @@ void Light2D_resize(Light2D *self, int width, int height);
 
 // -------- API 3D освещения: --------
 
-
-// Создать 3D освещение:
-Light3D* Light3D_create(Renderer *renderer);
-
-// Уничтожить 3D освещение:
-void Light3D_destroy(Light3D **light);
-
-// Изменить размер текстур 3D освещения:
-void Light3D_resize(Light3D *self, int width, int height);
-
-// Получить текстуру 3D освещения:
-Texture* Light3D_get_light_tex(Light3D *self);
-
-// Установить направление солнца:
-void Light3D_set_sun_dir(Light3D *self, Vec3f direction);
-
-// Получить направление солнца:
-Vec3f Light3D_get_sun_dir(Light3D *self);
-
-// Установить цвет солнца:
-void Light3D_set_sun_color(Light3D *self, Vec3f color);
-
-// Получить цвет солнца:
-Vec3f Light3D_get_sun_color(Light3D *self);
-
-// Установить интенсивность солнца:
-void Light3D_set_sun_intensity(Light3D *self, float intensity);
-
-// Получить интенсивность солнца:
-float Light3D_get_sun_intensity(Light3D *self);
-
-// Установить цвет фонового освещения:
-void Light3D_set_ambient_color(Light3D *self, Vec3f color);
-
-// Получить цвет фонового освещения:
-Vec3f Light3D_get_ambient_color(Light3D *self);
-
-// Установить интенсивность фонового освещения:
-void Light3D_set_ambient_intensity(Light3D *self, float intensity);
-
-// Получить интенсивность фонового освещения:
-float Light3D_get_ambient_intensity(Light3D *self);
-
-// Отрисовать освещение:
-void Light3D_render(Light3D *self, mat4 proj, mat4 view);
+// Функции для добавления источников света в рендеринг.

@@ -8,8 +8,7 @@
 static const char* GBUFFER_SHADER_VERT = "\
 #version 330 core\n\
 \n\
-uniform mat4 u_view;\n\
-uniform mat4 u_proj;\n\
+uniform mat4 u_view_proj;\n\
 uniform mat4 u_model;\n\
 \n\
 layout (location = 0) in vec3 a_position;\n\
@@ -31,7 +30,7 @@ void main(void) {\n\
     mat4 model_matrix = u_model;\n\
     v_pos_world = (model_matrix * vec4(a_position, 1.0)).xyz;\n\
     v_normal_world = transpose(inverse(mat3(model_matrix))) * a_normal;\n\
-    gl_Position = u_proj * u_view * vec4(v_pos_world, 1.0f);\n\
+    gl_Position = u_view_proj * vec4(v_pos_world, 1.0f);\n\
 }";
 
 static const char* GBUFFER_SHADER_FRAG = "\
@@ -43,6 +42,8 @@ uniform vec3 u_camera_forward;             // Куда смотрит камер
 uniform float u_pom_min_layers = 16.0f;    // Минимальное количество слоёв параллакса [8, 16, 32].\n\
 uniform float u_pom_max_layers = 128.0f;   // Максимальное количество слоёв параллакса [64, 128, 256].\n\
 uniform bool u_pom_cutoff_enabled = true;  // Отсекать ли фрагменты параллакса за координатами текстуры.\n\
+uniform float u_pom_low;                   // Притянуть уровень высоты к нулю (растяжение).\n\
+uniform float u_pom_high;                  // Притянуть уровень высоты к единице (растяжение).\n\
 \n\
 // Параметры материала:\n\
 uniform vec4 u_albedo;\n\
@@ -86,6 +87,12 @@ layout (location = 1) out vec4 g_normal_ao;\n\
 layout (location = 2) out vec4 g_pbr_properties;\n\
 layout (location = 3) out vec4 g_emissive;\n\
 \n\
+// Прочитать высоту с растяжением диапазона:\n\
+float sample_height(vec2 uv, vec2 dx, vec2 dy) {\n\
+    float h = textureGrad(u_tex_height, uv, dx, dy).r;\n\
+    return clamp((h - u_pom_low) / max(u_pom_high - u_pom_low, 0.0001), 0.0, 1.0);\n\
+}\n\
+\n\
 vec3 get_normal_from_map(vec3 N, vec2 coords, mat3 out_TBN, vec2 duv1, vec2 duv2) {\n\
     vec3 tangent_normal = textureGrad(u_tex_normal, coords, duv1, duv2).xyz * 2.0 - 1.0;\n\
     tangent_normal.xy *= u_normal_strength;\n\
@@ -106,9 +113,10 @@ void main(void) {\n\
     float sign_det = (r >= 0.0) ? 1.0 : -1.0;\n\
     vec3 T = (dp1 * duv2.y - dp2 * duv1.y) * sign_det;\n\
     vec3 B = (dp2 * duv1.x - dp1 * duv2.x) * sign_det;\n\
+    // Касательный базис по производным (с учётом зеркальных UV):\n\
     T = normalize(T - N_base * dot(T, N_base));\n\
-    if (!gl_FrontFacing) { B = normalize(cross(T, N_base)); }\n\
-    else { B = normalize(cross(N_base, T)); }\n\
+    float handedness = (dot(cross(N_base, T), B) < 0.0) ? 1.0 : -1.0;\n\
+    B = cross(N_base, T) * handedness;\n\
     mat3 TBN = mat3(T, B, N_base);\n\
     \n\
     vec2 texCoords = v_texcoord;\n\
@@ -128,27 +136,35 @@ void main(void) {\n\
             vec2 P = tangent_view_dir.xy / max(tangent_view_dir.z, 0.01) * u_height_strength;\n\
             vec2 deltaUVs = P / num_layers;\n\
             vec2 UVs = texCoords;\n\
-            float current_depth_map_value = 1.0f - textureGrad(u_tex_height, UVs, duv1, duv2).r;\n\
+            float current_depth_map_value = 1.0f - sample_height(UVs, duv1, duv2);\n\
             \n\
             // Проходися по слоям пока не попадем по высоте:\n\
             int max_steps = int(u_pom_max_layers) + 1;  // Больше этого шагов при правильной работе не бывает.\n\
             for (int steps = 0; current_layer_depth < current_depth_map_value && steps < max_steps; steps++) {\n\
                 current_layer_depth += layer_depth;\n\
                 UVs -= deltaUVs;\n\
-                current_depth_map_value = 1.0f - textureGrad(u_tex_height, UVs, duv1, duv2).r;\n\
+                current_depth_map_value = 1.0f - sample_height(UVs, duv1, duv2);\n\
             }\n\
             \n\
-            // Применяем иллюзию:\n\
-            vec2 prev_UVs = UVs + deltaUVs;\n\
-            float afterDepth = current_depth_map_value - current_layer_depth;\n\
-            float beforeDepth = 1.0f-textureGrad(u_tex_height, prev_UVs, duv1, duv2).r-current_layer_depth+layer_depth;\n\
-            float weight = 0.0;\n\
-            if (abs(afterDepth - beforeDepth) > 0.0001) { weight = afterDepth / (afterDepth - beforeDepth); }\n\
-            texCoords = prev_UVs * weight + UVs * (1.0f - weight);  // Интерполяция (сглаживание шагов).\n\
+            // Применяем иллюзию (бинарный поиск):\n\
+            vec2 uv_above = UVs + deltaUVs;\n\
+            vec2 uv_below = UVs;\n\
+            float depth_above = current_layer_depth - layer_depth;\n\
+            float depth_below = current_layer_depth;\n\
+            for (int k = 0; k < 6; k++) {  // 6 итераций достаточно чтобы была точность в 64 раза меньше расстояния между слоёв.\n\
+                vec2 uv_mid = (uv_above + uv_below) * 0.5;\n\
+                float depth_mid = (depth_above + depth_below) * 0.5;\n\
+                if (depth_mid < 1.0 - sample_height(uv_mid, duv1, duv2)) {\n\
+                    uv_above = uv_mid; depth_above = depth_mid;\n\
+                } else {\n\
+                    uv_below = uv_mid; depth_below = depth_mid;\n\
+                }\n\
+            }\n\
+            texCoords = (uv_above + uv_below) * 0.5;\n\
             \n\
             // Удаляем фрагменты за пределами координат:\n\
             if (u_pom_cutoff_enabled) {\n\
-                vec2 tile = floor(v_texcoord);   // В каком тайле находится исходный пиксель.\n\
+                vec2 tile = floor(v_texcoord);  // В каком тайле находится исходный пиксель.\n\
                 if (any(lessThan(texCoords, tile)) || any(greaterThan(texCoords, tile + 1.0))) { discard; }\n\
             }\n\
         }\n\
@@ -178,7 +194,7 @@ void main(void) {\n\
     \n\
     // 4. Height:\n\
     float height = 0.0;\n\
-    if (u_use_tex_height) { height = textureGrad(u_tex_height, texCoords, duv1, duv2).r; }\n\
+    if (u_use_tex_height) { height = sample_height(texCoords, duv1, duv2); }\n\
     \n\
     // 5. Emissive:\n\
     vec3 emissive = u_emissive_color * u_emissive_strength;\n\

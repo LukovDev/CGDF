@@ -32,6 +32,8 @@ struct Material {
     float height_min_layers;      // Минимальное количество слоев глубины.
     float height_max_layers;      // Максимальное количество слоев глубины.
     bool height_cutoff_enabled;   // Отсекать ли фрагменты параллакса за координатами текстуры.
+    float height_low;             // Притянуть уровень высоты к нулю (растяжение). Диапазон от 0.0f до 1.0f.
+    float height_high;            // Притянуть уровень высоты к единице (растяжение). Диапазон от 0.0f до 1.0f.
     float alpha_cutoff;           // Альфа отсечение.
     bool double_sided;            // Двухсторонний материал (отключение culling).
     bool transparent;             // Прозрачный материал (для blend mode).

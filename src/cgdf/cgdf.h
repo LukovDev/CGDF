@@ -10,7 +10,7 @@ extern "C" {
 
 
 // Определения:
-#define CGDF_VERSION "v1.0.0-alpha"
+#define CGDF_VERSION "v1.0.0-beta"
 
 
 // Подключаем:

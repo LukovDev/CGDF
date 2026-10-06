@@ -54,6 +54,8 @@ Material* Material_create(
     material->height_min_layers = height_min_layers;
     material->height_max_layers = height_max_layers;
     material->height_cutoff_enabled = height_cutoff_enabled;
+    material->height_low = 0.0f;
+    material->height_high = 1.0f;
     material->alpha_cutoff = alpha_cutoff;
     material->double_sided = double_sided;
     material->transparent = transparent;
@@ -83,7 +85,7 @@ Material* Material_create(
 Material* Material_create_default(const char *name) {
     return Material_create(
         name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, 0.5f, 1.0f,
-        1.0f, (Vec3f){0, 0, 0}, 0.0f, 0.05f, 16.0f, 128.0f, false, 0.0f,
+        1.0f, (Vec3f){0, 0, 0}, 0.0f, 0.05f, 8.0f, 32.0f, false, 0.0f,
         false, false, 0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
     );
 }

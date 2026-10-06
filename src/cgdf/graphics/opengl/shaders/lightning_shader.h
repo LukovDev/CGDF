@@ -19,16 +19,19 @@ void main(void) {\n\
 static const char* LIGHTNING_SHADER_FRAG = "\
 #version 330 core\n\
 \n\
+// Камера:\n\
+uniform vec3 u_camera_pos;\n\
+uniform vec3 u_camera_forward;   // Куда смотрит камера.\n\
+uniform bool u_camera_ortho;     // Ортографическая ли камера.\n\
+uniform mat4 u_inv_view_proj;    // Обратная матрица (проекция * вид): экран -> мир.\n\
+uniform mat4 u_light_view_proj;  // Матрица камеры солнца.\n\
+\n\
 // Текстуры G-Buffer:\n\
 uniform sampler2D u_albedo_roughness;\n\
 uniform sampler2D u_normal_ao;\n\
 uniform sampler2D u_pbr;\n\
 uniform sampler2D u_emissive;\n\
 uniform sampler2D u_depth;\n\
-uniform mat4 u_inv_view_proj;  // Обратная матрица (проекция * вид): экран -> мир.\n\
-uniform vec3 u_camera_pos;\n\
-uniform vec3 u_camera_forward;  // Куда смотрит камера.\n\
-uniform bool u_camera_ortho;    // Ортографическая ли камера.\n\
 \n\
 // Солнце (направленный свет):\n\
 uniform vec3 u_sun_dir;  // Направление, КУДА светит солнце (нормализованное).\n\
@@ -38,6 +41,11 @@ uniform float u_sun_intensity;\n\
 // Фоновый свет:\n\
 uniform vec3 u_ambient_color;\n\
 uniform float u_ambient_intensity;\n\
+\n\
+// Тени:\n\
+uniform bool u_shadows_enabled;\n\
+uniform bool u_shadows_smooth;\n\
+uniform sampler2DShadow u_shadow_map;  // Карта теней (с аппаратным сравнением).\n\
 \n\
 in vec2 v_texcoord;\n\
 out vec4 FragColor;\n\
@@ -76,6 +84,30 @@ vec3 fresnel_schlick(float cos_theta, vec3 F0) {\n\
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);\n\
 }\n\
 \n\
+// Насколько точка освещена солнцем:\n\
+float calc_shadow(vec3 P, vec3 N, vec3 L) {\n\
+    float NdotL = max(dot(N, L), 0.0);\n\
+    vec3 offset_pos = P + N * 0.03 * (1.0 - NdotL);\n\
+    \n\
+    // Переводим точку в координаты камеры солнца и затем в 0..1 (координаты текстуры + глубина):\n\
+    vec4 light_pos = u_light_view_proj * vec4(offset_pos, 1.0);\n\
+    vec3 coords = light_pos.xyz / light_pos.w * 0.5 + 0.5;\n\
+    if (coords.z > 1.0) return 1.0;  // Дальше дальней плоскости, тени нет.\n\
+    \n\
+    if (u_shadows_smooth) {\n\
+        // PCF 3x3: 9 выборок, каждая из которых ещё и сама сглажена (4 пикселя). Мягкий край:\n\
+        vec2 texel = 1.0 / vec2(textureSize(u_shadow_map, 0));\n\
+        float lit = 0.0;\n\
+        for (int x = -1; x <= 1; x++) {\n\
+            for (int y = -1; y <= 1; y++) {\n\
+                lit += texture(u_shadow_map, vec3(coords.xy + vec2(x, y) * texel, coords.z));\n\
+            }\n\
+        }\n\
+        return lit / 9.0;\n\
+    }\n\
+    return texture(u_shadow_map, vec3(coords.xy, coords.z));\n\
+}\n\
+\n\
 void main(void) {\n\
     float depth = texture(u_depth, v_texcoord).r;\n\
     if (depth >= 1.0) { FragColor = vec4(0.0); return; }  // Пустой пиксель.\n\
@@ -112,7 +144,8 @@ void main(void) {\n\
     vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);  // Что не отразилось, рассеялось (у металлов рассеяния нет).\n\
     \n\
     vec3 radiance = u_sun_color * u_sun_intensity;\n\
-    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;\n\
+    float shadow = u_shadows_enabled ? calc_shadow(P, N, L) : 1.0;\n\
+    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL * shadow;\n\
     \n\
     // Фоновый свет:\n\
     vec3 ambient = u_ambient_color * u_ambient_intensity * albedo * ao;\n\

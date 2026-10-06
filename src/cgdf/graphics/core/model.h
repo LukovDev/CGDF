@@ -48,4 +48,4 @@ void Model_remove_mesh(Model *self, Mesh *mesh);
 void Model_delete_mesh(Model *self, Mesh *mesh);
 
 // Отрисовать модель:
-void Model_render(Model *self, bool wireframe);
+void Model_render(Model *self, bool cast_shadow, bool wireframe);

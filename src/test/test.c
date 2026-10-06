@@ -6,6 +6,7 @@
 // Подключаем:
 #include <cgdf/cgdf.h>
 #include <cgdf/graphics/graphics.h>
+#include <cgdf/graphics/opengl/gl.h>
 
 
 static Texture *tex1;
@@ -33,6 +34,8 @@ static OBJFile model;
 static OBJFile home;
 static OBJFile motocycle;
 static OBJFile automobile;
+static OBJFile hydrant;
+static Texture *poweredby;
 
 
 static void print_before_free(void) {
@@ -136,7 +139,10 @@ void start(Window *self) {
     blue_noise = Texture_create(self->renderer);
     Texture_load(blue_noise, "data/textures/blue-noise.bmp", false);
 
-    Texture *albedo = Texture_create(self->renderer);
+    poweredby = Texture_create(self->renderer);
+    Texture_load(poweredby, "data/logo/poweredby2.png", true);
+
+    // Texture *albedo = Texture_create(self->renderer);
     Texture *normal = Texture_create(self->renderer);
     Texture *occlusion = Texture_create(self->renderer);
     Texture *roughness = Texture_create(self->renderer);
@@ -146,7 +152,7 @@ void start(Window *self) {
 
     #define PACKTYPE "roads"
     #define PACKNAME "wedged-cobblestone"  // beige-stonework, square-block-vegetation, wedged-cobblestone
-    Texture_load(albedo, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/albedo.png", true);
+    // Texture_load(albedo, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/albedo.png", true);
     Texture_load(normal, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/normal.png", true);
     Texture_load(occlusion, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/ao.png", true);
     Texture_load(roughness, "data/packs/pbr-pack/"PACKTYPE"/"PACKNAME"/roughness.png", true);
@@ -161,7 +167,7 @@ void start(Window *self) {
         1.0f, 1.0f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f, 0.05f, 16.0f, 128.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
-        albedo, normal, occlusion,
+        poweredby, normal, occlusion,
         roughness, metallic, emission,
         height
     );
@@ -297,6 +303,7 @@ void start(Window *self) {
     home = ObjLoader_load(self->renderer, "data/obj/home/Cottage.obj");
     motocycle = ObjLoader_load(self->renderer, "data/obj/bmw_s1000_rr/bmw_s1000_rr.obj");
     automobile = ObjLoader_load(self->renderer, "data/obj/bugatti_chiron_mansory/bugatti_chiron_mansory.obj");
+    hydrant = ObjLoader_load(self->renderer, "data/obj/hydrant/hydrant.obj");
 
     // Model *model0 = Array_get_ptr(model.models, 0);
     // for (size_t i=0; i<Array_len(model0->meshes); i++) {
@@ -324,6 +331,7 @@ void destroy(Window *self) {
     print_before_free();
     Texture_destroy(&tex1);
     Texture_destroy(&blue_noise);
+    // Texture_destroy(&poweredby);
     SpriteBatch_destroy(&batch);
     SimpleDraw_destroy(&draw);
     Shader_destroy(&grid);
@@ -349,6 +357,7 @@ void destroy(Window *self) {
     destroy_objfile(home);
     destroy_objfile(motocycle);
     destroy_objfile(automobile);
+    destroy_objfile(hydrant);
 }
 
 
@@ -365,6 +374,8 @@ void update(Window *self, float dtime) {
     else Renderer_set_tonemap(self->renderer, RENDERER_TONEMAP_NONE);
 
     if (Input_get_key_down(self)[K_o]) Camera3D_set_ortho(camera3d, !Camera3D_get_ortho(camera3d));
+    if (Input_get_key_down(self)[K_h]) Renderer_set_shadows_smooth(self->renderer, !Renderer_get_shadows_smooth(self->renderer));
+    if (Input_get_key_down(self)[K_n]) Renderer_set_shadows(self->renderer, !Renderer_get_shadows(self->renderer));
 
     if (orbit_enabled) {
         ctrl_orbit->target_pos = (Vec3d){0.0f, 1.0f, 0.0f};
@@ -378,10 +389,14 @@ void update(Window *self, float dtime) {
 
     Camera3D_update(camera3d);
 
-    double time = Window_get_time(self);
-    // Light3D_set_sun_dir(self->renderer->lightning, Vec3f_norm((Vec3f){radians(sin(time)), radians(sin(time)), radians(cos(time))}));
+    double time = Window_get_time(self)/1.0f;
+    // Renderer_set_sun_dir(self->renderer, Vec3f_norm((Vec3f){
+    //     radians(sin(time)),
+    //     -fabs(radians(sin(time))),
+    //     radians(cos(time))
+    // }));
 
-    // Light3D_set_sun_intensity(self->renderer->lightning, glm_clamp(-Light3D_get_sun_dir(self->renderer->lightning).y, 0.0f, 1.0f));
+    Renderer_set_sun_intensity(self->renderer, glm_clamp(-Renderer_get_sun_dir(self->renderer).y*10.0f, 0.0f, 10.0f));
 }
 
 // Вызывается каждый кадр (отрисовка окна):
@@ -402,7 +417,7 @@ void render(Window *self, float dtime) {
         glm_rotate(cat->transform, radians(90.0f), (vec3){0, 1, 0});
         glm_rotate(cat->transform, radians(-90.0f), (vec3){1, 0, 0});
         glm_scale(cat->transform, (vec3){0.2f, 0.2f, 0.2f});
-        Model_render(cat, wireframe);
+        Model_render(cat, true, wireframe);
     }
 
     Model *hm = Array_get_ptr(home.models, 0);
@@ -410,7 +425,7 @@ void render(Window *self, float dtime) {
         glm_mat4_identity(hm->transform);
         glm_translate(hm->transform, (vec3){0.0f, 0.0f, -8.0f});
         glm_scale(hm->transform, (vec3){0.25f, 0.25f, 0.25f});
-        Model_render(hm, wireframe);
+        Model_render(hm, true, wireframe);
     }
 
     for (size_t i=0; i < Array_len(model.models); i++) {
@@ -427,7 +442,7 @@ void render(Window *self, float dtime) {
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, material);
-                    Model_render(mdl, wireframe);
+                    Model_render(mdl, true, wireframe);
                 }
                 if (j == 1) {
                     glm_mat4_identity(mdl->transform);
@@ -437,7 +452,7 @@ void render(Window *self, float dtime) {
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, mat_1);
-                    Model_render(mdl, wireframe);
+                    Model_render(mdl, true, wireframe);
                 }
                 if (j == 2) {
                     glm_mat4_identity(mdl->transform);
@@ -447,18 +462,18 @@ void render(Window *self, float dtime) {
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, mat_2);
-                    Model_render(mdl, wireframe);
+                    Model_render(mdl, true, wireframe);
                 }
                 if (j == 3) {
                     glm_mat4_identity(mdl->transform);
-                    Vec3f p = Light3D_get_sun_dir(self->renderer->lightning);
+                    Vec3f p = Renderer_get_sun_dir(self->renderer);
                     glm_translate(mdl->transform, (vec3){-p.x*25.0f, -p.y*25.0f, -p.z*25.0f});
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
                     // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
                     // glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
                     Mesh_set_material(mesh, Mesh_get_material(Array_get_ptr(cat->meshes, 0)));
-                    Model_render(mdl, wireframe);
+                    Model_render(mdl, false, wireframe);
                 }
             }
         }
@@ -466,7 +481,7 @@ void render(Window *self, float dtime) {
 
     for (size_t i=0; i < Array_len(objfile2.models); i++) {
         Model *model = Array_get_ptr(objfile2.models, i);
-        Model_render(model, wireframe);
+        Model_render(model, true, wireframe);
     }
     for (size_t i=0; i < Array_len(motocycle.models); i++) {
         Model *model = Array_get_ptr(motocycle.models, i);
@@ -474,7 +489,7 @@ void render(Window *self, float dtime) {
         glm_translate(model->transform, (vec3){3, 0.5f, 0});
         glm_rotate(model->transform, radians(180.0f), (vec3){0, 1, 0});
         // glm_scale(model->transform, (vec3){2.0f, 2.0f, 2.0f});
-        Model_render(model, wireframe);
+        Model_render(model, true, wireframe);
     }
     for (size_t i=0; i < Array_len(automobile.models); i++) {
         Model *model = Array_get_ptr(automobile.models, i);
@@ -482,7 +497,19 @@ void render(Window *self, float dtime) {
         glm_translate(model->transform, (vec3){-3, 0.8f, 0});
         glm_rotate(model->transform, radians(180.0f), (vec3){0, 1, 0});
         // glm_scale(model->transform, (vec3){2.0f, 2.0f, 2.0f});
-        Model_render(model, wireframe);
+        Model_render(model, true, wireframe);
+    }
+    for (size_t i=0; i < Array_len(hydrant.models); i++) {
+        Model *model = Array_get_ptr(hydrant.models, i);
+        glm_mat4_identity(model->transform);
+        glm_translate(model->transform, (vec3){0, 0, 5});
+        for (size_t i=0; i<Array_len(model->meshes); i++) {
+            Mesh *mesh = Array_get_ptr(model->meshes, i);
+            Material *m = Mesh_get_material(mesh);
+            m->height_strength = 0.05f;
+            m->height_cutoff_enabled = true;
+        }
+        Model_render(model, true, wireframe);
     }
 
     for (size_t i=0; i < Array_len(objfile_ship1.models); i++) {
@@ -496,7 +523,7 @@ void render(Window *self, float dtime) {
         glm_rotate(model->transform, radians(0), (vec3){1, 0, 0});
         glm_rotate(model->transform, radians(sinf(time)*45.0f), (vec3){0, 0, 1});
         // glm_scale(model->transform, (vec3){0.1f, 0.1f, 0.1f});
-        Model_render(model, wireframe);
+        Model_render(model, true, wireframe);
     }
     for (size_t i=0; i < Array_len(objfile_ship2.models); i++) {
         Model *model = Array_get_ptr(objfile_ship2.models, i);
@@ -509,7 +536,7 @@ void render(Window *self, float dtime) {
         glm_rotate(model->transform, radians(0), (vec3){1, 0, 0});
         glm_rotate(model->transform, radians(sinf(time)*45.0f), (vec3){0, 0, 1});
         // glm_scale(model->transform, (vec3){0.1f, 0.1f, 0.1f});
-        Model_render(model, wireframe);
+        Model_render(model, true, wireframe);
     }
     Renderer_display(self->renderer);
 
@@ -536,11 +563,13 @@ void render(Window *self, float dtime) {
 
     int width = Renderer_get_width(self->renderer);
     int height = Renderer_get_height(self->renderer);
-    Texture *albedo_roughness = Renderer_get_texture_albedo_roughness(self->renderer);
-    Texture *normal_ao = Renderer_get_texture_normal_ao(self->renderer);
-    Texture *pbr_properties = Renderer_get_texture_pbr_properties(self->renderer);
-    Texture *emissive = Renderer_get_texture_emissive(self->renderer);
-    Texture *depth = Renderer_get_texture_depth(self->renderer);
+    Texture *albedo_roughness = Renderer_get_tex_albedo_roughness(self->renderer);
+    Texture *normal_ao = Renderer_get_tex_normal_ao(self->renderer);
+    Texture *pbr_properties = Renderer_get_tex_pbr_properties(self->renderer);
+    Texture *emissive = Renderer_get_tex_emissive(self->renderer);
+    Texture *depth = Renderer_get_tex_depth(self->renderer);
+    Texture *light = Renderer_get_tex_light(self->renderer);
+    Texture *shadows = Renderer_get_tex_shadows(self->renderer);
 
     Camera2D_update(camera2d);
     Camera2D_ui_begin(camera2d);
@@ -558,7 +587,7 @@ void render(Window *self, float dtime) {
         Shader_set_bool(self->renderer->shader, "u_use_gbuffer", true);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 0);
         Shader_end(self->renderer->shader);
-        Sprite2D_render(self->renderer, Light3D_get_light_tex(self->renderer->lightning), x1 - w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+        Sprite2D_render(self->renderer, light, x1 - w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
         Shader_begin(self->renderer->shader);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 1);
@@ -578,8 +607,13 @@ void render(Window *self, float dtime) {
         Shader_begin(self->renderer->shader);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 4);
         Shader_end(self->renderer->shader);
-        Sprite2D_render(self->renderer, depth, x4 - w-w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
+        Sprite2D_render(self->renderer, depth, x4 - w - w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+
+        Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_NONE);                   // Читаем как обычную текстуру глубины.
+        Sprite2D_render(self->renderer, shadows, x4 - w - h, y2, h, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
+        Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE); // Возвращаем для теней.
+    
         Shader_begin(self->renderer->shader);
         Shader_set_bool(self->renderer->shader, "u_use_gbuffer", false);
         Shader_end(self->renderer->shader);

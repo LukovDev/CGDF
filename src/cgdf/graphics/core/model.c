@@ -77,13 +77,13 @@ void Model_delete_mesh(Model *self, Mesh *mesh) {
 }
 
 // Отрисовать модель:
-void Model_render(Model *self, bool wireframe) {
+void Model_render(Model *self, bool cast_shadow, bool wireframe) {
     if (!self) return;
 
-    // Проходимся по сеткам и добавляем их:
+    // Проходимся по сеткам и добавляем их в стек команд отрисовки:
     for (size_t i = 0; i < Array_len(self->meshes); i++) {
         Mesh *mesh = (Mesh*)Array_get_ptr(self->meshes, i);
         Material *material = Mesh_get_material(mesh);
-        Renderer_create_draw_command(self->renderer, mesh, material, self->transform, wireframe);
+        Renderer_create_draw_command(self->renderer, mesh, material, self->transform, cast_shadow, wireframe);
     }
 }
