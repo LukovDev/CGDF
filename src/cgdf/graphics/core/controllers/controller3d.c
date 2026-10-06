@@ -33,6 +33,7 @@ CameraController3D* CameraController3D_create(
     ctrl->euler = (Vec3d){0.0, 0.0, 0.0};
     ctrl->target_pos = (Vec3d){camera->position.x, camera->position.y, camera->position.z};
     ctrl->target_fov = camera->fov;
+    ctrl->target_size = camera->size;
 
     ctrl->pressed_pass = false;
     ctrl->is_pressed = false;
@@ -171,13 +172,13 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
 
     // Управление обзором камеры:
     if (keys[k_zoom]) {
-        if (!camera->is_ortho) {
+        if (camera->is_ortho) {
+            self->target_size.x -= wheel * self->mouse_sensitivity * self->target_size.x;
+            self->target_size.y -= wheel * self->mouse_sensitivity * self->target_size.y;
+            self->target_size.z -= wheel * self->mouse_sensitivity * self->target_size.z;
+        } else {
             self->target_fov -= wheel * self->mouse_sensitivity * self->target_fov;
             self->target_fov = glm_clamp(self->target_fov, 0.001f, 179.999f);
-        } else {
-            camera->size.x -= wheel * self->mouse_sensitivity * camera->size.x;
-            camera->size.y -= wheel * self->mouse_sensitivity * camera->size.y;
-            camera->size.z -= wheel * self->mouse_sensitivity * camera->size.z;
         }
     }
 
@@ -188,7 +189,11 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
         camera->position.x += (self->target_pos.x - camera->position.x) * alpha;
         camera->position.y += (self->target_pos.y - camera->position.y) * alpha;
         camera->position.z += (self->target_pos.z - camera->position.z) * alpha;
-        camera->fov += (self->target_fov - camera->fov) * alpha;
+        if (camera->is_ortho) {
+            camera->size.x += (self->target_size.x - camera->size.x) * alpha;
+            camera->size.y += (self->target_size.y - camera->size.y) * alpha;
+            camera->size.z += (self->target_size.z - camera->size.z) * alpha;
+        } else camera->fov += (self->target_fov - camera->fov) * alpha;
     } else {
         camera->position = self->target_pos;
         camera->fov = self->target_fov;

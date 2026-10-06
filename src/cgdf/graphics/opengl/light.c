@@ -307,15 +307,6 @@ void Light3D_render(Light3D *self, mat4 proj, mat4 view) {
     if (!self || !self->renderer || !self->renderer->camera) return;
     Renderer *rnd = self->renderer;
 
-    Vec3f camera_pos = {0};
-    if (rnd->camera_type == RENDERER_CAMERA_2D) {
-        Vec2d pos = ((Camera2D*)rnd->camera)->position;
-        camera_pos = (Vec3f){pos.x, pos.y, 0.0f};
-    } else {
-        Vec3d pos = ((Camera3D*)rnd->camera)->position;
-        camera_pos = (Vec3f){pos.x, pos.y, pos.z};
-    }
-
     // Обратная матрица (проекция * вид):
     mat4 view_proj, inv_view_proj;
     glm_mat4_mul(proj, view, view_proj);
@@ -333,6 +324,25 @@ void Light3D_render(Light3D *self, mat4 proj, mat4 view) {
 
     Shader *sh = rnd->shader_lightning;
     Shader_begin(sh);
+
+    // Настраиваем камеру:
+    Vec3f camera_pos = {0};
+    Vec3f camera_forward = {0.0f, 0.0f, -1.0f};
+    bool camera_ortho = false;
+    if (Renderer_is_camera_2d(rnd)) {
+        Vec2d pos = ((Camera2D*)rnd->camera)->position;
+        camera_pos = (Vec3f){pos.x, pos.y, 0.0f};
+    } else {
+        Vec3d pos = ((Camera3D*)rnd->camera)->position;
+        camera_pos = (Vec3f){pos.x, pos.y, pos.z};
+        Vec3d f = Camera3D_get_forward((Camera3D*)rnd->camera);
+        camera_forward = (Vec3f){f.x, f.y, f.z};
+        camera_ortho = Camera3D_get_ortho((Camera3D*)rnd->camera);
+    }
+
+    Shader_set_vec3(sh,  "u_camera_pos",        camera_pos);
+    Shader_set_vec3(sh,  "u_camera_forward",    camera_forward);
+    Shader_set_bool(sh,  "u_camera_ortho",      camera_ortho);
     Shader_set_tex2d(sh, "u_albedo_roughness",  GBuffer_get_tex_albedo_roughness(rnd->gbuffer)->id);
     Shader_set_tex2d(sh, "u_normal_ao",         GBuffer_get_tex_normal_ao(rnd->gbuffer)->id);
     Shader_set_tex2d(sh, "u_pbr",               GBuffer_get_tex_pbr_properties(rnd->gbuffer)->id);

@@ -104,10 +104,6 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
         if (!camera->is_ortho) {
             self->target_fov -= wheel * self->mouse_sensitivity * self->target_fov;
             self->target_fov = glm_clamp(self->target_fov, 0.001f, 179.999f);
-        } else {
-            camera->size.x -= wheel * self->mouse_sensitivity * camera->size.x;
-            camera->size.y -= wheel * self->mouse_sensitivity * camera->size.y;
-            camera->size.z -= wheel * self->mouse_sensitivity * camera->size.z;
         }
     }
 

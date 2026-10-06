@@ -27,6 +27,8 @@ uniform sampler2D u_emissive;\n\
 uniform sampler2D u_depth;\n\
 uniform mat4 u_inv_view_proj;  // Обратная матрица (проекция * вид): экран -> мир.\n\
 uniform vec3 u_camera_pos;\n\
+uniform vec3 u_camera_forward;  // Куда смотрит камера.\n\
+uniform bool u_camera_ortho;    // Ортографическая ли камера.\n\
 \n\
 // Солнце (направленный свет):\n\
 uniform vec3 u_sun_dir;  // Направление, КУДА светит солнце (нормализованное).\n\
@@ -89,7 +91,7 @@ void main(void) {\n\
     vec3 emissive = texture(u_emissive, v_texcoord).rgb;\n\
     \n\
     vec3 P = reconstruct_world_pos(v_texcoord, depth);\n\
-    vec3 V = normalize(u_camera_pos - P);  // Направление от поверхности на камеру.\n\
+    vec3 V = u_camera_ortho ? -u_camera_forward : normalize(u_camera_pos - P);\n\
     \n\
     // Базовая отражательная способность: у неметаллов ~4%, у металлов их цвет:\n\
     vec3 F0 = mix(vec3(0.04), albedo, metallic);\n\

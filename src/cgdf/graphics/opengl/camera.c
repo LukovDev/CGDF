@@ -168,6 +168,7 @@ Camera3D* Camera3D_create(
     camera->width = width;
     camera->height = height;
 
+    camera->_oldsize_ = size;
     camera->_oldfov_ = fov;
     camera->_oldfar_ = z_far;
     camera->_oldnear_ = z_near;
@@ -181,7 +182,8 @@ Camera3D* Camera3D_create(
     glm_mat4_identity(camera->proj);
 
     // Установка проекции:
-    Camera3D_resize(camera, width, height, ortho);
+    Camera3D_set_ortho(camera, ortho);
+    Camera3D_resize(camera, width, height);
 
     // Установка настроек отображения геометрии:
     Renderer_set_depth_test(window->renderer, true);  // Включаем тест глубины.
@@ -208,16 +210,23 @@ void Camera3D_update(Camera3D *self) {
     Renderer *renderer = self->window->renderer;
 
     // Ограничиваем диапазон значений:
-    self->fov = glm_clamp(self->fov, 0.001f, 179.999f);  // Устанавливаем границы угла обзора.
-    self->z_far = glm_max(self->z_far, 0.00002f);    // Минимальное расстояние дальнего отсечения.
-    self->z_near = glm_max(self->z_near, 0.00001f);  // Минимальное расстояние ближнего отсечения.
+    self->fov = glm_clamp(self->fov, 0.001f, 179.999f);
+    self->z_far = glm_max(self->z_far, 0.00002f);
+    self->z_near = glm_max(self->z_near, 0.00001f);
+
+    // Также ограничиваем размеры минимальным значением:
+    self->size.x = glm_max(self->size.x, 0.00001f);
+    self->size.y = glm_max(self->size.y, 0.00001f);
+    self->size.z = glm_max(self->size.z, 0.00001f);
 
     // Обновляем матрицу проекции в случае изменения параметров камеры:
     if (!cmp_float(self->fov, self->_oldfov_) ||
         !cmp_float(self->z_far, self->_oldfar_) ||
-        !cmp_float(self->z_near, self->_oldnear_))
+        !cmp_float(self->z_near, self->_oldnear_) ||
+        !Vec3d_cmp(self->size, self->_oldsize_))
     {
-        Camera3D_resize(self, self->width, self->height, self->is_ortho);
+        Camera3D_resize(self, self->width, self->height);
+        self->_oldsize_ = self->size;
         self->_oldfov_ = self->fov;
         self->_oldfar_ = self->z_far;
         self->_oldnear_ = self->z_near;
@@ -241,15 +250,6 @@ void Camera3D_update(Camera3D *self) {
 
     // Применяем rotation:
     glm_mat4_mul(rot, self->view, self->view);
-
-    // Масштаб для ortho:
-    if (self->is_ortho) {
-        glm_scale(self->view, (vec3){
-            1.0f/self->size.x,
-            1.0f/self->size.y,
-            1.0f/self->size.z
-        });
-    }
 
     // Перенос (обратный позиции камеры):
     glm_translate(self->view, (vec3){
@@ -277,7 +277,7 @@ void Camera3D_update(Camera3D *self) {
 }
 
 // Изменить размер камеры:
-void Camera3D_resize(Camera3D *self, int width, int height, bool ortho) {
+void Camera3D_resize(Camera3D *self, int width, int height) {
     if (!self) return;
 
     self->width = width;
@@ -286,12 +286,10 @@ void Camera3D_resize(Camera3D *self, int width, int height, bool ortho) {
     glm_mat4_identity(self->proj);
     float aspect = (float)self->width / (float)self->height;
 
-    if (ortho) {
-        float l = -(self->size.x * 0.5f + 4.0f);
-        float r =  (self->size.x * 0.5f + 4.0f);
-        float b = -(self->size.y * 0.5f + 4.0f);
-        float t =  (self->size.y * 0.5f + 4.0f);
-        glm_ortho(l*aspect, r*aspect, b, t, self->z_near, self->z_far, self->proj);
+    if (self->is_ortho) {
+        float wdth = ((float)self->width)*0.5f / 100.0f * self->size.x;
+        float hght = ((float)self->height)*0.5f / 100.0f * self->size.y;
+        glm_ortho(-wdth, wdth, -hght, hght, -self->z_far, self->z_far, self->proj);
     } else {
         glm_perspective(radians(self->fov), aspect, self->z_near, self->z_far, self->proj);
     }
@@ -406,8 +404,8 @@ Vec3d Camera3D_get_up(Camera3D *self) {
 // Установить ортографическую проекцию:
 void Camera3D_set_ortho(Camera3D *self, bool enabled) {
     if (!self) return;
-    Camera3D_resize(self, self->width, self->height, enabled);
     self->is_ortho = enabled;
+    Camera3D_resize(self, self->width, self->height);
 }
 
 // Узнать включена ли ортографическая проекция:

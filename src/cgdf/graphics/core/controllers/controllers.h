@@ -51,6 +51,7 @@ struct CameraController3D {
     Vec3d euler;         // Поворот камеры.
     Vec3d target_pos;    // Целевая позиция камеры.
     float target_fov;    // Целевой угол обзора.
+    Vec3d target_size;   // Целевой размер.
     bool pressed_pass;   // Пропуск нажатия (внутренняя логика).
     bool is_pressed;     // Нажата клавиша (внутренняя логика).
     bool is_movement;    // Перемещается ли камера или нет.

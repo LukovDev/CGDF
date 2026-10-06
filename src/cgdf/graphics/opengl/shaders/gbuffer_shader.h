@@ -38,6 +38,8 @@ static const char* GBUFFER_SHADER_FRAG = "\
 #version 330 core\n\
 \n\
 uniform vec3 u_camera_pos;                 // Мировые координаты камеры.\n\
+uniform bool u_camera_ortho;               // Ортографическая ли камера.\n\
+uniform vec3 u_camera_forward;             // Куда смотрит камера.\n\
 uniform float u_pom_min_layers = 16.0f;    // Минимальное количество слоёв параллакса [8, 16, 32].\n\
 uniform float u_pom_max_layers = 128.0f;   // Максимальное количество слоёв параллакса [64, 128, 256].\n\
 uniform bool u_pom_cutoff_enabled = true;  // Отсекать ли фрагменты параллакса за координатами текстуры.\n\
@@ -113,7 +115,8 @@ void main(void) {\n\
     \n\
     // Накладываем эффект POM (параллакс):\n\
     if (u_use_tex_height && u_height_strength > 0.0f && has_uv_basis) {\n\
-        vec3 view_dir = normalize(u_camera_pos - v_pos_world);\n\
+        // Направление от поверхности на камеру. В ортографии лучи параллельны:\n\
+        vec3 view_dir = u_camera_ortho ? -u_camera_forward : normalize(u_camera_pos - v_pos_world);\n\
         vec3 tangent_view_dir = normalize(transpose(TBN) * view_dir);\n\
         if (!any(isnan(tangent_view_dir)) && !any(isinf(tangent_view_dir))) {\n\
             tangent_view_dir.y = -tangent_view_dir.y;\n\

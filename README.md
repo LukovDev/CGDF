@@ -1,4 +1,4 @@
-# CGDF – C Game Development Framework
+# CGDF - C Game Development Framework
 ### Игровой фреймворк для разработки игр на языке Си, построенный на основе [C Program Framework](https://github.com/LukovDev/C-Program-Framework)
 
 Является прямым потомком игрового фреймворка [PyGDF](https://github.com/LukovDev/PyGDF) (его разработка остановлена).

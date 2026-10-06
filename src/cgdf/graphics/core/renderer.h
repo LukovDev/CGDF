@@ -17,6 +17,8 @@
 
 
 // Объявление структур:
+typedef struct Camera3D Camera3D;
+typedef struct Camera2D Camera2D;
 typedef struct Renderer Renderer;          // Рендерер.
 typedef struct RendererInfo RendererInfo;  // Информация рендерера.
 typedef struct RendererDebugConfig RendererDebugConfig;  // Настройка дебага рендеринга.
@@ -147,6 +149,18 @@ void Renderer_get_proj(Renderer *self, mat4 proj);
 // Получить матрицу вида и проекции камеры:
 void Renderer_get_view_proj(Renderer *self, mat4 view, mat4 proj);
 
+// Это камера 2D?:
+bool Renderer_is_camera_2d(Renderer *self);
+
+// Это камера 3D?:
+bool Renderer_is_camera_3d(Renderer *self);
+
+// Получить 2D камеру:
+Camera2D* Renderer_get_camera_2d(Renderer *self);
+
+// Получить 3D камеру:
+Camera3D* Renderer_get_camera_3d(Renderer *self);
+
 // Получить ширину камеры:
 int Renderer_get_width(Renderer *self);
 
@@ -220,10 +234,10 @@ void Renderer_set_exposure(Renderer *self, float exposure);
 float Renderer_get_exposure(Renderer *self);
 
 // Установить тонмаппинг:
-void Renderer_set_tonemapping(Renderer *self, RendererTonemapType tonemap);
+void Renderer_set_tonemap(Renderer *self, RendererTonemapType tonemap);
 
 // Получить тонмаппинг:
-RendererTonemapType Renderer_get_tonemapping(Renderer *self);
+RendererTonemapType Renderer_get_tonemap(Renderer *self);
 
 // Установить направление солнца:
 void Renderer_set_sun_dir(Renderer *self, Vec3f direction);

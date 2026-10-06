@@ -398,6 +398,12 @@ void Renderer_init(Renderer *self) {
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self) {
     if (!self) return;
+    if (!self->camera) {
+        Array_clear(self->draw_commands, false);
+        return;
+    }
+
+    // Сбрасываем счетчик отрисовок:
     self->draw_calls_count = 0;
 
     // Для очистки gbuffer при пустом стеке команд:
@@ -428,16 +434,23 @@ void Renderer_display(Renderer *self) {
     Shader_set_mat4(self->shader_gbuffer, "u_view", view);
     Shader_set_mat4(self->shader_gbuffer, "u_proj", proj);
 
-    // Позиция камеры (нужна для параллакса):
+    // Настраиваем камеру:
     Vec3f camera_pos = {0};
-    if (self->camera_type == RENDERER_CAMERA_2D) {
+    Vec3f camera_forward = {0.0f, 0.0f, -1.0f};
+    bool camera_ortho = false;
+    if (Renderer_is_camera_2d(self)) {
         Vec2d pos = ((Camera2D*)self->camera)->position;
         camera_pos = (Vec3f){pos.x, pos.y, 0.0f};
     } else {
         Vec3d pos = ((Camera3D*)self->camera)->position;
         camera_pos = (Vec3f){pos.x, pos.y, pos.z};
+        Vec3d f = Camera3D_get_forward((Camera3D*)self->camera);
+        camera_forward = (Vec3f){f.x, f.y, f.z};
+        camera_ortho = Camera3D_get_ortho((Camera3D*)self->camera);
     }
     Shader_set_vec3(self->shader_gbuffer, "u_camera_pos", camera_pos);
+    Shader_set_vec3(self->shader_gbuffer, "u_camera_forward", camera_forward);
+    Shader_set_bool(self->shader_gbuffer, "u_camera_ortho", camera_ortho);
 
     // Проходимся по командам отрисовки:
     for (size_t i = 0; i < Array_len(self->draw_commands); i++) {
@@ -569,20 +582,16 @@ void Renderer_clear_caches(Renderer *self) {
 void Renderer_get_view(Renderer *self, mat4 view) {
     glm_mat4_identity(view);
     if (!self || !self->camera) return;
-    switch (self->camera_type) {
-        case RENDERER_CAMERA_2D: { glm_mat4_copy(((Camera2D*)self->camera)->view, view); break; }
-        case RENDERER_CAMERA_3D: { glm_mat4_copy(((Camera3D*)self->camera)->view, view); break; }
-    }
+    if (Renderer_is_camera_2d(self)) glm_mat4_copy(((Camera2D*)self->camera)->view, view);
+    if (Renderer_is_camera_3d(self)) glm_mat4_copy(((Camera3D*)self->camera)->view, view);
 }
 
 // Получить матрицу проекции камеры:
 void Renderer_get_proj(Renderer *self, mat4 proj) {
     glm_mat4_identity(proj);
     if (!self || !self->camera) return;
-    switch (self->camera_type) {
-        case RENDERER_CAMERA_2D: { glm_mat4_copy(((Camera2D*)self->camera)->proj, proj); break; }
-        case RENDERER_CAMERA_3D: { glm_mat4_copy(((Camera3D*)self->camera)->proj, proj); break; }
-    }
+    if (Renderer_is_camera_2d(self)) glm_mat4_copy(((Camera2D*)self->camera)->proj, proj);
+    if (Renderer_is_camera_3d(self)) glm_mat4_copy(((Camera3D*)self->camera)->proj, proj);
 }
 
 // Получить матрицу вида и проекции камеры:
@@ -591,24 +600,44 @@ void Renderer_get_view_proj(Renderer *self, mat4 view, mat4 proj) {
     Renderer_get_proj(self, proj);
 }
 
+// Это камера 2D?:
+bool Renderer_is_camera_2d(Renderer *self) {
+    if (!self) return false;
+    return self->camera_type == RENDERER_CAMERA_2D;
+}
+
+// Это камера 3D?:
+bool Renderer_is_camera_3d(Renderer *self) {
+    if (!self) return false;
+    return self->camera_type == RENDERER_CAMERA_3D;
+}
+
+// Получить 2D камеру:
+Camera2D* Renderer_get_camera_2d(Renderer *self) {
+    if (!self || !Renderer_is_camera_2d(self)) return NULL;
+    return (Camera2D*)self->camera;
+}
+
+// Получить 3D камеру:
+Camera3D* Renderer_get_camera_3d(Renderer *self) {
+    if (!self || !Renderer_is_camera_3d(self)) return NULL;
+    return (Camera3D*)self->camera;
+}
+
 // Получить ширину камеры:
 int Renderer_get_width(Renderer *self) {
     if (!self || !self->camera) return 0;
-    switch (self->camera_type) {
-        case RENDERER_CAMERA_2D: return ((Camera2D*)self->camera)->width;
-        case RENDERER_CAMERA_3D: return ((Camera3D*)self->camera)->width;
-        default: return 0;
-    }
+    if (Renderer_is_camera_2d(self)) return ((Camera2D*)self->camera)->width;
+    if (Renderer_is_camera_3d(self)) return ((Camera3D*)self->camera)->width;
+    return 0;
 }
 
 // Получить высоту камеры:
 int Renderer_get_height(Renderer *self) {
     if (!self || !self->camera) return 0;
-    switch (self->camera_type) {
-        case RENDERER_CAMERA_2D: return ((Camera2D*)self->camera)->height;
-        case RENDERER_CAMERA_3D: return ((Camera3D*)self->camera)->height;
-        default: return 0;
-    }
+    if (Renderer_is_camera_2d(self)) return ((Camera2D*)self->camera)->height;
+    if (Renderer_is_camera_3d(self)) return ((Camera3D*)self->camera)->height;
+    return 0;
 }
 
 // Получить производителя видеокарты:
@@ -769,13 +798,13 @@ float Renderer_get_exposure(Renderer *self) {
 }
 
 // Установить тонмаппинг:
-void Renderer_set_tonemapping(Renderer *self, RendererTonemapType tonemap) {
+void Renderer_set_tonemap(Renderer *self, RendererTonemapType tonemap) {
     if (!self) return;
     self->tonemap = tonemap;
 }
 
 // Получить тонмаппинг:
-RendererTonemapType Renderer_get_tonemapping(Renderer *self) {
+RendererTonemapType Renderer_get_tonemap(Renderer *self) {
     if (!self) return RENDERER_TONEMAP_NONE;
     return self->tonemap;
 }

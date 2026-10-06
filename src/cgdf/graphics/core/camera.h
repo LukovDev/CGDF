@@ -56,6 +56,7 @@ struct Camera3D {
     bool is_ortho;      // Ортографическая камера.
     int width;          // Ширина камеры.
     int height;         // Высота камеры.
+    Vec3d _oldsize_;    // Старый размер камеры.
     float _oldfov_;     // Старый угол обзора.
     float _oldfar_;     // Старая дальняя плоскость отсечения.
     float _oldnear_;    // Старая ближняя плоскость отсечения.
@@ -103,7 +104,7 @@ void Camera3D_destroy(Camera3D **camera);
 void Camera3D_update(Camera3D *self);
 
 // Изменить размер камеры:
-void Camera3D_resize(Camera3D *self, int width, int height, bool ortho);
+void Camera3D_resize(Camera3D *self, int width, int height);
 
 // Установить поворот камеры:
 void Camera3D_set_euler(Camera3D *self, Vec3d rotation);

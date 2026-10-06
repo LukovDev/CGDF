@@ -359,43 +359,13 @@ void update(Window *self, float dtime) {
     static bool orbit_enabled = false;
     static bool tone_enabled = true;
     if (Input_get_key_down(self)[K_1]) orbit_enabled = !orbit_enabled;
+
     if (Input_get_key_down(self)[K_l]) tone_enabled = !tone_enabled;
-    if (tone_enabled) Renderer_set_tonemapping(self->renderer, RENDERER_TONEMAP_ACES);
-    else Renderer_set_tonemapping(self->renderer, RENDERER_TONEMAP_NONE);
-    if (Input_get_key_down(self)[K_2]) {
-        for (size_t i=0; i < Array_len(objfile.models); i++) {
-            Model *model = Array_get_ptr(objfile.models, i);
-            Model_destroy(&model);
-        }
-        Array_clear(objfile.models, false);
-        for (size_t i=0; i < Array_len(objfile.materials); i++) {
-            Material *mat = Array_get_ptr(objfile.materials, i);
-            Material_destroy(&mat);
-        }
-        Array_clear(objfile.materials, false);
+    if (tone_enabled) Renderer_set_tonemap(self->renderer, RENDERER_TONEMAP_ACES);
+    else Renderer_set_tonemap(self->renderer, RENDERER_TONEMAP_NONE);
 
-        for (size_t i=0; i < Array_len(objfile2.models); i++) {
-            Model *model = Array_get_ptr(objfile2.models, i);
-            Model_destroy(&model);
-        }
-        Array_clear(objfile2.models, false);
-        for (size_t i=0; i < Array_len(objfile2.materials); i++) {
-            Material *mat = Array_get_ptr(objfile2.materials, i);
-            Material_destroy(&mat);
-        }
-        Array_clear(objfile2.materials, false);
+    if (Input_get_key_down(self)[K_o]) Camera3D_set_ortho(camera3d, !Camera3D_get_ortho(camera3d));
 
-        for (size_t i=0; i < Array_len(objfile3.models); i++) {
-            Model *model = Array_get_ptr(objfile3.models, i);
-            Model_destroy(&model);
-        }
-        Array_clear(objfile3.models, false);
-        for (size_t i=0; i < Array_len(objfile3.materials); i++) {
-            Material *mat = Array_get_ptr(objfile3.materials, i);
-            Material_destroy(&mat);
-        }
-        Array_clear(objfile3.materials, false);
-    }
     if (orbit_enabled) {
         ctrl_orbit->target_pos = (Vec3d){0.0f, 1.0f, 0.0f};
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
@@ -666,6 +636,7 @@ void render(Window *self, float dtime) {
         "FPS: %.2f\n"
         "CamPos: %.2f %.2f %.2f\n"
         "CamFov: %f\n"
+        "CamSize: x%f y%f z%f\n"
         "Tonemap: %s\n"
         "Exposure: %.2f\n"
         "",
@@ -684,8 +655,8 @@ void render(Window *self, float dtime) {
         mm_get_used_size_mb(),
         (double)(calculate_mesh_size(&objfile) + calculate_mesh_size(&objfile2)) / 1024.0f / 1024.0f,
         (double)(Texture_get_size(albedo_roughness)+Texture_get_size(normal_ao)+Texture_get_size(pbr_properties)+Texture_get_size(emissive)+Texture_get_size(depth)) / 1024.0 / 1024.0,
-        fps, camera3d->position.x, camera3d->position.y, camera3d->position.z, camera3d->fov,
-        Renderer_get_tonemapping(self->renderer) == RENDERER_TONEMAP_ACES ? "ACES" : "NONE",
+        fps, camera3d->position.x, camera3d->position.y, camera3d->position.z, camera3d->fov, camera3d->size.x, camera3d->size.y, camera3d->size.z,
+        Renderer_get_tonemap(self->renderer) == RENDERER_TONEMAP_ACES ? "ACES" : "NONE",
         Renderer_get_exposure(self->renderer)
     );
     }
@@ -700,7 +671,7 @@ void render(Window *self, float dtime) {
 void resize(Window *self, int width, int height) {
     (void)self;
     log_msg("[I] Resize called.\n");
-    Camera3D_resize(camera3d, width, height, false);
+    Camera3D_resize(camera3d, width, height);
     Camera2D_resize(camera2d, width, height);
 }
 

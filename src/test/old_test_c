@@ -368,7 +368,7 @@ void render(Window *self, float dtime) {
 void resize(Window *self, int width, int height) {
     printf("Resize called.\n");
     Camera2D_resize(camera, width, height);
-    Camera3D_resize(camera3d, width, height, false);
+    Camera3D_resize(camera3d, width, height);
 }
 
 
