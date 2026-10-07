@@ -29,6 +29,7 @@
     "libnames":      [
         "SDL3"
     ],
+    "embeds":        [],
     "optimization":  "-O3",
     "std-c":         "c23",
     "std-cpp":       "c++23",

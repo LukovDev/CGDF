@@ -18,13 +18,7 @@
 #include "../core/vertex.h"
 #include "../core/renderer.h"
 #include "buffers/buffers.h"
-#include "shaders/default_shader.h"
-#include "shaders/final_shader.h"
-#include "shaders/gbuffer_shader.h"
-#include "shaders/light2d_shader.h"
-#include "shaders/lightning_shader.h"
-#include "shaders/shadow_shader.h"
-#include "shaders/spritebatch_shader.h"
+#include "shaders/embeds_shaders.h"
 #include "buffer_gc.h"
 #include "texunit.h"
 #include "gl.h"
@@ -225,7 +219,7 @@ static void _lightning_set_shadows_size_(Lightning3D *self, int size) {
     self->shadows_size = size;
 }
 
-static inline Shader* _create_shader_(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
+static inline Shader* _shd_(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
     Shader *shader = Shader_create(rnd, vert, frag, geom);
     if (!shader || Shader_get_error(shader)) {
         log_msg("[E] Renderer_create: Creating shader failed: %s\n", shader->error);
@@ -235,13 +229,13 @@ static inline Shader* _create_shader_(Renderer *rnd, const char *vert, const cha
 
 // Создать шейдеры:
 static inline void _create_shaders_(Renderer *rnd) {
-    rnd->shader             = _create_shader_(rnd, DEFAULT_SHADER_VERT, DEFAULT_SHADER_FRAG, NULL);
-    rnd->shader_gbuffer     = _create_shader_(rnd, GBUFFER_SHADER_VERT, GBUFFER_SHADER_FRAG, NULL);
-    rnd->shader_lightning   = _create_shader_(rnd, LIGHTNING_SHADER_VERT, LIGHTNING_SHADER_FRAG, NULL);
-    rnd->shader_shadow      = _create_shader_(rnd, SHADOW_SHADER_VERT, SHADOW_SHADER_FRAG, NULL);
-    rnd->shader_final       = _create_shader_(rnd, FINAL_SHADER_VERT, FINAL_SHADER_FRAG, NULL);
-    rnd->shader_light2d     = _create_shader_(rnd, LIGHT2D_SHADER_VERT, LIGHT2D_SHADER_FRAG, NULL);
-    rnd->shader_spritebatch = _create_shader_(rnd, SPRITEBATCH_SHADER_VERT, SPRITEBATCH_SHADER_FRAG, NULL);
+    rnd->shader             = _shd_(rnd, (const char*)DEFAULT_SHD_VERT,     (const char*)DEFAULT_SHD_FRAG, nullptr);
+    rnd->shader_gbuffer     = _shd_(rnd, (const char*)GBUFFER_SHD_VERT,     (const char*)GBUFFER_SHD_FRAG, nullptr);
+    rnd->shader_lightning   = _shd_(rnd, (const char*)LIGHTNING_SHD_VERT,   (const char*)LIGHTNING_SHD_FRAG, nullptr);
+    rnd->shader_shadow      = _shd_(rnd, (const char*)SHADOW_SHD_VERT,      (const char*)SHADOW_SHD_FRAG, nullptr);
+    rnd->shader_final       = _shd_(rnd, (const char*)FINAL_SHD_VERT,       (const char*)FINAL_SHD_FRAG, nullptr);
+    rnd->shader_light2d     = _shd_(rnd, (const char*)LIGHT2D_SHD_VERT,     (const char*)LIGHT2D_SHD_FRAG, nullptr);
+    rnd->shader_spritebatch = _shd_(rnd, (const char*)SPRITEBATCH_SHD_VERT, (const char*)SPRITEBATCH_SHD_FRAG, nullptr);
 }
 
 // Освободить шейдеры:
