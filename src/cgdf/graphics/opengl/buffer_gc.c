@@ -6,7 +6,6 @@
 // Подключаем:
 #include <cgdf/core/std.h>
 #include <cgdf/core/array.h>
-#include <cgdf/core/mm.h>
 #include "gl.h"
 #include "buffer_gc.h"
 

@@ -17,6 +17,7 @@ data/game/
 src/game/
 
 __pycache__
+compile_commands.json
 metadata.json
 **/**/bin/*
 **/**/obj/*

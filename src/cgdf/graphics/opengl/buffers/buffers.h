@@ -37,7 +37,7 @@ struct BufferQBO {
 };
 
 // Создать буфер отслеживания:
-BufferQBO* BufferQBO_create();
+BufferQBO* BufferQBO_create(void);
 
 // Уничтожить буфер отслеживания:
 void BufferQBO_destroy(BufferQBO **qbo);
@@ -66,7 +66,7 @@ struct BufferFBO {
 };
 
 // Создать буфер кадра:
-BufferFBO* BufferFBO_create();
+BufferFBO* BufferFBO_create(void);
 
 // Уничтожить буфер кадра:
 void BufferFBO_destroy(BufferFBO **fbo);
@@ -182,7 +182,7 @@ struct BufferVAO {
 };
 
 // Создать буфер атрибутов:
-BufferVAO* BufferVAO_create();
+BufferVAO* BufferVAO_create(void);
 
 // Уничтожить буфер атрибутов:
 void BufferVAO_destroy(BufferVAO **vao);

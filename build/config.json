@@ -30,14 +30,18 @@
         "SDL3"
     ],
     "optimization":  "-O3",
-    "std-c":         "c17",
-    "std-cpp":       "c++17",
+    "std-c":         "c23",
+    "std-cpp":       "c++23",
     "compiler-s":    "gcc",
     "compiler-c":    "gcc",
     "compiler-cpp":  "g++",
     "linker":        "g++",
     "ld-file":       "",
-    "warnings":      ["-Wall", "-Wextra"],
+    "warnings": [
+        "-Wall",
+        "-Wextra",
+        "-Werror=implicit-function-declaration"
+    ],
     "compile-flags-s": [],
     "compile-flags-c":   ["-march=native", "-mtune=native", "-ftree-vectorize", "-funroll-loops", "-g"],
     "compile-flags-cpp": ["-march=native", "-mtune=native", "-ftree-vectorize", "-funroll-loops", "-g"],

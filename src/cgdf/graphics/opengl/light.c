@@ -7,7 +7,6 @@
 #include <cgdf/core/std.h>
 #include <cgdf/core/mm.h>
 #include <cgdf/core/math.h>
-#include "../core/camera.h"
 #include "../core/renderer.h"
 #include "../core/shader.h"
 #include "../core/texture.h"

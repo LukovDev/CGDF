@@ -9,7 +9,6 @@
 #include <cgdf/core/mm.h>
 #include "../core/window.h"
 #include "../core/camera.h"
-#include "gl.h"
 
 
 // -------- API 2D камеры: --------

@@ -12,7 +12,6 @@
 #include "../core/gbuffer.h"
 #include "../core/light.h"
 #include "../core/mesh.h"
-#include "../core/model.h"
 #include "../core/camera.h"
 #include "../core/shader.h"
 #include "../core/texture.h"
@@ -704,9 +703,10 @@ void Renderer_display(Renderer *self) {
 
     // Настраиваем состояние рендеринга:
     Renderer_set_depth_test(self, true);
-    glDepthFunc(GL_ALWAYS);   // Пишем глубину сцены в экранный буфер всегда, независимо от того, что в нём было.
+    Renderer_set_depth_mask(self, true);
     Renderer_set_blending(self, true);
     Renderer_set_cull_mode(self, RENDERER_CULL_NONE);
+    glDepthFunc(GL_ALWAYS);  // Пишем глубину сцены в экранный буфер всегда, независимо от того, что в нём было.
 
     Shader_begin(self->shader_final);
     Shader_set_tex2d(self->shader_final, "u_hdr",      self->lightning->light_tex->id);

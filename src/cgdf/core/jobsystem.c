@@ -8,7 +8,6 @@
 
 // Подключаем:
 #include "std.h"
-#include "mm.h"
 #include "array.h"
 #include "logger.h"
 #include "libs.h"
