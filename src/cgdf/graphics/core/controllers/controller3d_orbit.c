@@ -17,7 +17,7 @@ CameraOrbitController3D* CameraOrbitController3D_create(
     Window *window, Camera3D *camera, Vec3d target_pos, float mouse_sensitivity,
     float distance, float friction
 ) {
-    if (!window || !camera) return NULL;
+    if (!window || !camera) return nullptr;
     CameraOrbitController3D *ctrl = (CameraOrbitController3D*)mm_alloc(sizeof(CameraOrbitController3D));
 
     // Заполняем поля:
@@ -43,7 +43,7 @@ CameraOrbitController3D* CameraOrbitController3D_create(
 void CameraOrbitController3D_destroy(CameraOrbitController3D **ctrl) {
     if (!ctrl|| !*ctrl) return;
     mm_free(*ctrl);
-    *ctrl = NULL;
+    *ctrl = nullptr;
 }
 
 // Обновление контроллера:

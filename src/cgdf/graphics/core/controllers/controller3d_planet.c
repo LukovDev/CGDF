@@ -17,7 +17,7 @@ CameraPlanetController3D* CameraPlanetController3D_create(
     Window *window, Camera3D *camera, float mouse_sensitivity, float ctrl_speed,
     float speed, float shift_speed, float friction, bool up_is_forward
 ) {
-    if (!window || !camera) return NULL;
+    if (!window || !camera) return nullptr;
     CameraPlanetController3D *ctrl = (CameraPlanetController3D*)mm_alloc(sizeof(CameraPlanetController3D));
 
     // Заполняем поля:
@@ -46,13 +46,14 @@ CameraPlanetController3D* CameraPlanetController3D_create(
 void CameraPlanetController3D_destroy(CameraPlanetController3D **ctrl) {
     if (!ctrl|| !*ctrl) return;
     mm_free(*ctrl);
-    *ctrl = NULL;
+    *ctrl = nullptr;
 }
 
 // Обновление контроллера:
-void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime, bool pressed_pass) {
+void CameraPlanetController3D_update(
+    CameraPlanetController3D *self, [[maybe_unused]] float dtime, [[maybe_unused]] bool pressed_pass
+) {
     if (!self) return;
-    if (pressed_pass) dtime += dtime;  // Просто пустышка чтобы компилятор не ругался что функция пустая.
     /*
     Window *window = self->window;
     Camera3D *camera = self->camera;
@@ -109,7 +110,7 @@ void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime
         glm_vec3_normalize(up);
 
         // Тут надо реализовать код который будет вращать камеру относительно центра планеты
-        // а также позволять смотреть на небо и на землю (то есть вращать эйлеровые углы)
+        // а также позволять смотреть на небо и на землю (то есть вращать углы Эйлера)
         // А также чтобы мы могли летать туда куда смотрим. Вверх вниз это у нас будет
         // поднятие вверх и вниз по вектору к центру планеты
         // Мы всегда должны летать по касательной сферы радиусом альтитуды

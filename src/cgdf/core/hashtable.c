@@ -4,7 +4,7 @@
 // Основан на линейном пробировании, работе с указателями (а не копиями!).
 // Поддерживает несколько триггеров для поддержания производительности:
 // 1. Авторасширение (при достижении порога заполненности в таблице).
-// 2. Автосжатение (при достижении порога свободного места в таблицы).
+// 2. Автосжатие (при достижении порога свободного места в таблицы).
 // 3. Лимит пробирования (перераспределяем таблицу и расширяем).
 //
 
@@ -219,9 +219,9 @@ HashTable* HashTable_create(void) {
 void HashTable_destroy(HashTable **table) {
     if (!table || !*table) return;
     mm_free((*table)->data);
-    (*table)->data = NULL;
+    (*table)->data = nullptr;
     mm_free(*table);
-    *table = NULL;
+    *table = nullptr;
 }
 
 
@@ -240,7 +240,7 @@ bool HashTable_set(HashTable *table, const void *key, size_t key_size, const voi
     table->prob_count[prob_idx] = 0;  // Обнуляем для этой сессии пробингов.
 
     // Первое встреченное надгробие (сюда вставим, если ключа в таблице нет):
-    HashSlot *first_deleted = NULL;
+    HashSlot *first_deleted = nullptr;
 
     // Проходим от 0 до конца массива с wrap-around:
     for (size_t i = 0; i < table->capacity; i++) {
@@ -282,9 +282,9 @@ bool HashTable_set(HashTable *table, const void *key, size_t key_size, const voi
 
 
 // Получить элемент по ключу. Возвращает true, если ключ найден.
-// Значение и его размер записываются в out_value и out_value_size (оба можно передать NULL):
+// Значение и его размер записываются в out_value и out_value_size (оба можно передать nullptr):
 bool HashTable_get(HashTable *table, const void *key, size_t key_size, void **out_value, size_t *out_value_size) {
-    if (out_value) *out_value = NULL;
+    if (out_value) *out_value = nullptr;
     if (!table || !key) return false;
 
     // Проверяем лимит пробирований:
@@ -323,7 +323,7 @@ bool HashTable_get(HashTable *table, const void *key, size_t key_size, void **ou
 
 // Получить слот из таблицы по индексу:
 HashSlot* HashTable_get_slot(HashTable *table, size_t index) {
-    if (!table || index >= table->capacity) return NULL;
+    if (!table || index >= table->capacity) return nullptr;
     return &table->data[index];
 }
 
@@ -364,8 +364,8 @@ bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool f
                     if (free_value && slot->value) mm_free(slot->value);
                 }
             }
-            slot->key = NULL;
-            slot->value = NULL;
+            slot->key = nullptr;
+            slot->value = nullptr;
             slot->key_size = 0;
             slot->value_size = 0;
             slot->hash = 0;
@@ -382,7 +382,7 @@ bool HashTable_remove(HashTable *table, const void *key, size_t key_size, bool f
 // Возвращает true, если ключ есть в таблице:
 bool HashTable_has(HashTable *table, const void *key, size_t key_size) {
     if (!table) return false;
-    return HashTable_get(table, key, key_size, NULL, NULL);
+    return HashTable_get(table, key, key_size, nullptr, nullptr);
 }
 
 
@@ -403,7 +403,7 @@ size_t HashTable_capacity(HashTable *table) {
 // Вывести содержимое таблицы:
 void HashTable_print(HashTable *table, FILE *out, HashTablePrintMode key_mode, HashTablePrintMode value_mode) {
     if (!table || !out) return;
-    const char* separator = "------------------------------------------------";
+    const char *separator = "------------------------------------------------";
     fprintf(out, "%s\n", separator);
     fprintf(out, "Hash Table overview:\n");
 

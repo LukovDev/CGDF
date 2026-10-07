@@ -43,17 +43,20 @@ struct SpriteVertex {
     float x, y, z;         // Позиция вершины       (loc=0, vec3 a_position).
     float u, v;            // Текстурные координаты (loc=1, vec2 a_texcoord).
     union {                // Цвет вершины          (loc=2, vec4 a_color).
-        float r, g, b, a;  // Канал цвета.
-        Vec4f color;       // Цвет.
+        struct { float r, g, b, a; };  // Канал цвета.
+        Vec4f color;                   // Цвет.
     };
 };
+
+// Вершина уходит в видеокарту как есть, поэтому её размер должен совпадать с атрибутами (9 float):
+static_assert(sizeof(SpriteVertex) == 9 * sizeof(float), "SpriteVertex layout must match vertex attributes.");
 
 
 // -------- API пакетной отрисовки: --------
 
 
 // Создать пакетную отрисовку спрайтов:
-SpriteBatch* SpriteBatch_create(Renderer *renderer);
+[[nodiscard]] SpriteBatch* SpriteBatch_create(Renderer *renderer);
 
 // Уничтожить пакетную отрисовку спрайтов:
 void SpriteBatch_destroy(SpriteBatch **batch);

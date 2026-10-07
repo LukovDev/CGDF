@@ -40,7 +40,7 @@ static void start(Window *self) {
 
 
 // Вызывается при закрытии окна:
-static void destroy(Window *self) {
+static void destroy([[maybe_unused]] Window *self) {
     // Тут мы уничтожаем все объекты, что создали.
     Camera2D_destroy(&camera);
     Texture_destroy(&tex1);
@@ -65,7 +65,7 @@ static void update(Window *self, float dtime) {
 
 
 // Вызывается каждый кадр (отрисовка окна):
-static void render(Window *self, float dtime) {
+static void render(Window *self, [[maybe_unused]] float dtime) {
     // Очищаем содержимое окна:
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
@@ -82,26 +82,26 @@ static void render(Window *self, float dtime) {
 
 
 // Вызывается при изменении размера окна:
-static void resize(Window *self, int width, int height) {
+static void resize([[maybe_unused]] Window *self, int width, int height) {
     Camera2D_resize(camera, width, height);  // Масштабируем камеру под новый размер окна.
 }
 
 
 // Вызывается при разворачивании окна:
-static void show(Window *self) {
+static void show([[maybe_unused]] Window *self) {
     // Логика при разворачивании окна.
 }
 
 
 // Вызывается при сворачивании окна:
-static void hide(Window *self) {
+static void hide([[maybe_unused]] Window *self) {
     // Логика при скрытии окна.
 }
 
 
 // Наша сцена:
 // Это просто структура с нашими функциями, которые будут вызываться нашим окном.
-// Можно указать NULL вместо функции, чтобы она не вызывалась, но лучше оставить.
+// Можно указать nullptr вместо функции, чтобы она не вызывалась, но лучше оставить.
 WindowScene MainScene = {
     .start   = start,
     .destroy = destroy,
@@ -114,7 +114,7 @@ WindowScene MainScene = {
 
 
 // Точка входа в программу:
-int main(int argc, char *argv[]) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     // В первую очередь, нам надо инициализировать фреймворк:
     if (!CGDF_init()) {
         printf("CGDF initialization failed.\n");

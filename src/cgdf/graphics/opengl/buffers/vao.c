@@ -25,7 +25,7 @@ BufferVAO* BufferVAO_create(void) {
     if (vao->id == 0) {
         log_msg("[E] BufferVAO_create: Creating VAO failed.\n");
         mm_free(vao);
-        return NULL;
+        return nullptr;
     }
 
     return vao;
@@ -39,7 +39,7 @@ void BufferVAO_destroy(BufferVAO **vao) {
     BufferVAO_end(*vao);
     BufferGC_GL_push(BGC_GL_VAO, (*vao)->id);  // Добавляем буфер в стек на уничтожение.
     mm_free(*vao);
-    *vao = NULL;
+    *vao = nullptr;
 }
 
 

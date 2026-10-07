@@ -22,7 +22,7 @@ typedef struct Camera2D Camera2D;
 typedef struct Renderer Renderer;  // Рендерер.
 typedef struct RendererInfo RendererInfo;  // Информация рендерера.
 typedef struct RendererDebugConfig RendererDebugConfig;  // Настройка дебага рендеринга.
-typedef struct Lightning3D Lightning3D;  // 3D освещение рендерпайплайна.
+typedef struct Lighting3D Lighting3D;  // 3D освещение рендерпайплайна.
 
 
 // Тип используемой камеры:
@@ -89,7 +89,7 @@ struct Renderer {
     // Шейдеры:
     Shader *shader;               // Дефолтная шейдерная программа.
     Shader *shader_gbuffer;       // Шейдер gbuffer.
-    Shader *shader_lightning;     // Шейдер прохода освещения.
+    Shader *shader_lighting;      // Шейдер прохода освещения.
     Shader *shader_shadow;        // Шейдер теней.
     Shader *shader_final;         // Шейдер финального прохода.
     Shader *shader_spritebatch;   // Шейдер пакетной отрисовки спрайтов.
@@ -100,7 +100,7 @@ struct Renderer {
     size_t draw_calls_count;      // Количество вызовов отрисовки.
     GBuffer *gbuffer;             // G-Buffer.
     bool gbuffer_dirty;           // Флаг для очистки гбуфера.
-    Lightning3D *lightning;       // 3D освещение сцены.
+    Lighting3D *lighting;         // 3D освещение сцены.
     // Используется в final проходе:
     float exposure;               // Экспозиция освещения.
     RendererTonemapType tonemap;  // Тонмаппинг.
@@ -120,7 +120,7 @@ extern RendererDebugConfig g_Renderer_debug_config;
 
 
 // Создать рендерер:
-Renderer* Renderer_create(void);
+[[nodiscard]] Renderer* Renderer_create(void);
 
 // Уничтожить рендерер:
 void Renderer_destroy(Renderer **rnd);

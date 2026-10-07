@@ -65,7 +65,7 @@ vec3 get_normal_from_map(vec3 N, vec2 coords, mat3 out_TBN, vec2 duv1, vec2 duv2
 }
 
 void main(void) {
-    // Рассчет TBN:
+    // Расчёт TBN:
     vec3 N_base = normalize(v_normal_world);
     if (!gl_FrontFacing) N_base = -N_base;
     vec3 dp1  = dFdx(v_pos_world);
@@ -77,6 +77,7 @@ void main(void) {
     float sign_det = (r >= 0.0) ? 1.0 : -1.0;
     vec3 T = (dp1 * duv2.y - dp2 * duv1.y) * sign_det;
     vec3 B = (dp2 * duv1.x - dp1 * duv2.x) * sign_det;
+
     // Касательный базис по производным (с учётом зеркальных UV):
     T = normalize(T - N_base * dot(T, N_base));
     float handedness = (dot(cross(N_base, T), B) < 0.0) ? 1.0 : -1.0;
@@ -102,7 +103,7 @@ void main(void) {
             vec2 UVs = texCoords;
             float current_depth_map_value = 1.0f - sample_height(UVs, duv1, duv2);
             
-            // Проходися по слоям пока не попадем по высоте:
+            // Проходимся по слоям пока не попадем по высоте:
             int max_steps = int(u_pom_max_layers) + 1;  // Больше этого шагов при правильной работе не бывает.
             for (int steps = 0; current_layer_depth < current_depth_map_value && steps < max_steps; steps++) {
                 current_layer_depth += layer_depth;
@@ -142,7 +143,7 @@ void main(void) {
     if (final_albedo.a < u_alpha_cutoff) { discard; }
     vec3 albedo = final_albedo.rgb;
     
-    // 2. Rroughness & Mmetallic & AO:
+    // 2. Roughness & Metallic & AO:
     float roughness = u_roughness;
     if (u_use_tex_roughness) { roughness *= textureGrad(u_tex_roughness, texCoords, duv1, duv2).r; }
     

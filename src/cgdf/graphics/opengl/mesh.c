@@ -29,16 +29,16 @@ struct Mesh {
 
 // Создать сетку:
 Mesh* Mesh_create(
-    const Vertex* vertices,
+    const Vertex *vertices,
     uint32_t vertex_count,
-    const uint32_t* indices,
+    const uint32_t *indices,
     uint32_t index_count,
     bool is_dynamic,
     Material *material
 ) {
     if (!vertices || !indices) {
         log_msg("[E] Mesh_create: \"vertices\" or \"indices\" is NULL.\n");
-        return NULL;
+        return nullptr;
     }
     Mesh *mesh = (Mesh*)mm_alloc(sizeof(Mesh));
 
@@ -86,7 +86,7 @@ void Mesh_destroy(Mesh **mesh) {
 
     // Удаляем сетку:
     mm_free(*mesh);
-    *mesh = NULL;
+    *mesh = nullptr;
 }
 
 
@@ -113,7 +113,7 @@ void Mesh_set_material(Mesh *self, Material *material) {
 
 // Получить материал сетки:
 Material* Mesh_get_material(Mesh *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->material;
 }
 
@@ -134,7 +134,7 @@ void Mesh_render(Mesh *self, bool wireframe) {
         glGetIntegerv(GL_POLYGON_MODE, prev_mode);
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
-    glDrawElements(GL_TRIANGLES, self->index_count, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, self->index_count, GL_UNSIGNED_INT, nullptr);
     if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, prev_mode[0]);
     BufferVAO_end(self->vao);
 }

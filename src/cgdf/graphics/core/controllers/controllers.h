@@ -118,7 +118,7 @@ static inline void _check_mouse_pos_(Window *window, int width, int height) {
 
 
 // Создать 2D контроллер:
-CameraController2D* CameraController2D_create(
+[[nodiscard]] CameraController2D* CameraController2D_create(
     Window *window, Camera2D *camera, float offset_scale,
     float min_zoom, float max_zoom, float friction
 );
@@ -134,7 +134,7 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
 
 
 // Создать 3D контроллер:
-CameraController3D* CameraController3D_create(
+[[nodiscard]] CameraController3D* CameraController3D_create(
     Window *window, Camera3D *camera, float mouse_sensitivity, float ctrl_speed,
     float speed, float shift_speed, float friction, bool up_is_forward
 );
@@ -150,7 +150,7 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
 
 
 // Создать орбитальный 3D контроллер:
-CameraOrbitController3D* CameraOrbitController3D_create(
+[[nodiscard]] CameraOrbitController3D* CameraOrbitController3D_create(
     Window *window, Camera3D *camera, Vec3d target_pos, float mouse_sensitivity,
     float distance, float friction
 );
@@ -166,7 +166,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
 
 
 // Создать 3D контроллер:
-CameraPlanetController3D* CameraPlanetController3D_create(
+[[nodiscard]] CameraPlanetController3D* CameraPlanetController3D_create(
     Window *window, Camera3D *camera, float mouse_sensitivity, float ctrl_speed,
     float speed, float shift_speed, float friction, bool up_is_forward
 );

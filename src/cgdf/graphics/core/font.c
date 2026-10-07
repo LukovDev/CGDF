@@ -30,7 +30,7 @@
 
 
 // Проверка пути файла шрифта. Если его нет, используем системный шрифт:
-static char* check_file_path(const char* file_path) {
+static char* check_file_path(const char *file_path) {
     // Сначала пользовательский путь:
     if (file_path && file_path[0] != '\0') {
         FILE *f = fopen(file_path, "rb");
@@ -86,7 +86,7 @@ static char* check_file_path(const char* file_path) {
             return path;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 // Простой декодер UTF-8 в кодовую точку Unicode:
@@ -102,40 +102,40 @@ static uint32_t utf8_decode(const char *symbol, int *advance) {
 
     // Два байта:
     if ((p[0] & 0xE0) == 0xC0) {
-        if (p[1] == '\0' || (p[1] & 0xC0) != 0x80) return FONT_FALLBACK_SUMB;
+        if (p[1] == '\0' || (p[1] & 0xC0) != 0x80) return FONT_FALLBACK_SYMB;
         uint32_t cp = ((p[0] & 0x1F) << 6) | (p[1] & 0x3F);
-        if (cp < 0x80) return FONT_FALLBACK_SUMB;
+        if (cp < 0x80) return FONT_FALLBACK_SYMB;
         *advance = 2;
         return cp;
     }
 
     // Три байта:
     if ((p[0] & 0xF0) == 0xE0) {
-        if (p[1] == '\0' || p[2] == '\0') return FONT_FALLBACK_SUMB;
-        if ((p[1] & 0xC0) != 0x80 || (p[2] & 0xC0) != 0x80) return FONT_FALLBACK_SUMB;
+        if (p[1] == '\0' || p[2] == '\0') return FONT_FALLBACK_SYMB;
+        if ((p[1] & 0xC0) != 0x80 || (p[2] & 0xC0) != 0x80) return FONT_FALLBACK_SYMB;
         uint32_t cp = ((p[0] & 0x0F) << 12) |
                       ((p[1] & 0x3F) << 6 ) |
                       (p[2] & 0x3F);
-        if (cp < 0x800) return FONT_FALLBACK_SUMB;
-        if (cp >= 0xD800 && cp <= 0xDFFF) return FONT_FALLBACK_SUMB;
+        if (cp < 0x800) return FONT_FALLBACK_SYMB;
+        if (cp >= 0xD800 && cp <= 0xDFFF) return FONT_FALLBACK_SYMB;
         *advance = 3;
         return cp;
     }
 
     // Четыре байта:
     if ((p[0] & 0xF8) == 0xF0) {
-        if (p[1] == '\0' || p[2] == '\0' || p[3] == '\0') return FONT_FALLBACK_SUMB;
-        if ((p[1] & 0xC0) != 0x80 || (p[2] & 0xC0) != 0x80 || (p[3] & 0xC0) != 0x80) return FONT_FALLBACK_SUMB;
+        if (p[1] == '\0' || p[2] == '\0' || p[3] == '\0') return FONT_FALLBACK_SYMB;
+        if ((p[1] & 0xC0) != 0x80 || (p[2] & 0xC0) != 0x80 || (p[3] & 0xC0) != 0x80) return FONT_FALLBACK_SYMB;
         uint32_t cp = ((p[0] & 0x07) << 18) |
                       ((p[1] & 0x3F) << 12) |
                       ((p[2] & 0x3F) << 6 ) |
                       (p[3] & 0x3F);
-        if (cp < 0x10000 || cp > 0x10FFFF) return FONT_FALLBACK_SUMB;
+        if (cp < 0x10000 || cp > 0x10FFFF) return FONT_FALLBACK_SYMB;
         *advance = 4;
         return cp;
     }
 
-    return FONT_FALLBACK_SUMB;
+    return FONT_FALLBACK_SYMB;
 }
 
 // Очистить атлас (инициализация и очистка):
@@ -159,17 +159,17 @@ static bool glyph_insert_to_cache(FontPixmap *self, uint32_t codepoint, FontGlyp
 
 // Создать глиф и добавить в атлас:
 static FontGlyph* generate_glyph(FontPixmap *self, uint32_t codepoint) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
 
-    // Если нет такого глифа, то возвращаем FONT_FALLBACK_SUMB:
-    if (stbtt_FindGlyphIndex(&self->info, codepoint) == 0) codepoint = FONT_FALLBACK_SUMB;
+    // Если нет такого глифа, то возвращаем FONT_FALLBACK_SYMB:
+    if (stbtt_FindGlyphIndex(&self->info, codepoint) == 0) codepoint = FONT_FALLBACK_SYMB;
 
     // Получаем bitmap символа:
     int width, height, xoff, yoff;
     unsigned char *bitmap = stbtt_GetCodepointBitmap(
         &self->info, 0, self->scale, codepoint, &width, &height, &xoff, &yoff
     );
-    if (!bitmap) return NULL;
+    if (!bitmap) return nullptr;
 
     // Конвертируем bitmap в RGBA8:
     unsigned char *rgba = mm_alloc(width * height * 4);
@@ -179,23 +179,24 @@ static FontGlyph* generate_glyph(FontPixmap *self, uint32_t codepoint) {
         rgba[i*4+2] = 255;
         rgba[i*4+3] = bitmap[i];  // Это альфа канал.
     }
-    stbtt_FreeBitmap(bitmap, NULL);
+
+    stbtt_FreeBitmap(bitmap, nullptr);
 
     // Добавляем глиф в атлас:
-    const int pad  = FONT_ATLAS_PADDING;
+    const int pad = FONT_ATLAS_PADDING;
     const int cell = self->font_size + pad * 2;
     const int grid = self->atlas->width / cell;
-    if (grid <= 0) { mm_free(rgba); return NULL; }
+    if (grid <= 0) { mm_free(rgba); return nullptr; }
 
     int capacity = grid * grid;
     int index = self->added_glyphs_count;
-    if (index >= capacity) { mm_free(rgba); return NULL; }  // Места нет.
+    if (index >= capacity) { mm_free(rgba); return nullptr; }  // Места нет.
 
     int atlas_x = (index % grid) * cell + pad;
     int atlas_y = (index / grid) * cell + pad;
     if (atlas_x + width  + pad > self->atlas->width || atlas_y + height + pad > self->atlas->height) {
         mm_free(rgba);
-        return NULL;
+        return nullptr;
     }
 
     // Загружаем bitmap в текстуру:
@@ -292,32 +293,32 @@ static bool font_expand_and_repack(FontPixmap *self) {
 
 // Создать растровый шрифт:
 FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int font_size) {
-    if (!renderer) return NULL;
+    if (!renderer) return nullptr;
 
     // Проверяем путь до шрифта, иначе используем системный шрифт:
     char *font_path = check_file_path(file_path);
     if (!font_path) {
         log_msg("[E] FontPixmap_create: no valid font found (requested: %s).\n", file_path ? file_path : "<null>");
-        return NULL;  // Без шрифта.
+        return nullptr;  // Без шрифта.
     }
 
     // Создаём объект растрового шрифта:
     FontPixmap *font = (FontPixmap*)mm_alloc(sizeof(FontPixmap));
 
     // Загружаем шрифт и инициализируем его:
-    font->ttf_buffer = Files_load_bin(font_path, "rb", NULL);
+    font->ttf_buffer = Files_load_bin(font_path, "rb", nullptr);
     if (!font->ttf_buffer) {
         log_msg("[E] FontPixmap_create: failed to read font file: %s\n", font_path);
         mm_free(font_path);
         mm_free(font);
-        return NULL;
+        return nullptr;
     }
     if (!stbtt_InitFont(&font->info, font->ttf_buffer, 0)) {
         log_msg("[E] FontPixmap_create: stbtt_InitFont failed for: %s\n", font_path);
         mm_free(font_path);
         mm_free(font->ttf_buffer);
         mm_free(font);
-        return NULL;
+        return nullptr;
     }
     mm_free(font_path);  // Освобождаем текст пути до файла.
 
@@ -380,38 +381,38 @@ void FontPixmap_destroy(FontPixmap **font) {
     HashTable_destroy(&(*font)->glyphs);
 
     mm_free(*font);
-    *font = NULL;
+    *font = nullptr;
 }
 
 // Получить глиф (из кэша либо создать новый):
 FontGlyph* FontPixmap_get_glyph(FontPixmap *self, uint32_t codepoint) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
 
     // Все отсутствующие в шрифте символы сводим к одному fallback-глифу:
     if (stbtt_FindGlyphIndex(&self->info, codepoint) == 0) {
-        codepoint = FONT_FALLBACK_SUMB;
+        codepoint = FONT_FALLBACK_SYMB;
     }
 
     // Ищем глиф в хэш-таблице:
     uint32_t lookup_key = codepoint;  // Для поиска можно временный ключ на стеке.
-    void *found = NULL;
-    if (HashTable_get(self->glyphs, &lookup_key, sizeof(lookup_key), &found, NULL)) return (FontGlyph*)found;
-    FontGlyph *glyph = NULL;
+    void *found = nullptr;
+    if (HashTable_get(self->glyphs, &lookup_key, sizeof(lookup_key), &found, nullptr)) return (FontGlyph*)found;
+    FontGlyph *glyph = nullptr;
 
     // Пытаемся создать глиф:
-    while (1) {
+    while (true) {
         /*
-            Если glyph = NULL, мы не смогли создать глиф и надо пересобрать атлас расширив его.
-            Если font_expand_and_repack() возвращает false, то мы не смогли пересобрать атлас. Возвращаем NULL.
+            Если glyph = nullptr, мы не смогли создать глиф и надо пересобрать атлас расширив его.
+            Если font_expand_and_repack() возвращает false, то мы не смогли пересобрать атлас. Возвращаем nullptr.
             Если же получили true, то при помощи цикла снова пытаемся создать глиф и опять проверяем, смогли ли.
         */
         glyph = generate_glyph(self, codepoint);  // Пытаемся создать глиф и добавить в атлас.
         if (glyph) break;                         // Мы смогли создать и добавить глиф в атлас.
-        if (!font_expand_and_repack(self)) return NULL;  // Пытаемся увеличить и пересобрать атлас.
+        if (!font_expand_and_repack(self)) return nullptr;  // Пытаемся увеличить и пересобрать атлас.
     }
 
     // Сохраняем созданный глиф в хэш-таблицу:
-    if (!glyph_insert_to_cache(self, codepoint, glyph)) return NULL;  // Если не получилось, возвращаем NULL.
+    if (!glyph_insert_to_cache(self, codepoint, glyph)) return nullptr;  // Если не получилось, возвращаем nullptr.
     Array_push(self->glyphs_array, &codepoint);  // Добавляем кодпоинт в массив глифов.
     return glyph;
 }
@@ -541,12 +542,12 @@ float FontPixmap_get_space_advance(FontPixmap *self) {
 
 // Получить блок текста:
 FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...) {
-    FontTextBlock out = {0};
+    FontTextBlock out = {};
     if (!self || !text) return out;
 
     // Форматируем текст (также как в render функции):
     char stack_text[1024];
-    char *heap_text = NULL;
+    char *heap_text = nullptr;
     const char *render_text = text;
 
     va_list args;
@@ -675,8 +676,8 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     if (!self || !text || isinf(x) || isinf(y)) return;
 
     // Форматируем text как f-строку:
-    char stack_text[1024];   // 1024 байт-символов текста в стеке для быстроты.
-    char *heap_text = NULL;  // Нужен в случае если символов текста больше чем 1024 байта символов.
+    char stack_text[1024];      // 1024 байт-символов текста в стеке для быстроты.
+    char *heap_text = nullptr;  // Нужен в случае если символов текста больше чем 1024 байта символов.
     const char *render_text = text;
 
     va_list args;
@@ -753,7 +754,7 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
         float rx = pivot_x+((rect.x+rect.z*0.5f-pivot_x)*c-(rect.y+rect.w*0.5f-pivot_y)*s)-rect.z*0.5f;
         float ry = pivot_y+((rect.x+rect.z*0.5f-pivot_x)*s+(rect.y+rect.w*0.5f-pivot_y)*c)-rect.w*0.5f;
         SpriteBatch_set_color(self->batch, self->bg_color);
-        SpriteBatch_draw(self->batch, NULL, rx, ry, rect.z, rect.w, angle);
+        SpriteBatch_draw(self->batch, nullptr, rx, ry, rect.z, rect.w, angle);
         SpriteBatch_set_color(self->batch, self->color);
     }
 

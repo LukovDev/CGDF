@@ -37,7 +37,7 @@ struct BufferQBO {
 };
 
 // Создать буфер отслеживания:
-BufferQBO* BufferQBO_create(void);
+[[nodiscard]] BufferQBO* BufferQBO_create(void);
 
 // Уничтожить буфер отслеживания:
 void BufferQBO_destroy(BufferQBO **qbo);
@@ -66,7 +66,7 @@ struct BufferFBO {
 };
 
 // Создать буфер кадра:
-BufferFBO* BufferFBO_create(void);
+[[nodiscard]] BufferFBO* BufferFBO_create(void);
 
 // Уничтожить буфер кадра:
 void BufferFBO_destroy(BufferFBO **fbo);
@@ -117,7 +117,7 @@ struct BufferVBO {
 };
 
 // Создать буфер вершин:
-BufferVBO* BufferVBO_create(const void* data, const size_t size, int mode);
+[[nodiscard]] BufferVBO* BufferVBO_create(const void *data, const size_t size, int mode);
 
 // Уничтожить буфер вершин:
 void BufferVBO_destroy(BufferVBO **vbo);
@@ -150,7 +150,7 @@ struct BufferEBO {
 };
 
 // Создать буфер индексов:
-BufferEBO* BufferEBO_create(const void* data, const size_t size, int mode);
+[[nodiscard]] BufferEBO* BufferEBO_create(const void *data, const size_t size, int mode);
 
 // Уничтожить буфер индексов:
 void BufferEBO_destroy(BufferEBO **vbo);
@@ -182,7 +182,7 @@ struct BufferVAO {
 };
 
 // Создать буфер атрибутов:
-BufferVAO* BufferVAO_create(void);
+[[nodiscard]] BufferVAO* BufferVAO_create(void);
 
 // Уничтожить буфер атрибутов:
 void BufferVAO_destroy(BufferVAO **vao);

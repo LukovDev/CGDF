@@ -21,7 +21,7 @@
 Model* Model_create(Renderer *renderer) {
     if (!renderer) {
         log_msg("[E] Model_create: Renderer is NULL.\n");
-        return NULL;
+        return nullptr;
     }
 
     Model *model = (Model*)mm_alloc(sizeof(Model));
@@ -45,7 +45,7 @@ void Model_destroy(Model **model) {
     Array_destroy(&(*model)->meshes);
 
     mm_free(*model);
-    *model = NULL;
+    *model = nullptr;
 }
 
 // Добавить сетку в модель:
@@ -66,7 +66,7 @@ void Model_remove_mesh(Model *self, Mesh *mesh) {
     if (!index) return;  // index = 0. Сетки нет в массиве.
 
     // Удаляем из массива сеток:
-    Array_remove(self->meshes, index-1, NULL);
+    Array_remove(self->meshes, index-1, nullptr);
 }
 
 // Удалить и освободить память сетки из модели:

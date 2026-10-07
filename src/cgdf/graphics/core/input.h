@@ -187,19 +187,19 @@ struct Input {
 
 
 // Создать структуру мыши:
-Input_MouseState* Input_MouseState_create(int max_keys);
+[[nodiscard]] Input_MouseState* Input_MouseState_create(int max_keys);
 
 // Уничтожить структуру мыши:
 void Input_MouseState_destroy(Input_MouseState **mouse_state);
 
 // Создать структуру клавиатуры:
-Input_KeyboardState* Input_KeyboardState_create(int max_keys);
+[[nodiscard]] Input_KeyboardState* Input_KeyboardState_create(int max_keys);
 
 // Уничтожить структуру клавиатуры:
 void Input_KeyboardState_destroy(Input_KeyboardState **keyboard_state);
 
 // Создать структуру ввода:
-Input* Input_create(
+[[nodiscard]] Input* Input_create(
     void (*set_mouse_pos) (Window *self, int x, int y),
     void (*set_mouse_visible) (Window *self, bool visible)
 );

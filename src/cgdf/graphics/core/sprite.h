@@ -46,7 +46,7 @@ struct Sprite3D {
 
 
 // Создать спрайт:
-Sprite2D* Sprite2D_create(
+[[nodiscard]] Sprite2D* Sprite2D_create(
     Renderer *renderer, Texture *texture,
     float x, float y, float width, float height,
     float angle, Vec4f color, bool custom_shader
@@ -67,7 +67,7 @@ void Sprite2D_render(
 
 
 // Создать спрайт:
-Sprite3D* Sprite3D_create(
+[[nodiscard]] Sprite3D* Sprite3D_create(
     Renderer *renderer, Texture *texture,
     Vec3f position, Vec3f rotation,
     float width, float height,

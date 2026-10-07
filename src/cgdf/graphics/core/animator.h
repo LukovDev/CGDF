@@ -26,7 +26,7 @@ struct FrameAnimator2D {
 
 
 // Создать кадровый аниматор:
-FrameAnimator2D* FrameAnimator2D_create(uint32_t frames, float duration);
+[[nodiscard]] FrameAnimator2D* FrameAnimator2D_create(uint32_t frames, float duration);
 
 // Уничтожить кадровый аниматор:
 void FrameAnimator2D_destroy(FrameAnimator2D **animator);

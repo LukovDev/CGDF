@@ -33,7 +33,7 @@ struct Model {
 
 
 // Создать модель:
-Model* Model_create(Renderer *renderer);
+[[nodiscard]] Model* Model_create(Renderer *renderer);
 
 // Уничтожить модель:
 void Model_destroy(Model **model);

@@ -22,7 +22,7 @@ struct Material {
     // Параметры:
     Vec4f albedo;                 // Цвет материала RGBA.
     Vec3f ambient;                // Фоновый цвет.
-    float metallic;               // Металлизация (0.0 = диэлектрик, 1.0 = метал).
+    float metallic;               // Металлизация (0.0 = диэлектрик, 1.0 = металл).
     float roughness;              // Шероховатость (0.0 = зеркало, 1.0 = матовая поверхность).
     float ao;                     // Коэффициент внешней окклюзии. Обычно 1.
     float normal_strength;        // Интенсивность нормалей.
@@ -35,7 +35,7 @@ struct Material {
     float height_low;             // Притянуть уровень высоты к нулю (растяжение). Диапазон от 0.0f до 1.0f.
     float height_high;            // Притянуть уровень высоты к единице (растяжение). Диапазон от 0.0f до 1.0f.
     float alpha_cutoff;           // Альфа отсечение.
-    bool double_sided;            // Двухсторонний материал (отключение culling).
+    bool double_sided;            // Двусторонний материал (отключение culling).
     bool transparent;             // Прозрачный материал (для blend mode).
     float distortion;             // Сила искажения.
     float distortion_aberration;  // Сила искажения цвета.
@@ -64,7 +64,7 @@ struct Material {
 
 
 // Создать материал:
-Material* Material_create(
+[[nodiscard]] Material* Material_create(
     const char *name,
     Vec4f albedo,
     Vec3f ambient,
@@ -93,7 +93,7 @@ Material* Material_create(
 );
 
 // Создать материал по умолчанию (пустой):
-Material* Material_create_default(const char *name);
+[[nodiscard]] Material* Material_create_default(const char *name);
 
 // Уничтожить материал:
 void Material_destroy(Material **material);

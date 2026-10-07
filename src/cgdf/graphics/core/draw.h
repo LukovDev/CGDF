@@ -23,7 +23,7 @@ typedef struct SimpleDraw SimpleDraw;  // Простая отрисовка пр
 
 
 // Создать простую отрисовку примитивов:
-SimpleDraw* SimpleDraw_create(Renderer *renderer);
+[[nodiscard]] SimpleDraw* SimpleDraw_create(Renderer *renderer);
 
 // Уничтожить простую отрисовку примитивов:
 void SimpleDraw_destroy(SimpleDraw **draw);

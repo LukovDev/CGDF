@@ -48,7 +48,7 @@ Camera2D* Camera2D_create(Window *window, int width, int height, Vec2d position,
 void Camera2D_destroy(Camera2D **camera) {
     if (!camera || !*camera) return;
     mm_free(*camera);
-    *camera = NULL;
+    *camera = nullptr;
 }
 
 // Обновление камеры:
@@ -200,7 +200,7 @@ Camera3D* Camera3D_create(
 void Camera3D_destroy(Camera3D **camera) {
     if (!camera || !*camera) return;
     mm_free(*camera);
-    *camera = NULL;
+    *camera = nullptr;
 }
 
 // Обновление камеры:
@@ -318,7 +318,7 @@ void Camera3D_look_at(Camera3D *self, Vec3d target, Vec3d up_dir) {
         target.z - self->position.z
     };
 
-    if (glm_vec3_norm(dir) < 1e-6f) return;  // Проверка на нулевой вектор.
+    if (glm_vec3_norm(dir) < 1e-6f) return;  // Проверка на нулевой вектор.
     glm_vec3_normalize(dir);  // Нормализуем.
 
     vec3 up = {up_dir.x, up_dir.y, up_dir.z};

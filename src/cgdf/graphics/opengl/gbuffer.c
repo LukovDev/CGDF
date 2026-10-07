@@ -67,7 +67,7 @@ void GBuffer_destroy(GBuffer **gbuffer) {
     if ((*gbuffer)->fbo)              BufferFBO_destroy(&(*gbuffer)->fbo);
 
     mm_free(*gbuffer);
-    *gbuffer = NULL;
+    *gbuffer = nullptr;
 }
 
 
@@ -113,30 +113,30 @@ void GBuffer_resize(GBuffer *self, int width, int height) {
 
 // Получить текстуру albedo_roughness:
 Texture* GBuffer_get_tex_albedo_roughness(GBuffer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->albedo_roughness;
 }
 
 // Получить текстуру normal_ao:
 Texture* GBuffer_get_tex_normal_ao(GBuffer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->normal_ao;
 }
 
 // Получить текстуру pbr_properties:
 Texture* GBuffer_get_tex_pbr_properties(GBuffer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->pbr_properties;
 }
 
 // Получить текстуру emissive:
 Texture* GBuffer_get_tex_emissive(GBuffer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->emissive;
 }
 
 // Получить текстуру depth:
 Texture* GBuffer_get_tex_depth(GBuffer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->depth;
 }

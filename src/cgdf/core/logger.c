@@ -40,7 +40,7 @@ static inline const char* code_to_string(int code) {
 
 
 // Обработчик вылета:
-static inline void crash_handler(int sig) {
+[[noreturn]] static void crash_handler(int sig) {
     FILE *f = fopen(LOG_FILE_PATH, "a");
     if (!f) f = stderr;
 

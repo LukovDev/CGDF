@@ -1,5 +1,5 @@
 //
-// objloader.h - Определяет функции загрузчика моделей в формате OBJ.
+// objloader.h - Определяет функции загрузчика моделей в формате OBJ.
 //
 
 #pragma once
@@ -26,4 +26,4 @@ struct OBJFile {
 
 
 // Загрузить модели из OBJ-файла:
-OBJFile ObjLoader_load(Renderer *renderer, const char *filepath);
+[[nodiscard]] OBJFile ObjLoader_load(Renderer *renderer, const char *filepath);

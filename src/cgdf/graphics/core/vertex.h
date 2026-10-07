@@ -16,3 +16,6 @@ struct Vertex {
     float r, g, b, a;  // Цвет вершины          (loc=2, vec3 a_color).
     float u, v;        // Текстурные координаты (loc=3, vec2 a_texcoord).
 };
+
+// Вершина уходит в видеокарту как есть, поэтому её размер должен совпадать с атрибутами (12 float):
+static_assert(sizeof(Vertex) == 12 * sizeof(float), "Vertex layout must match vertex attributes.");

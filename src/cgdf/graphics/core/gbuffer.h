@@ -21,7 +21,7 @@ typedef struct GBuffer GBuffer;  // G-Buffer.
 
 
 // Создать G-Buffer:
-GBuffer* GBuffer_create(Renderer *renderer, int width, int height);
+[[nodiscard]] GBuffer* GBuffer_create(Renderer *renderer, int width, int height);
 
 // Уничтожить G-Buffer:
 void GBuffer_destroy(GBuffer **gbuffer);

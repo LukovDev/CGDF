@@ -47,11 +47,11 @@ struct WinVars {
 
 // Создать конфигурацию окна:
 WinConfig* Window_create_config(const WindowScene *scene) {
-    WinConfig* config = (WinConfig*)mm_alloc(sizeof(WinConfig));
+    WinConfig *config = (WinConfig*)mm_alloc(sizeof(WinConfig));
 
     // Заполняем поля (значениями по умолчанию):
     config->title = "Untitled";
-    config->icon = NULL;
+    config->icon = nullptr;
     config->width = 960;
     config->height = 540;
     config->x = -1;  // Выравнивание по центру экрана.
@@ -70,7 +70,7 @@ WinConfig* Window_create_config(const WindowScene *scene) {
 
     // Копируем структуру сцены, если передана:
     if (scene) memcpy(&config->scene, scene, sizeof(WindowScene));
-    else config->scene = (WindowScene){ 0 };
+    else config->scene = (WindowScene){};
 
     // Версия рендерера по умолчанию:
     config->gl_major = 3;
@@ -81,9 +81,9 @@ WinConfig* Window_create_config(const WindowScene *scene) {
 // Уничтожить конфигурацию окна:
 void Window_destroy_config(WinConfig **config) {
     if (!config || !*config) return;
-    if ((*config)->icon != NULL) Pixmap_destroy(&(*config)->icon);
+    if ((*config)->icon != nullptr) Pixmap_destroy(&(*config)->icon);
     mm_free(*config);
-    *config = NULL;
+    *config = nullptr;
 }
 
 
@@ -101,9 +101,9 @@ Window* Window_create(WinConfig *config) {
     Input *input = Input_create(Impl_set_mouse_pos, Impl_set_mouse_visible);
 
     // Сохраняем указатели:
-    window->scene = (WindowScene){ 0 };
+    window->scene = (WindowScene){};
     window->config = config;
-    window->renderer = NULL;  // Создаём рендерер при создании окна.
+    window->renderer = nullptr;  // Создаём рендерер при создании окна.
     window->input = input;
     window->vars = vars;
 
@@ -131,12 +131,12 @@ void Window_destroy(Window **window) {
     // Освобождаем память глобальных переменных:
     if (vars) {
         mm_free(vars);
-        vars = NULL;
+        vars = nullptr;
     }
 
     // Освободить память окна:
     mm_free(*window);
-    *window = NULL;
+    *window = nullptr;
 }
 
 
@@ -188,7 +188,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
             // Устанавливаем новую сцену:
             memcpy(&self->scene, &vars->new_scene, sizeof(WindowScene));  // Делаем новую сцену текущей.
-            vars->new_scene = (WindowScene){ 0 };  // Обнуляем "новую сцену".
+            vars->new_scene = (WindowScene){};  // Обнуляем "новую сцену".
 
             // Небольшая настройка для новой сцены:
             vars->dtime = 0.0f;
@@ -355,7 +355,7 @@ static void ClosingStage(Window *self) {
 
     // Уничтожаем контекст рендеринга:
     SDL_GL_DestroyContext(vars->context);
-    vars->context = NULL;
+    vars->context = nullptr;
 
     // Уничтожаем окно и обнуляем переменные:
     SDL_DestroyWindow(vars->window);
@@ -369,13 +369,13 @@ static void ClosingStage(Window *self) {
 // Вызовите для открытия окна:
 bool Window_open(Window *self) {
     if (!self || !self->config) {
-        log_msg("[E] Window_open: \"self\" or \"config\" is NULL.\n");
+        log_msg("[E] Window_open: \"self\" or \"config\" is nullptr.\n");
         return false;
     }
     WinConfig *cfg = self->config;
     WinVars *vars = self->vars;
     if (!vars) {
-        log_msg("[E] Window_open: \"vars\" is NULL.\n");
+        log_msg("[E] Window_open: \"vars\" is nullptr.\n");
         return false;
     }
 
@@ -508,7 +508,7 @@ void Window_set_title(Window *self, const char *title, ...) {
 
 // Получить заголовок окна:
 const char* Window_get_title(Window *self) {
-    if (!self || !self->vars || !self->vars->window) return NULL;
+    if (!self || !self->vars || !self->vars->window) return nullptr;
     WinVars *vars = self->vars;
     return SDL_GetWindowTitle(vars->window);
 }
@@ -548,7 +548,7 @@ void Window_set_icon(Window *self, Pixmap *icon) {
 
 // Получить иконку окна:
 Pixmap* Window_get_icon(Window *self) {
-    if (!self || !self->config) return NULL;
+    if (!self || !self->config) return nullptr;
     return self->config->icon;
 }
 
@@ -581,7 +581,7 @@ int Window_get_width(Window *self) {
     if (!self || !self->vars || !self->vars->window) return 0;
     WinVars *vars = self->vars;
     int width;
-    SDL_GetWindowSize(vars->window, &width, NULL);
+    SDL_GetWindowSize(vars->window, &width, nullptr);
     return width;
 }
 
@@ -598,7 +598,7 @@ int Window_get_height(Window *self) {
     if (!self || !self->vars || !self->vars->window) return 0;
     WinVars *vars = self->vars;
     int height;
-    SDL_GetWindowSize(vars->window, NULL, &height);
+    SDL_GetWindowSize(vars->window, nullptr, &height);
     return height;
 }
 
@@ -789,7 +789,7 @@ uint32_t Window_get_window_display_id(Window *self) {
 // Получить размер дисплея:
 bool Window_get_display_size(Window *self, uint32_t id, int *width, int *height) {
     if (!self) return false;
-    SDL_Rect rect = { 0, 0, 0, 0 };
+    SDL_Rect rect = {};
     if (!SDL_GetDisplayUsableBounds((SDL_DisplayID)id, &rect)) return false;
     *width = rect.w;
     *height = rect.h;
@@ -853,13 +853,13 @@ void Window_set_scene(Window *self, const WindowScene *scene) {
 
     // Устанавливаем новую сцену:
     if (scene) memcpy(&vars->new_scene, scene, sizeof(WindowScene));  // Помещаем сцену в буфер новой сцены.
-    else vars->new_scene = (WindowScene){ 0 };
+    else vars->new_scene = (WindowScene){};
     vars->is_new_scene = true;  // Поднимаем флаг что устанавливается новая сцена.
 }
 
 // Получить сцену окна:
 const WindowScene* Window_get_scene(Window *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return &self->scene;
 }
 

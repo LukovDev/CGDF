@@ -17,7 +17,7 @@ CameraController2D* CameraController2D_create(
     Window *window, Camera2D *camera, float offset_scale,
     float min_zoom, float max_zoom, float friction
 ) {
-    if (!window || !camera) return NULL;
+    if (!window || !camera) return nullptr;
     CameraController2D *ctrl = (CameraController2D*)mm_alloc(sizeof(CameraController2D));
 
     // Заполняем поля:
@@ -38,7 +38,7 @@ CameraController2D* CameraController2D_create(
 void CameraController2D_destroy(CameraController2D **ctrl) {
     if (!ctrl|| !*ctrl) return;
     mm_free(*ctrl);
-    *ctrl = NULL;
+    *ctrl = nullptr;
 }
 
 // Обновление контроллера:

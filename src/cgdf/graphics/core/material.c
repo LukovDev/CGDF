@@ -86,7 +86,7 @@ Material* Material_create_default(const char *name) {
     return Material_create(
         name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, 0.5f, 1.0f,
         1.0f, (Vec3f){0, 0, 0}, 0.0f, 0.05f, 8.0f, 32.0f, false, 0.0f,
-        false, false, 0.0f, 0.0f, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+        false, false, 0.0f, 0.0f, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr
     );
 }
 
@@ -106,9 +106,9 @@ void Material_destroy(Material **material) {
     // Освобождаем имя:
     if ((*material)->name) {
         mm_free((*material)->name);
-        (*material)->name = NULL;
+        (*material)->name = nullptr;
     }
 
     mm_free(*material);
-    *material = NULL;
+    *material = nullptr;
 }

@@ -21,7 +21,7 @@ typedef struct Renderer Renderer;  // Повторное локальное оп
 
 
 // Создать 2D освещение:
-Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity);
+[[nodiscard]] Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity);
 
 // Уничтожить 2D освещение:
 void Light2D_destroy(Light2D **light);

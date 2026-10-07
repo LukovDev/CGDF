@@ -39,9 +39,9 @@ Array* Array_create(size_t item_size, size_t initial_capacity) {
 void Array_destroy(Array **arr) {
     if (!arr || !*arr) return;
     mm_free((*arr)->data);
-    (*arr)->data = NULL;
+    (*arr)->data = nullptr;
     mm_free(*arr);
-    *arr = NULL;
+    *arr = nullptr;
 }
 
 
@@ -94,21 +94,21 @@ void Array_set(Array *arr, size_t index, const void *element) {
 
 // Получение элемента по индексу (адрес ячейки в памяти):
 void* Array_get(Array *arr, size_t index) {
-    if (!arr || index >= arr->len) return NULL;
+    if (!arr || index >= arr->len) return nullptr;
     return (char*)arr->data + (index * arr->item_size);
 }
 
 
 // Получение элемента по индексу (сам указатель):
 void* Array_get_ptr(Array *arr, size_t index) {
-    if (!arr || index >= arr->len) return NULL;
+    if (!arr || index >= arr->len) return nullptr;
     return *(char**)((char*)arr->data + (index * arr->item_size));
 }
 
 
 // Получение элемента по индексу по кругу (индексация замкнута, включая отрицательные индексы):
 void* Array_get_round(Array *arr, int64_t index) {
-    if (!arr || arr->len == 0) return NULL;
+    if (!arr || arr->len == 0) return nullptr;
     int64_t len = (int64_t)arr->len;
     int64_t i = index % len;
     if (i < 0) i += len;
@@ -252,7 +252,7 @@ void Array_pop(Array *arr, void *out) {
 
 // Получить и удалить последний элемент из массива (alloc с копированием):
 void* Array_pop_copy(Array *arr) {
-    if (!arr || arr->len == 0) return NULL;
+    if (!arr || arr->len == 0) return nullptr;
     void *out = mm_alloc(arr->item_size);
     Array_remove(arr, arr->len - 1, out);
     return out;

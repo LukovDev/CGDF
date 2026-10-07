@@ -27,12 +27,12 @@ static const unsigned char GBUFFER_SHD_FRAG[] = {
 
 // -------- Шейдер прохода освещения: --------
 
-static const unsigned char LIGHTNING_SHD_VERT[] = {
-    #embed "lightning_pass_shader.vert" suffix(, '\0')
+static const unsigned char LIGHTING_SHD_VERT[] = {
+    #embed "lighting_pass_shader.vert" suffix(, '\0')
 };
 
-static const unsigned char LIGHTNING_SHD_FRAG[] = {
-    #embed "lightning_pass_shader.frag" suffix(, '\0')
+static const unsigned char LIGHTING_SHD_FRAG[] = {
+    #embed "lighting_pass_shader.frag" suffix(, '\0')
 };
 
 // -------- Шейдер прохода теней: --------

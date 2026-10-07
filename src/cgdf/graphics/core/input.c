@@ -33,7 +33,7 @@ void Input_MouseState_destroy(Input_MouseState **mouse_state) {
     if ((*mouse_state)->down) mm_free((*mouse_state)->down);
     if ((*mouse_state)->up) mm_free((*mouse_state)->up);
     mm_free(*mouse_state);
-    *mouse_state = NULL;
+    *mouse_state = nullptr;
 }
 
 
@@ -54,7 +54,7 @@ void Input_KeyboardState_destroy(Input_KeyboardState **keyboard_state) {
     if ((*keyboard_state)->down) mm_free((*keyboard_state)->down);
     if ((*keyboard_state)->up) mm_free((*keyboard_state)->up);
     mm_free(*keyboard_state);
-    *keyboard_state = NULL;
+    *keyboard_state = nullptr;
 }
 
 
@@ -83,7 +83,7 @@ void Input_destroy(Input **input) {
     if ((*input)->mouse)    Input_MouseState_destroy(&(*input)->mouse);
     if ((*input)->keyboard) Input_KeyboardState_destroy(&(*input)->keyboard);
     mm_free(*input);
-    *input = NULL;
+    *input = nullptr;
 }
 
 
@@ -92,19 +92,19 @@ void Input_destroy(Input **input) {
 
 // Получить нажатые кнопки мыши:
 bool* Input_get_mouse_pressed(Window *self) {
-    if (!self || !self->input || !self->input->mouse) return NULL;
+    if (!self || !self->input || !self->input->mouse) return nullptr;
     return self->input->mouse->pressed;
 }
 
 // Получить нажатие кнопки мыши:
 bool* Input_get_mouse_down(Window *self) {
-    if (!self || !self->input || !self->input->mouse) return NULL;
+    if (!self || !self->input || !self->input->mouse) return nullptr;
     return self->input->mouse->down;
 }
 
 // Получить отжатие кнопки мыши:
 bool* Input_get_mouse_up(Window *self) {
-    if (!self || !self->input || !self->input->mouse) return NULL;
+    if (!self || !self->input || !self->input->mouse) return nullptr;
     return self->input->mouse->up;
 }
 
@@ -193,19 +193,19 @@ bool Input_any_mouse_up(Window *self) {
 
 // Получить зажатые клавиши клавиатуры:
 bool* Input_get_key_pressed(Window *self) {
-    if (!self || !self->input || !self->input->keyboard) return NULL;
+    if (!self || !self->input || !self->input->keyboard) return nullptr;
     return self->input->keyboard->pressed;
 }
 
 // Получить нажатие клавиши клавиатуры:
 bool* Input_get_key_down(Window *self) {
-    if (!self || !self->input || !self->input->keyboard) return NULL;
+    if (!self || !self->input || !self->input->keyboard) return nullptr;
     return self->input->keyboard->down;
 }
 
 // Получить отжатие клавиши клавиатуры:
 bool* Input_get_key_up(Window *self) {
-    if (!self || !self->input || !self->input->keyboard) return NULL;
+    if (!self || !self->input || !self->input->keyboard) return nullptr;
     return self->input->keyboard->up;
 }
 

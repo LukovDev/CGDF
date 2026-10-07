@@ -32,7 +32,7 @@ struct Camera2D {
 
     // Можно обратиться как к size.x/y так и к width/height:
     union {
-        Vec2i size[2];  // Размер камеры.
+        Vec2i size;  // Размер камеры.
         struct {
             int width;   // Ширина камеры.
             int height;  // Высота камеры.
@@ -67,7 +67,7 @@ struct Camera3D {
 
 
 // Создать 2D камеру:
-Camera2D* Camera2D_create(Window *window, int width, int height, Vec2d position, float angle, float zoom);
+[[nodiscard]] Camera2D* Camera2D_create(Window *window, int width, int height, Vec2d position, float angle, float zoom);
 
 // Уничтожить 2D камеру:
 void Camera2D_destroy(Camera2D **camera);
@@ -92,7 +92,7 @@ void Camera2D_ui_end(Camera2D *self);
 
 
 // Создать 3D камеру:
-Camera3D* Camera3D_create(
+[[nodiscard]] Camera3D* Camera3D_create(
     Window *window, int width, int height, Vec3d position, Vec3d rotation,
     Vec3d size, float fov, float z_near, float z_far, bool ortho
 );

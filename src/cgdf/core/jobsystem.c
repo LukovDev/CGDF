@@ -21,8 +21,7 @@ JobSystem g_JobSystem;
 
 
 // Внутренняя функция потока, выполняющая задачи в цикле:
-static int _JobSystem_task_work_(void *args) {
-    (void)args;  // Не используется.
+static int _JobSystem_task_work_([[maybe_unused]] void *args) {
     JobTask current_job;
 
     // Вечный цикл потока:
@@ -76,7 +75,7 @@ void JobSystem_init(void) {
     mtx_lock(&g_JobSystem.mutex);
     for (size_t i = 0; i < g_JobSystem.max_workers_count; i++) {
         thrd_t thread;
-        if (thrd_create(&thread, _JobSystem_task_work_, NULL) == thrd_success) {
+        if (thrd_create(&thread, _JobSystem_task_work_, nullptr) == thrd_success) {
             g_JobSystem.real_workers_count++;
             thrd_detach(thread);
         } else {
@@ -134,7 +133,7 @@ void JobSystem_create_job(JobFunction func, void *args) {
 
         for (size_t i = 0; i < missing_workers; i++) {
             thrd_t thread;
-            if (thrd_create(&thread, _JobSystem_task_work_, NULL) == thrd_success) {
+            if (thrd_create(&thread, _JobSystem_task_work_, nullptr) == thrd_success) {
                 g_JobSystem.real_workers_count++;
                 thrd_detach(thread);
             } else {

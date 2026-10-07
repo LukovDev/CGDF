@@ -13,7 +13,7 @@
 
 
 // Создать буфер индексов:
-BufferEBO* BufferEBO_create(const void* data, const size_t size, int mode) {
+BufferEBO* BufferEBO_create(const void *data, const size_t size, int mode) {
     BufferEBO *ebo = (BufferEBO*)mm_alloc(sizeof(BufferEBO));
 
     // Заполняем поля:
@@ -27,7 +27,7 @@ BufferEBO* BufferEBO_create(const void* data, const size_t size, int mode) {
     if (ebo->id == 0) {
         log_msg("[E] BufferEBO_create: Creating EBO failed.\n");
         mm_free(ebo);
-        return NULL;
+        return nullptr;
     }
 
     // Заполняем буфер:
@@ -45,7 +45,7 @@ void BufferEBO_destroy(BufferEBO **ebo) {
     BufferEBO_end(*ebo);
     BufferGC_GL_push(BGC_GL_EBO, (*ebo)->id);  // Добавляем буфер в стек на уничтожение.
     mm_free(*ebo);
-    *ebo = NULL;
+    *ebo = nullptr;
 }
 
 

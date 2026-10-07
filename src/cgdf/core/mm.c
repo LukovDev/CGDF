@@ -1,9 +1,13 @@
 //
-// mm.c - Исходник реализовывающий базовую работу менеджера памяти.
+// mm.c - Исходник реализующий базовую работу менеджера памяти.
 //
 // Пока что просто обертка над обычным malloc, но позволяет отслеживать
 // использование памяти, и получать размер блока памяти. Отслеживание
 // памяти является атомарным, что подходит для многопоточности.
+//
+// Если выделяете кучу мелких объектов, то большую часть будет занимать
+// заголовок. По этому рекомендуется выделять кучу мелких объектов одним
+// вызовом чем по отдельности.
 //
 
 
@@ -25,17 +29,14 @@ typedef struct MM_BlockHeader {
     void *base_ptr;    // Сырой указатель от аллокатора.
     size_t size;       // Размер выделяемого блока.
     size_t alignment;  // Выравнивание.
-    size_t magic;      // Магическая константа.
 } MM_BlockHeader;
 
 
 // Локальные переменные:
-#define MM_MAGIC_CONST 0xA0B1C2D3E4F56789
-#define MM_MAGIC_DEAD  0x000000000000DEAD
-static const size_t _header_size_ = sizeof(MM_BlockHeader);  // Размер заголовка блока.
-static atomic_size_t mm_allocated_blocks = 0;                // Количество выделенных блоков.
-static atomic_size_t mm_used_size = 0;                       // Количество используемой виртуальной памяти.
-static atomic_size_t mm_last_request_size = 0;               // Размер последнего запроса на выделение (в байтах).
+#define _header_size_  sizeof(MM_BlockHeader)            // Размер заголовка блока.
+static atomic_size_t mm_allocated_blocks = 0;            // Количество выделенных блоков.
+static atomic_size_t mm_used_size = 0;                   // Количество используемой виртуальной памяти.
+static atomic_size_t mm_last_request_size = 0;           // Размер последнего запроса на выделение (в байтах).
 
 
 // -------- Вспомогательные функции: --------
@@ -117,30 +118,29 @@ void mm_used_size_sub(size_t size) {
 
 // Выделение памяти с явным выравниванием:
 void* mm_alloc_aligned(size_t size, size_t alignment) {
-        if (!(alignment && ((alignment & (alignment - 1u)) == 0u))) {
+    if (!(alignment && ((alignment & (alignment - 1u)) == 0u))) {
         mm_last_request_size = alignment;
         mm_alloc_error();
-        return NULL;
+        return nullptr;
     }
 
     size_t min_align = alignof(max_align_t);
     if (alignment < min_align) alignment = min_align;
 
-    /* Если хочешь не дать пользователю случайно попросить меньше SIMD-минимума */
     size_t simd_align = mm_required_alignment();
     if (alignment < simd_align) alignment = simd_align;
 
-    if (size > SIZE_MAX - sizeof(MM_BlockHeader) - (alignment - 1u)) {
+    // Полный размер: заголовок + данные + запас под выравнивание (с проверкой переполнения):
+    size_t total;
+    if (ckd_add(&total, size, sizeof(MM_BlockHeader) + (alignment - 1u))) {
         mm_last_request_size = size;
         mm_alloc_error();
-        return NULL;
+        return nullptr;
     }
-
-    size_t total = sizeof(MM_BlockHeader) + size + (alignment - 1u);
     mm_last_request_size = total;
 
     char *base_ptr = (char*)_m_alloc(total);
-    if (!base_ptr) { mm_alloc_error(); return NULL; }
+    if (!base_ptr) { mm_alloc_error(); return nullptr; }
 
     uintptr_t aligned_up = mm_align_up_uintptr((uintptr_t)base_ptr + sizeof(MM_BlockHeader), alignment);
     void *ptr = (void*)aligned_up;
@@ -149,7 +149,6 @@ void* mm_alloc_aligned(size_t size, size_t alignment) {
     header->base_ptr = base_ptr;
     header->size = size;
     header->alignment = alignment;
-    header->magic = MM_MAGIC_CONST;
 
     mm_used_size_add(size);
     mm_allocated_blocks++;
@@ -165,13 +164,14 @@ void* mm_alloc(size_t size) {
 
 // Выделение памяти с обнулением:
 void* mm_calloc(size_t count, size_t size) {
-    if (count != 0 && size > SIZE_MAX / count) {
+    size_t total;
+    if (ckd_mul(&total, count, size)) {
         mm_last_request_size = SIZE_MAX;
         mm_alloc_error();
-        return NULL;
+        return nullptr;
     }
-    void *ptr = mm_alloc(count * size);
-    if (ptr) memset(ptr, 0, count * size);
+    void *ptr = mm_alloc(total);
+    if (ptr) memset(ptr, 0, total);
     return ptr;
 }
 
@@ -179,12 +179,12 @@ void* mm_calloc(size_t count, size_t size) {
 // Расширение блока памяти:
 void* mm_realloc(void *ptr, size_t new_size) {
     if (!ptr) return mm_alloc(new_size);
-    if (new_size == 0) { mm_free(ptr); return NULL; }
+    if (new_size == 0) { mm_free(ptr); return nullptr; }
     MM_BlockHeader *old_h = mm_get_header(ptr);
     size_t old_size = old_h->size;
     size_t old_alignment = old_h->alignment;
     void *new_ptr = mm_alloc_aligned(new_size, old_alignment);
-    if (!new_ptr) return NULL;
+    if (!new_ptr) return nullptr;
     memcpy(new_ptr, ptr, old_size < new_size ? old_size : new_size);
     mm_free(ptr);
     return new_ptr;
@@ -193,10 +193,10 @@ void* mm_realloc(void *ptr, size_t new_size) {
 
 // Копирование строки:
 char* mm_strdup(const char *str) {
-    if (!str) return NULL;
+    if (!str) return nullptr;
     size_t len = strlen(str) + 1;
     char *copy = (char*)mm_alloc(len);
-    if (!copy) { mm_alloc_error(); return NULL; }
+    if (!copy) { mm_alloc_error(); return nullptr; }
     memcpy(copy, str, len);
     return copy;
 }
@@ -206,22 +206,8 @@ char* mm_strdup(const char *str) {
 void mm_free(void *ptr) {
     if (!ptr) return;
     MM_BlockHeader *header = mm_get_header(ptr);
-    if (header->magic != MM_MAGIC_CONST) {
-        log_msg("----------------\n");
-        log_msg("[E] Memory Manager Error!\n");
-        log_msg(
-            "Reason: %s\n"
-            "Pointer: %p\n"
-            "Magic: 0x%zX\n",
-            header->magic == MM_MAGIC_DEAD ? "Memory double free." : "Invalid pointer.",
-            ptr, ptr, header->magic, header->magic
-        );
-        log_msg("----------------\n");
-        abort();
-    }
     mm_used_size_sub(header->size);
     mm_allocated_blocks--;
-    header->magic = MM_MAGIC_DEAD;
     _m_free(header->base_ptr);
 }
 

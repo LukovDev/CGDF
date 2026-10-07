@@ -80,7 +80,7 @@ void Files_fix_apple_path(void) {
 
 // Получить текущую директорию:
 char* Files_get_cwd(char *buf, size_t size) {
-    if (buf != NULL && size == 0) return NULL;
+    if (buf != nullptr && size == 0) return nullptr;
     return getcwd_os(buf, size);
 }
 
@@ -100,7 +100,7 @@ char* Files_get_home(void) {
     char *dir = getenv("HOME");
 
     // Если HOME не задан (Windows), пробуем USERPROFILE:
-    if (dir == NULL) {
+    if (dir == nullptr) {
         dir = getenv("USERPROFILE");
     }
     return dir;
@@ -124,7 +124,7 @@ char* Files_dirname_dup(const char *filepath) {
 
 // Склеить пути (требуется освободить память):
 char* Files_path_join(const char *dir, const char *path) {
-    if (!path || !path[0]) return NULL;
+    if (!path || !path[0]) return nullptr;
     if (path[0] == '/' || path[0] == '\\' || (path[1] == ':' &&
             ((path[0] >= 'A' && path[0] <= 'Z') ||
             (path[0] >= 'a' && path[0] <= 'z')))) {
@@ -143,9 +143,9 @@ char* Files_path_join(const char *dir, const char *path) {
 
 
 // Загружаем файл в строку:
-char* Files_load(const char* file_path, const char* mode) {
-    FILE* f = fopen(file_path, mode);
-    if (!f) return NULL;
+char* Files_load(const char *file_path, const char *mode) {
+    FILE *f = fopen(file_path, mode);
+    if (!f) return nullptr;
 
     // Определяем размер файла:
     fseek(f, 0, SEEK_END);
@@ -153,10 +153,10 @@ char* Files_load(const char* file_path, const char* mode) {
     rewind(f);
 
     // Выделяем память и +1 для '\0':
-    char* buffer = (char*)mm_alloc(size + 1);
+    char *buffer = (char*)mm_alloc(size + 1);
     if (!buffer) {
         fclose(f);
-        return NULL;
+        return nullptr;
     }
 
     // Читаем файл:
@@ -169,8 +169,8 @@ char* Files_load(const char* file_path, const char* mode) {
 
 
 // Сохраняем строку в файл:
-bool Files_save(const char* file_path, const char* data, const char* mode) {
-    FILE* f = fopen(file_path, mode);
+bool Files_save(const char *file_path, const char *data, const char *mode) {
+    FILE *f = fopen(file_path, mode);
     if (!f) return false;
 
     fwrite(data, 1, strlen(data), f);
@@ -180,18 +180,18 @@ bool Files_save(const char* file_path, const char* data, const char* mode) {
 
 
 // Загружаем файл в буфер бинарно:
-unsigned char* Files_load_bin(const char* file_path, const char* mode, size_t* out_size) {
-    FILE* f = fopen(file_path, mode);
-    if (!f) return NULL;
+unsigned char* Files_load_bin(const char *file_path, const char *mode, size_t *out_size) {
+    FILE *f = fopen(file_path, mode);
+    if (!f) return nullptr;
 
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     rewind(f);
 
-    unsigned char* buffer = (unsigned char*)mm_alloc(size);
+    unsigned char *buffer = (unsigned char*)mm_alloc(size);
     if (!buffer) {
         fclose(f);
-        return NULL;
+        return nullptr;
     }
 
     size_t read_size = fread(buffer, 1, size, f);
@@ -203,8 +203,8 @@ unsigned char* Files_load_bin(const char* file_path, const char* mode, size_t* o
 
 
 // Сохраняем буфер в файл бинарно:
-bool Files_save_bin(const char* file_path, const void* data, size_t size, const char* mode) {
-    FILE* f = fopen(file_path, mode);
+bool Files_save_bin(const char *file_path, const void *data, size_t size, const char *mode) {
+    FILE *f = fopen(file_path, mode);
     if (!f) return false;
 
     fwrite(data, 1, size, f);

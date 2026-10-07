@@ -29,11 +29,11 @@ static void attach_handle_array(BufferFBO *self, uint32_t attachment, uint32_t t
         }
         // Если не нашли то добавляем в конец:
         Array_push(self->attachments, &(uint32_t){GL_COLOR_ATTACHMENT0+attachment});
-    } else {  // Иначе значит что текстура отвязывается, по-этому ищем и удаляем привязку:
+    } else {  // Иначе значит что текстура отвязывается, поэтому ищем и удаляем привязку:
         for (size_t i=0; i < Array_len(self->attachments); i++) {
             uint32_t attach = *(uint32_t*)Array_get(self->attachments, i);
             if (attach == GL_COLOR_ATTACHMENT0+attachment) {
-                Array_remove(self->attachments, i, NULL);
+                Array_remove(self->attachments, i, nullptr);
                 break;
             }
         }
@@ -106,7 +106,7 @@ BufferFBO* BufferFBO_create(void) {
         if (fbo->id != 0) BufferGC_GL_push(BGC_GL_FBO, fbo->id);
         Array_destroy(&fbo->attachments);
         mm_free(fbo);
-        return NULL;
+        return nullptr;
     }
     return fbo;
 }
@@ -120,7 +120,7 @@ void BufferFBO_destroy(BufferFBO **fbo) {
     BufferGC_GL_push(BGC_GL_FBO, (*fbo)->id);  // Добавляем буфер в стек на уничтожение.
     Array_destroy(&(*fbo)->attachments);
     mm_free(*fbo);
-    *fbo = NULL;
+    *fbo = nullptr;
 }
 
 // Использовать буфер:

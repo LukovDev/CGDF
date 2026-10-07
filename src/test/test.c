@@ -127,10 +127,10 @@ void start(Window *self) {
 
     draw = SimpleDraw_create(self->renderer);
 
-    grid = Shader_create(self->renderer, NULL, NULL, NULL);
+    grid = Shader_create(self->renderer, nullptr, nullptr, nullptr);
     load_shader(grid, "data/shaders/grid.vert", "data/shaders/grid.frag");
 
-    atmo = Shader_create(self->renderer, NULL, NULL, NULL);
+    atmo = Shader_create(self->renderer, nullptr, nullptr, nullptr);
     load_shader(atmo, "data/shaders/atmosphere.vert", "data/shaders/atmosphere.frag");
 
     font = FontPixmap_create(self->renderer, "data/fonts/inter/inter-semibold.ttf", 32);
@@ -316,7 +316,7 @@ void start(Window *self) {
         Mesh *mesh = Array_get_ptr(floor->meshes, i);
         Mesh_set_material(mesh, floor_material);
     }
-    Model *tmp = NULL;
+    Model *tmp = nullptr;
     Array_remove(objfile3.models, 0, &tmp);
     Model_destroy(&tmp);
 
@@ -325,8 +325,7 @@ void start(Window *self) {
 
 
 // Вызывается при закрытии окна:
-void destroy(Window *self) {
-    (void)self;
+void destroy([[maybe_unused]] Window *self) {
     log_msg("[I] Destroy called.\n");
     print_before_free();
     Texture_destroy(&tex1);
@@ -389,7 +388,7 @@ void update(Window *self, float dtime) {
 
     Camera3D_update(camera3d);
 
-    double time = Window_get_time(self)/1.0f;
+    [[maybe_unused]] double time = Window_get_time(self)/1.0f;
     // Renderer_set_sun_dir(self->renderer, Vec3f_norm((Vec3f){
     //     radians(sin(time)),
     //     -fabs(radians(sin(time))),
@@ -557,7 +556,7 @@ void render(Window *self, float dtime) {
         Shader_set_float(grid, "u_fade_softness", grid_size*0.75f);
         Shader_set_vec3(grid, "u_grid_color", (Vec3f){0.5f, 0.5f, 0.5f});
         Shader_set_vec3(grid, "u_camera_pos", (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z});
-        Sprite2D_render(self->renderer, NULL, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
+        Sprite2D_render(self->renderer, nullptr, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
         Shader_end(grid);
     }
 
@@ -629,7 +628,7 @@ void render(Window *self, float dtime) {
     FontPixmap_set_line_height(font, 16.0f);
 
     if (true) {
-        FontPixmap_render(font, 8 + x1 - w, 8 + y1, 0, "Lightning");
+        FontPixmap_render(font, 8 + x1 - w, 8 + y1, 0, "Lighting");
         FontPixmap_render(font, 8 + x2 - w, 8 + y2, 0, "Normal+AO");
         FontPixmap_render(font, 8 + x3 - w, 8 + y3, 0, "PBR (R-Metall, G-Height, B-Aberration, A-Distortion)");
         FontPixmap_render(font, 8 + x4 - w, 8 + y4, 0, "Emissive");
@@ -702,8 +701,7 @@ void render(Window *self, float dtime) {
 
 
 // Вызывается при изменении размера окна:
-void resize(Window *self, int width, int height) {
-    (void)self;
+void resize([[maybe_unused]] Window *self, int width, int height) {
     log_msg("[I] Resize called.\n");
     Camera3D_resize(camera3d, width, height);
     Camera2D_resize(camera2d, width, height);
@@ -711,15 +709,13 @@ void resize(Window *self, int width, int height) {
 
 
 // Вызывается при разворачивании окна:
-void show(Window *self) {
-    (void)self;
+void show([[maybe_unused]] Window *self) {
     log_msg("[I] Show called.\n");
 }
 
 
 // Вызывается при сворачивании окна:
-void hide(Window *self) {
-    (void)self;
+void hide([[maybe_unused]] Window *self) {
     log_msg("[I] Hide called.\n");
 }
 
@@ -736,11 +732,10 @@ WindowScene TestScene = {
 
 
 // Точка входа в программу:
-int main(int argc, char *argv[]) {
-    (void)argc; (void)argv;
+int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     CGDF_init();
 
-    log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(NULL, 0));
+    log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(nullptr, 0));
 
     CpuInfo cpu_info = Info_get_cpu();
     log_msg("[I] CPU Model: \"%s\"\n", cpu_info.model);
@@ -751,7 +746,7 @@ int main(int argc, char *argv[]) {
     log_msg("[I] Free RAM: %zu MB\n", mem_info.free / 1024 / 1024);
     log_msg("[I] Used RAM: %zu MB\n", mem_info.used / 1024 / 1024);
 
-    const char* cgdf_version = CGDF_GetVersion();
+    const char *cgdf_version = CGDF_GetVersion();
     log_msg("[I] CGDF version: \"%s\"\n", cgdf_version);
 
     WinConfig *config = Window_create_config(&TestScene);

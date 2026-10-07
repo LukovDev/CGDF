@@ -25,7 +25,7 @@ BufferQBO* BufferQBO_create(void) {
     if (qbo->id == 0) {
         log_msg("[E] BufferQBO_create: Creating QBO failed.\n");
         mm_free(qbo);
-        return NULL;
+        return nullptr;
     }
 
     return qbo;
@@ -39,7 +39,7 @@ void BufferQBO_destroy(BufferQBO **qbo) {
     BufferQBO_end(*qbo);
     BufferGC_GL_push(BGC_GL_QBO, (*qbo)->id);  // Добавляем буфер в стек на уничтожение.
     mm_free(*qbo);
-    *qbo = NULL;
+    *qbo = nullptr;
 }
 
 

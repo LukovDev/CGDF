@@ -38,7 +38,7 @@ static inline bool core_init(void) {
     JobSystem_init();
 
     // Инициализация генератора случайных чисел:
-    srand((uint32_t)Time_now(NULL));
+    srand((uint32_t)(Time_now(nullptr)));
 
     // Настраиваем пути для OS X:
     #ifdef __APPLE__

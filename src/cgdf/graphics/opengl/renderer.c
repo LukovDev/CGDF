@@ -58,7 +58,7 @@ typedef struct DrawCommand {
 
 
 // Структура освещения в 3D:
-typedef struct Lightning3D {
+typedef struct Lighting3D {
     Renderer  *renderer;
     BufferFBO *light_fbo;  // Буфер кадра освещения.
     Texture   *light_tex;  // Результат освещения (HDR, RGBA16F).
@@ -75,7 +75,7 @@ typedef struct Lightning3D {
     float     shadows_distance;  // Радиус области вокруг камеры, где считаются тени (в единицах мира).
     BufferFBO *shadows_fbo;      // Буфер кадра карты теней (только глубина).
     Texture   *shadows_tex;      // Карта теней (текстура глубины).
-} Lightning3D;
+} Lighting3D;
 
 
 // -------- Вспомогательные функции: --------
@@ -153,10 +153,9 @@ static bool _gl_debug_seen_(GLuint id, GLenum type, GLenum severity, const char 
 
 // Debug callback:
 static void APIENTRY _gl_debug_cb_(
-    GLenum source, GLenum type, GLuint id, GLenum severity,
-    GLsizei length, const GLchar* message, const void* userParam
+    [[maybe_unused]] GLenum source, GLenum type, GLuint id, GLenum severity,
+    [[maybe_unused]] GLsizei length, const GLchar *message, [[maybe_unused]] const void *userParam
 ) {
-    (void)source; (void)type; (void)id; (void)length; (void)userParam;
     const char *msg = message ? message : "(null)";
 
     // Если это сообщение совпадает с предыдущими, то пропускаем:
@@ -174,12 +173,12 @@ static void _gl_setup_debug_output_(bool sync, bool notify, bool low, bool mediu
         glEnable(GL_DEBUG_OUTPUT);
         if (sync) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         else glDisable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(_gl_debug_cb_, NULL);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, NULL, high);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notify);
+        glDebugMessageCallback(_gl_debug_cb_, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_FALSE);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, nullptr, high);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, nullptr, medium);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, nullptr, low);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, notify);
         log_msg("[GL] OpenGL debug output enabled (CORE 4.3+).\n");
     }
 
@@ -187,24 +186,24 @@ static void _gl_setup_debug_output_(bool sync, bool notify, bool low, bool mediu
     else if (GLAD_GL_ARB_debug_output) {
         if (sync) glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         else glDisable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
-        glDebugMessageCallbackARB((GLDEBUGPROCARB)_gl_debug_cb_, NULL);
-        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
-        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, NULL, high);
-        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, NULL, medium);
-        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, NULL, low);
-        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, notify);
+        glDebugMessageCallbackARB((GLDEBUGPROCARB)_gl_debug_cb_, nullptr);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_FALSE);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH,         0, nullptr, high);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM,       0, nullptr, medium);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW,          0, nullptr, low);
+        glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, notify);
         log_msg("[GL] OpenGL debug output enabled (ARB DEBUG).\n");
     }
 }
 
 // Изменить размер текстур 3D освещения:
-static inline void _lightning_resize_(Lightning3D *self, int width, int height) {
+static inline void _lighting_resize_(Lighting3D *self, int width, int height) {
     if (!self) return;
     Texture_empty(self->light_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_FLOAT);
 }
 
 // Установить размер текстуры теней (пересоздаёт):
-static void _lightning_set_shadows_size_(Lightning3D *self, int size) {
+static void _lighting_set_shadows_size_(Lighting3D *self, int size) {
     if (!self) return;
     Texture_empty(self->shadows_tex, size, size, false, TEX_FORMAT_DEPTH, TEX_INTERNAL_DEPTH32F, TEX_DATA_FLOAT);
     Renderer_set_shadows_smooth(self->renderer, self->shadows_smooth);
@@ -219,10 +218,11 @@ static void _lightning_set_shadows_size_(Lightning3D *self, int size) {
     self->shadows_size = size;
 }
 
+// create shader:
 static inline Shader* _shd_(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
     Shader *shader = Shader_create(rnd, vert, frag, geom);
-    if (!shader || Shader_get_error(shader)) {
-        log_msg("[E] Renderer_create: Creating shader failed: %s\n", shader->error);
+    if (!shader) {
+        log_msg("[E] Renderer_create: Creating shader failed.\n");
     }
     return shader;
 }
@@ -231,7 +231,7 @@ static inline Shader* _shd_(Renderer *rnd, const char *vert, const char *frag, c
 static inline void _create_shaders_(Renderer *rnd) {
     rnd->shader             = _shd_(rnd, (const char*)DEFAULT_SHD_VERT,     (const char*)DEFAULT_SHD_FRAG, nullptr);
     rnd->shader_gbuffer     = _shd_(rnd, (const char*)GBUFFER_SHD_VERT,     (const char*)GBUFFER_SHD_FRAG, nullptr);
-    rnd->shader_lightning   = _shd_(rnd, (const char*)LIGHTNING_SHD_VERT,   (const char*)LIGHTNING_SHD_FRAG, nullptr);
+    rnd->shader_lighting    = _shd_(rnd, (const char*)LIGHTING_SHD_VERT,    (const char*)LIGHTING_SHD_FRAG, nullptr);
     rnd->shader_shadow      = _shd_(rnd, (const char*)SHADOW_SHD_VERT,      (const char*)SHADOW_SHD_FRAG, nullptr);
     rnd->shader_final       = _shd_(rnd, (const char*)FINAL_SHD_VERT,       (const char*)FINAL_SHD_FRAG, nullptr);
     rnd->shader_light2d     = _shd_(rnd, (const char*)LIGHT2D_SHD_VERT,     (const char*)LIGHT2D_SHD_FRAG, nullptr);
@@ -243,7 +243,7 @@ static inline void _destroy_shaders_(Renderer *rnd) {
     Shader_destroy(&rnd->shader);
     Shader_destroy(&rnd->shader_gbuffer);
     Shader_destroy(&rnd->shader_final);
-    Shader_destroy(&rnd->shader_lightning);
+    Shader_destroy(&rnd->shader_lighting);
     Shader_destroy(&rnd->shader_shadow);
     Shader_destroy(&rnd->shader_spritebatch);
     Shader_destroy(&rnd->shader_light2d);
@@ -254,7 +254,7 @@ static inline void _compile_shaders_(Renderer *rnd) {
     Shader_compile(rnd->shader);
     Shader_compile(rnd->shader_gbuffer);
     Shader_compile(rnd->shader_final);
-    Shader_compile(rnd->shader_lightning);
+    Shader_compile(rnd->shader_lighting);
     Shader_compile(rnd->shader_shadow);
     Shader_compile(rnd->shader_spritebatch);
     Shader_compile(rnd->shader_light2d);
@@ -265,7 +265,7 @@ static inline void _clear_shaders_cache_(Renderer *rnd) {
     Shader_clear_caches(rnd->shader);
     Shader_clear_caches(rnd->shader_gbuffer);
     Shader_clear_caches(rnd->shader_final);
-    Shader_clear_caches(rnd->shader_lightning);
+    Shader_clear_caches(rnd->shader_lighting);
     Shader_clear_caches(rnd->shader_shadow);
     Shader_clear_caches(rnd->shader_spritebatch);
     Shader_clear_caches(rnd->shader_light2d);
@@ -283,23 +283,23 @@ Renderer* Renderer_create(void) {
 
     // Заполняем поля:
     rnd->initialized = false;
-    rnd->info = (RendererInfo){ 0 };
-    rnd->camera = NULL;
+    rnd->info = (RendererInfo){};
+    rnd->camera = nullptr;
     rnd->camera_type = RENDERER_CAMERA_2D;
 
     // Отрисовка сцены:
-    rnd->draw_commands = NULL;
+    rnd->draw_commands = nullptr;
     rnd->draw_calls_count = 0;
-    rnd->gbuffer = NULL;
+    rnd->gbuffer = nullptr;
     rnd->gbuffer_dirty = false;
-    rnd->lightning = NULL;
+    rnd->lighting = nullptr;
     rnd->exposure = 1.0f;
     rnd->tonemap = RENDERER_TONEMAP_ACES;
 
     // Другое:
-    rnd->sprite_mesh = NULL;
-    rnd->fallback_texture = NULL;
-    rnd->fallback_mat = NULL;
+    rnd->sprite_mesh = nullptr;
+    rnd->fallback_texture = nullptr;
+    rnd->fallback_mat = nullptr;
     return rnd;
 }
 
@@ -315,13 +315,13 @@ void Renderer_destroy(Renderer **rnd) {
     Array_destroy(&(*rnd)->draw_commands);
 
     // Удаляем освещение:
-    if ((*rnd)->lightning) {
-        BufferFBO_destroy(&(*rnd)->lightning->light_fbo);
-        BufferFBO_destroy(&(*rnd)->lightning->shadows_fbo);
-        Texture_destroy(&(*rnd)->lightning->light_tex);
-        Texture_destroy(&(*rnd)->lightning->shadows_tex);
-        mm_free((*rnd)->lightning);
-        (*rnd)->lightning = NULL;
+    if ((*rnd)->lighting) {
+        BufferFBO_destroy(&(*rnd)->lighting->light_fbo);
+        BufferFBO_destroy(&(*rnd)->lighting->shadows_fbo);
+        Texture_destroy(&(*rnd)->lighting->light_tex);
+        Texture_destroy(&(*rnd)->lighting->shadows_tex);
+        mm_free((*rnd)->lighting);
+        (*rnd)->lighting = nullptr;
     }
 
     // Уничтожение текстурных юнитов (перед удалением fallback_texture):
@@ -336,7 +336,7 @@ void Renderer_destroy(Renderer **rnd) {
 
     // Освобождаем память рендерера:
     mm_free(*rnd);
-    *rnd = NULL;
+    *rnd = nullptr;
 }
 
 // Инициализация рендерера:
@@ -419,7 +419,7 @@ void Renderer_init(Renderer *self) {
     self->sprite_mesh = Mesh_create(
         sprite_vertices, sizeof(sprite_vertices)/sizeof(Vertex),
         sprite_indices, sizeof(sprite_indices)/sizeof(uint32_t),
-        false, NULL
+        false, nullptr
     );
 
     // Текстура-заглушка:
@@ -427,7 +427,7 @@ void Renderer_init(Renderer *self) {
     Texture_empty(self->fallback_texture, 1, 1, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA8, TEX_DATA_UBYTE);
 
     // Материал-заглушка:
-    self->fallback_mat = Material_create_default(NULL);
+    self->fallback_mat = Material_create_default(nullptr);
 
     // Инициализация текстурных юнитов:
     TextureUnits_init(self);
@@ -437,36 +437,36 @@ void Renderer_init(Renderer *self) {
     self->gbuffer = GBuffer_create(self, Renderer_get_width(self), Renderer_get_height(self));
 
     // 3D освещение:
-    self->lightning = (Lightning3D*)mm_alloc(sizeof(Lightning3D));
-    self->lightning->renderer = self;
-    self->lightning->light_fbo = BufferFBO_create();
-    self->lightning->light_tex = Texture_create(self);
+    self->lighting = (Lighting3D*)mm_alloc(sizeof(Lighting3D));
+    self->lighting->renderer = self;
+    self->lighting->light_fbo = BufferFBO_create();
+    self->lighting->light_tex = Texture_create(self);
     // Настройки освещения:
-    self->lightning->sun_direction = (Vec3f){-0.57735, -0.57735, -0.57735};
-    self->lightning->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
-    self->lightning->sun_intensity = 10.0f;
-    self->lightning->ambient_color = (Vec3f){0.6f, 0.7f, 1.0f};
-    self->lightning->ambient_intensity = 0.1f;
+    self->lighting->sun_direction = (Vec3f){-0.57735, -0.57735, -0.57735};
+    self->lighting->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
+    self->lighting->sun_intensity = 10.0f;
+    self->lighting->ambient_color = (Vec3f){0.6f, 0.7f, 1.0f};
+    self->lighting->ambient_intensity = 0.1f;
     // Настройки теней:
-    self->lightning->shadows_enabled = true;    // По умолчанию тени включены.
-    self->lightning->shadows_smooth = true;     // По умолчанию мягкие тени.
-    self->lightning->shadows_size = 2048;       // 2048 размер текстуры теней.
-    self->lightning->shadows_distance = 10.0f;  // 10 метров вокруг камеры тени наивысшего качества.
-    self->lightning->shadows_fbo = BufferFBO_create();
-    self->lightning->shadows_tex = Texture_create(self);
+    self->lighting->shadows_enabled = true;    // По умолчанию тени включены.
+    self->lighting->shadows_smooth = true;     // По умолчанию мягкие тени.
+    self->lighting->shadows_size = 2048;       // 2048 размер текстуры теней.
+    self->lighting->shadows_distance = 10.0f;  // 10 метров вокруг камеры тени наивысшего качества.
+    self->lighting->shadows_fbo = BufferFBO_create();
+    self->lighting->shadows_tex = Texture_create(self);
     // Обновляем размеры текстур кадровых буферов:
-    _lightning_resize_(self->lightning, Renderer_get_width(self), Renderer_get_height(self));
-    _lightning_set_shadows_size_(self->lightning, self->lightning->shadows_size);
+    _lighting_resize_(self->lighting, Renderer_get_width(self), Renderer_get_height(self));
+    _lighting_set_shadows_size_(self->lighting, self->lighting->shadows_size);
     // Привязываем текстуру к буферу кадра света:
-    BufferFBO_begin(self->lightning->light_fbo);
-    BufferFBO_attach(self->lightning->light_fbo, BUFFER_FBO_COLOR, 0, self->lightning->light_tex->id);
-    BufferFBO_apply(self->lightning->light_fbo);
-    BufferFBO_end(self->lightning->light_fbo);
+    BufferFBO_begin(self->lighting->light_fbo);
+    BufferFBO_attach(self->lighting->light_fbo, BUFFER_FBO_COLOR, 0, self->lighting->light_tex->id);
+    BufferFBO_apply(self->lighting->light_fbo);
+    BufferFBO_end(self->lighting->light_fbo);
     // Привязываем текстуру глубины к буферу кадра теней:
-    BufferFBO_begin(self->lightning->shadows_fbo);
-    BufferFBO_attach(self->lightning->shadows_fbo, BUFFER_FBO_DEPTH, 0, self->lightning->shadows_tex->id);
-    BufferFBO_apply(self->lightning->shadows_fbo);
-    BufferFBO_end(self->lightning->shadows_fbo);
+    BufferFBO_begin(self->lighting->shadows_fbo);
+    BufferFBO_attach(self->lighting->shadows_fbo, BUFFER_FBO_DEPTH, 0, self->lighting->shadows_tex->id);
+    BufferFBO_apply(self->lighting->shadows_fbo);
+    BufferFBO_end(self->lighting->shadows_fbo);
 
     // Поднимаем флаг инициализации:
     self->initialized = true;
@@ -498,7 +498,7 @@ void Renderer_display(Renderer *self) {
     }
 
     // Настраиваем камеру:
-    Vec3f camera_pos = {0};
+    Vec3f camera_pos = {};
     Vec3f camera_forward = {0.0f, 0.0f, -1.0f};
     bool camera_ortho = false;
     if (Renderer_is_camera_2d(self)) {
@@ -520,17 +520,17 @@ void Renderer_display(Renderer *self) {
 
     // -------- Проход 0 - Тени: --------
 
-    if (self->lightning->shadows_enabled) {
+    if (self->lighting->shadows_enabled) {
         // Настраиваем состояние рендеринга:
         Renderer_set_depth_test(self, true);
         Renderer_set_depth_mask(self, true);
         Renderer_set_blending(self, false);
         Renderer_set_cull_mode(self, RENDERER_CULL_NONE);  // Тонкие и двусторонние объекты тоже отбрасывают тень.
 
-        float R = self->lightning->shadows_distance;
+        float R = self->lighting->shadows_distance;
 
         // "Камера солнца": стоит против направления лучей и смотрит на центр:
-        vec3 dir = {self->lightning->sun_direction.x, self->lightning->sun_direction.y, self->lightning->sun_direction.z};
+        vec3 dir = {self->lighting->sun_direction.x, self->lighting->sun_direction.y, self->lighting->sun_direction.z};
         glm_vec3_normalize(dir);
         vec3 target = {camera_pos.x, camera_pos.y, camera_pos.z};
         vec3 eye;
@@ -545,8 +545,8 @@ void Renderer_display(Renderer *self) {
         glm_mat4_mul(light_proj, light_view, light_view_proj);
 
         // Состояние прохода теней:
-        BufferFBO_begin(self->lightning->shadows_fbo);
-        glViewport(0, 0, self->lightning->shadows_size, self->lightning->shadows_size);
+        BufferFBO_begin(self->lighting->shadows_fbo);
+        glViewport(0, 0, self->lighting->shadows_size, self->lighting->shadows_size);
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_POLYGON_OFFSET_FILL);  // Смещение глубины против "теневых угрей":
         glPolygonOffset(2.0f, 4.0f);       // Сильнее на наклонных к солнцу поверхностях.
@@ -562,7 +562,7 @@ void Renderer_display(Renderer *self) {
         }
         Shader_end(self->shader_shadow);
         glDisable(GL_POLYGON_OFFSET_FILL);
-        BufferFBO_end(self->lightning->shadows_fbo);
+        BufferFBO_end(self->lighting->shadows_fbo);
         glViewport(0, 0, width, height);  // Возвращаем размер экрана.
     }
 
@@ -593,44 +593,44 @@ void Renderer_display(Renderer *self) {
         Shader_set_mat4(self->shader_gbuffer, "u_model", cmd->transform);
 
         // 1. Карта цвета:
-        bool use_albedo_tex = (mat->albedo_map != NULL);
+        bool use_albedo_tex = (mat->albedo_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_albedo", use_albedo_tex);
         if (use_albedo_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_albedo", mat->albedo_map->id);
         Shader_set_vec4(self->shader_gbuffer, "u_albedo", mat->albedo);
 
         // 2. Карта нормалей:
-        bool use_normal_tex = (mat->normal_map != NULL);
+        bool use_normal_tex = (mat->normal_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_normal", use_normal_tex);
         if (use_normal_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_normal", mat->normal_map->id);
         Shader_set_float(self->shader_gbuffer, "u_normal_strength", mat->normal_strength);
 
         // 3. Карта окклюзии (AO):
-        bool use_ao_tex = (mat->occlusion_map != NULL);
+        bool use_ao_tex = (mat->occlusion_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_occlusion", use_ao_tex);
         if (use_ao_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_occlusion", mat->occlusion_map->id);
         Shader_set_float(self->shader_gbuffer, "u_ao", mat->ao);
 
         // 4. Карта матовости:
-        bool use_roughness_tex = (mat->roughness_map != NULL);
+        bool use_roughness_tex = (mat->roughness_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_roughness", use_roughness_tex);
         if (use_roughness_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_roughness", mat->roughness_map->id);
         Shader_set_float(self->shader_gbuffer, "u_roughness", mat->roughness);
 
         // 5. Карта металлика:
-        bool use_metallic_tex = (mat->metallic_map != NULL);
+        bool use_metallic_tex = (mat->metallic_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_metallic", use_metallic_tex);
         if (use_metallic_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_metallic", mat->metallic_map->id);
         Shader_set_float(self->shader_gbuffer, "u_metallic", mat->metallic);
 
         // 6. Карта свечения:
-        bool use_emissive_tex = (mat->emissive_map != NULL);
+        bool use_emissive_tex = (mat->emissive_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_emissive", use_emissive_tex);
         if (use_emissive_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_emissive", mat->emissive_map->id);
         Shader_set_vec3(self->shader_gbuffer, "u_emissive_color", mat->emissive_color);
         Shader_set_float(self->shader_gbuffer, "u_emissive_strength", mat->emissive_strength);
 
         // 7. Карта высоты (параллакс):
-        bool use_height_tex = (mat->height_map != NULL);
+        bool use_height_tex = (mat->height_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_height", use_height_tex);
         if (use_height_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_height", mat->height_map->id);
         Shader_set_float(self->shader_gbuffer, "u_height_strength",    mat->height_strength);
@@ -664,34 +664,34 @@ void Renderer_display(Renderer *self) {
     Renderer_set_cull_mode(self, RENDERER_CULL_NONE);
 
     // Включаем и очищаем буфер кадра:
-    BufferFBO_begin(self->lightning->light_fbo);
-    BufferFBO_apply(self->lightning->light_fbo);
-    BufferFBO_clear(self->lightning->light_fbo, 0.0f, 0.0f, 0.0f, 0.0f);
+    BufferFBO_begin(self->lighting->light_fbo);
+    BufferFBO_apply(self->lighting->light_fbo);
+    BufferFBO_clear(self->lighting->light_fbo, 0.0f, 0.0f, 0.0f, 0.0f);
 
     // Включаем шейдер и настраиваем:
-    Shader_begin(self->shader_lightning);
-    Shader_set_vec3(self->shader_lightning,  "u_camera_pos",       camera_pos);
-    Shader_set_vec3(self->shader_lightning,  "u_camera_forward",   camera_forward);
-    Shader_set_bool(self->shader_lightning,  "u_camera_ortho",     camera_ortho);
-    Shader_set_mat4(self->shader_lightning,  "u_inv_view_proj",    inv_view_proj);
-    Shader_set_mat4(self->shader_lightning,  "u_light_view_proj",  light_view_proj);
-    Shader_set_tex2d(self->shader_lightning, "u_albedo_roughness", GBuffer_get_tex_albedo_roughness(self->gbuffer)->id);
-    Shader_set_tex2d(self->shader_lightning, "u_normal_ao",        GBuffer_get_tex_normal_ao(self->gbuffer)->id);
-    Shader_set_tex2d(self->shader_lightning, "u_pbr",              GBuffer_get_tex_pbr_properties(self->gbuffer)->id);
-    Shader_set_tex2d(self->shader_lightning, "u_emissive",         GBuffer_get_tex_emissive(self->gbuffer)->id);
-    Shader_set_tex2d(self->shader_lightning, "u_depth",            GBuffer_get_tex_depth(self->gbuffer)->id);
-    Shader_set_vec3(self->shader_lightning,  "u_sun_dir",          self->lightning->sun_direction);
-    Shader_set_vec3(self->shader_lightning,  "u_sun_color",        self->lightning->sun_color);
-    Shader_set_float(self->shader_lightning, "u_sun_intensity",    self->lightning->sun_intensity);
-    Shader_set_vec3(self->shader_lightning,  "u_ambient_color",    self->lightning->ambient_color);
-    Shader_set_float(self->shader_lightning, "u_ambient_intensity", self->lightning->ambient_intensity);
-    Shader_set_bool(self->shader_lightning,  "u_shadows_enabled",  self->lightning->shadows_enabled);
-    Shader_set_bool(self->shader_lightning,  "u_shadows_smooth",   self->lightning->shadows_smooth);
-    Shader_set_tex2d(self->shader_lightning, "u_shadow_map",       self->lightning->shadows_tex->id);
+    Shader_begin(self->shader_lighting);
+    Shader_set_vec3(self->shader_lighting,  "u_camera_pos",        camera_pos);
+    Shader_set_vec3(self->shader_lighting,  "u_camera_forward",    camera_forward);
+    Shader_set_bool(self->shader_lighting,  "u_camera_ortho",      camera_ortho);
+    Shader_set_mat4(self->shader_lighting,  "u_inv_view_proj",     inv_view_proj);
+    Shader_set_mat4(self->shader_lighting,  "u_light_view_proj",   light_view_proj);
+    Shader_set_tex2d(self->shader_lighting, "u_albedo_roughness",  GBuffer_get_tex_albedo_roughness(self->gbuffer)->id);
+    Shader_set_tex2d(self->shader_lighting, "u_normal_ao",         GBuffer_get_tex_normal_ao(self->gbuffer)->id);
+    Shader_set_tex2d(self->shader_lighting, "u_pbr",               GBuffer_get_tex_pbr_properties(self->gbuffer)->id);
+    Shader_set_tex2d(self->shader_lighting, "u_emissive",          GBuffer_get_tex_emissive(self->gbuffer)->id);
+    Shader_set_tex2d(self->shader_lighting, "u_depth",             GBuffer_get_tex_depth(self->gbuffer)->id);
+    Shader_set_vec3(self->shader_lighting,  "u_sun_dir",           self->lighting->sun_direction);
+    Shader_set_vec3(self->shader_lighting,  "u_sun_color",         self->lighting->sun_color);
+    Shader_set_float(self->shader_lighting, "u_sun_intensity",     self->lighting->sun_intensity);
+    Shader_set_vec3(self->shader_lighting,  "u_ambient_color",     self->lighting->ambient_color);
+    Shader_set_float(self->shader_lighting, "u_ambient_intensity", self->lighting->ambient_intensity);
+    Shader_set_bool(self->shader_lighting,  "u_shadows_enabled",   self->lighting->shadows_enabled);
+    Shader_set_bool(self->shader_lighting,  "u_shadows_smooth",    self->lighting->shadows_smooth);
+    Shader_set_tex2d(self->shader_lighting, "u_shadow_map",        self->lighting->shadows_tex->id);
     // Рисуем всё на весь экран:
     Mesh_render(self->sprite_mesh, false);
-    Shader_end(self->shader_lightning);
-    BufferFBO_end(self->lightning->light_fbo);
+    Shader_end(self->shader_lighting);
+    BufferFBO_end(self->lighting->light_fbo);
 
     // -------- Финальный проход (на экран): --------
 
@@ -703,7 +703,7 @@ void Renderer_display(Renderer *self) {
     glDepthFunc(GL_ALWAYS);  // Пишем глубину сцены в экранный буфер всегда, независимо от того, что в нём было.
 
     Shader_begin(self->shader_final);
-    Shader_set_tex2d(self->shader_final, "u_hdr",      self->lightning->light_tex->id);
+    Shader_set_tex2d(self->shader_final, "u_hdr",      self->lighting->light_tex->id);
     Shader_set_tex2d(self->shader_final, "u_depth",    GBuffer_get_tex_depth(self->gbuffer)->id);
     Shader_set_float(self->shader_final, "u_exposure", self->exposure);
     Shader_set_bool(self->shader_final,  "u_aces_tm",  self->tonemap == RENDERER_TONEMAP_ACES ? true : false);
@@ -793,13 +793,13 @@ bool Renderer_is_camera_3d(Renderer *self) {
 
 // Получить 2D камеру:
 Camera2D* Renderer_get_camera_2d(Renderer *self) {
-    if (!self || !Renderer_is_camera_2d(self)) return NULL;
+    if (!self || !Renderer_is_camera_2d(self)) return nullptr;
     return (Camera2D*)self->camera;
 }
 
 // Получить 3D камеру:
 Camera3D* Renderer_get_camera_3d(Renderer *self) {
-    if (!self || !Renderer_is_camera_3d(self)) return NULL;
+    if (!self || !Renderer_is_camera_3d(self)) return nullptr;
     return (Camera3D*)self->camera;
 }
 
@@ -853,7 +853,7 @@ int Renderer_get_max_texture_size(Renderer *self) {
 int Renderer_get_total_memory(Renderer *self) {
     if (!self) return 0;
     int total;
-    _get_memory_info_(&total, NULL, NULL);
+    _get_memory_info_(&total, nullptr, nullptr);
     return total;
 }
 
@@ -861,7 +861,7 @@ int Renderer_get_total_memory(Renderer *self) {
 int Renderer_get_used_memory(Renderer *self) {
     if (!self) return 0;
     int used;
-    _get_memory_info_(NULL, &used, NULL);
+    _get_memory_info_(nullptr, &used, nullptr);
     return used;
 }
 
@@ -869,7 +869,7 @@ int Renderer_get_used_memory(Renderer *self) {
 int Renderer_get_free_memory(Renderer *self) {
     if (!self) return 0;
     int free;
-    _get_memory_info_(NULL, NULL, &free);
+    _get_memory_info_(nullptr, nullptr, &free);
     return free;
 }
 
@@ -931,100 +931,100 @@ void Renderer_set_viewport(Renderer *self, int x, int y, int width, int height) 
     if (!self) return;
     glViewport(x, y, width, height);
     GBuffer_resize(self->gbuffer, width, height);  // Меняем размер G-Buffer.
-    _lightning_resize_(self->lightning, width, height);
+    _lighting_resize_(self->lighting, width, height);
 }
 
 // Получить текстуру albedo_roughness:
 Texture* Renderer_get_tex_albedo_roughness(Renderer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return GBuffer_get_tex_albedo_roughness(self->gbuffer);
 }
 
 // Получить текстуру normal_ao:
 Texture* Renderer_get_tex_normal_ao(Renderer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return GBuffer_get_tex_normal_ao(self->gbuffer);
 }
 
 // Получить текстуру pbr_properties:
 Texture* Renderer_get_tex_pbr_properties(Renderer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return GBuffer_get_tex_pbr_properties(self->gbuffer);
 }
 
 // Получить текстуру emissive:
 Texture* Renderer_get_tex_emissive(Renderer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return GBuffer_get_tex_emissive(self->gbuffer);
 }
 
 // Получить текстуру depth:
 Texture* Renderer_get_tex_depth(Renderer *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return GBuffer_get_tex_depth(self->gbuffer);
 }
 
 // Получить текстуру освещения:
 Texture* Renderer_get_tex_light(Renderer *self) {
-    if (!self) return NULL;
-    return self->lightning->light_tex;
+    if (!self) return nullptr;
+    return self->lighting->light_tex;
 }
 
 // Получить текстуру теней:
 Texture* Renderer_get_tex_shadows(Renderer *self) {
-    if (!self) return NULL;
-    return self->lightning->shadows_tex;
+    if (!self) return nullptr;
+    return self->lighting->shadows_tex;
 }
 
 // Включить или выключить тени:
 void Renderer_set_shadows(Renderer *self, bool enabled) {
     if (!self) return;
-    self->lightning->shadows_enabled = enabled;
+    self->lighting->shadows_enabled = enabled;
 }
 
 // Включены ли тени:
 bool Renderer_get_shadows(Renderer *self) {
     if (!self) return false;
-    return self->lightning->shadows_enabled;
+    return self->lighting->shadows_enabled;
 }
 
 // Сделать тени мягкими или жесткими:
 void Renderer_set_shadows_smooth(Renderer *self, bool smooth) {
     if (!self) return;
     if (smooth) {
-        Texture_set_linear(self->lightning->shadows_tex);
-    } else Texture_set_pixelized(self->lightning->shadows_tex);
-    self->lightning->shadows_smooth = smooth;
+        Texture_set_linear(self->lighting->shadows_tex);
+    } else Texture_set_pixelized(self->lighting->shadows_tex);
+    self->lighting->shadows_smooth = smooth;
 }
 
 // Мягкие ли тени:
 bool Renderer_get_shadows_smooth(Renderer *self) {
     if (!self) return false;
-    return self->lightning->shadows_smooth;
+    return self->lighting->shadows_smooth;
 }
 
 // Установить размер карты теней:
 void Renderer_set_shadows_size(Renderer *self, int size) {
     if (!self) return;
-    _lightning_set_shadows_size_(self->lightning, size);
+    _lighting_set_shadows_size_(self->lighting, size);
 }
 
 // Получить размер карты теней:
 int Renderer_get_shadows_size(Renderer *self) {
     if (!self) return 0;
-    return self->lightning->shadows_size;
+    return self->lighting->shadows_size;
 }
 
 // Установить дальность теней:
 void Renderer_set_shadows_distance(Renderer *self, float distance) {
     if (!self) return;
-    self->lightning->shadows_distance = distance;
+    self->lighting->shadows_distance = distance;
 }
 
 // Получить дальность теней:
 float Renderer_get_shadows_distance(Renderer *self) {
     if (!self) return 0.0f;
-    return self->lightning->shadows_distance;
+    return self->lighting->shadows_distance;
 }
 
 // Установить экспозицию:
@@ -1054,59 +1054,59 @@ RendererTonemapType Renderer_get_tonemap(Renderer *self) {
 // Установить направление солнца:
 void Renderer_set_sun_dir(Renderer *self, Vec3f direction) {
     if (!self) return;
-    self->lightning->sun_direction = direction;
+    self->lighting->sun_direction = direction;
 }
 
 // Получить направление солнца:
 Vec3f Renderer_get_sun_dir(Renderer *self) {
-    if (!self) return (Vec3f){0};
-    return self->lightning->sun_direction;
+    if (!self) return (Vec3f){};
+    return self->lighting->sun_direction;
 }
 
 // Установить цвет солнца:
 void Renderer_set_sun_color(Renderer *self, Vec3f color) {
     if (!self) return;
-    self->lightning->sun_color = color;
+    self->lighting->sun_color = color;
 }
 
 // Получить цвет солнца:
 Vec3f Renderer_get_sun_color(Renderer *self) {
-    if (!self) return (Vec3f){0};
-    return self->lightning->sun_color;
+    if (!self) return (Vec3f){};
+    return self->lighting->sun_color;
 }
 
 // Установить интенсивность солнца:
 void Renderer_set_sun_intensity(Renderer *self, float intensity) {
     if (!self) return;
-    self->lightning->sun_intensity = intensity;
+    self->lighting->sun_intensity = intensity;
 }
 
 // Получить интенсивность солнца:
 float Renderer_get_sun_intensity(Renderer *self) {
     if (!self) return 0.0f;
-    return self->lightning->sun_intensity;
+    return self->lighting->sun_intensity;
 }
 
 // Установить цвет фонового освещения:
 void Renderer_set_ambient_color(Renderer *self, Vec3f color) {
     if (!self) return;
-    self->lightning->ambient_color = color;
+    self->lighting->ambient_color = color;
 }
 
 // Получить цвет фонового освещения:
 Vec3f Renderer_get_ambient_color(Renderer *self) {
-    if (!self) return (Vec3f){0};
-    return self->lightning->ambient_color;
+    if (!self) return (Vec3f){};
+    return self->lighting->ambient_color;
 }
 
 // Установить интенсивность фонового освещения:
 void Renderer_set_ambient_intensity(Renderer *self, float intensity) {
     if (!self) return;
-    self->lightning->ambient_intensity = intensity;
+    self->lighting->ambient_intensity = intensity;
 }
 
 // Получить интенсивность фонового освещения:
 float Renderer_get_ambient_intensity(Renderer *self) {
     if (!self) return 0.0f;
-    return self->lightning->ambient_intensity;
+    return self->lighting->ambient_intensity;
 }

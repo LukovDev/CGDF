@@ -1,5 +1,5 @@
 //
-// objloader.c - Реализует загрузчик моделей в формате OBJ/MTL.
+// objloader.c - Реализует загрузчик моделей в формате OBJ/MTL.
 //
 // Поддерживает загрузку PBR материалов с текстурами.
 // Поддерживает deduplicating вершин.
@@ -33,7 +33,7 @@ typedef struct {
 // -------- Вспомогательные функции: --------
 
 
-// Пропускаем пробелы и другие символы в строке. Сдвигаем pointer на первый нормальный символ:
+// Пропускаем пробелы и другие символы в строке. Сдвигаем pointer на первый нормальный символ:
 static char* skip_ws(char *s) {
     while (*s == ' ' || *s == '\t' || *s == '\r' || *s == '\n') s++;
     return s;
@@ -117,17 +117,16 @@ static void flush_model(OBJFile *objfile, Model **model) {
     } else {
         Model_destroy(model);
     }
-    *model = NULL;
+    *model = nullptr;
 }
 
 // Хэш-функция для ObjIndex:
-static size_t hash_obj_index(const void *key, size_t size) {
-    (void)size;
+static size_t hash_obj_index(const void *key, [[maybe_unused]] size_t size) {
     const ObjIndex *k = (const ObjIndex*)key;
-    size_t h = 1469598103934665603ULL;
-    h ^= (uint32_t)k->p; h *= 1099511628211ULL;
-    h ^= (uint32_t)k->t; h *= 1099511628211ULL;
-    h ^= (uint32_t)k->n; h *= 1099511628211ULL;
+    size_t h = 14'695'981'039'346'656'037ULL;
+    h ^= (uint32_t)k->p; h *= 1'099'511'628'211ULL;
+    h ^= (uint32_t)k->t; h *= 1'099'511'628'211ULL;
+    h ^= (uint32_t)k->n; h *= 1'099'511'628'211ULL;
     return h;
 }
 
@@ -142,8 +141,8 @@ static uint32_t get_or_create_vertex(
 ) {
     // Ищем вершину в кэше вершин. Если нашли, возвращаем:
     ObjIndex key = { .p = idx.p, .t = idx.t, .n = idx.n };
-    void *found = NULL;
-    if (HashTable_get(cache, &key, sizeof(ObjIndex), &found, NULL)) return (uint32_t)(uintptr_t)found;
+    void *found = nullptr;
+    if (HashTable_get(cache, &key, sizeof(ObjIndex), &found, nullptr)) return (uint32_t)(uintptr_t)found;
 
     // Если не нашли, создаём новую вершину и добавляем её индекс из массива в кэш:
     Vertex vertex;
@@ -162,24 +161,24 @@ static uint32_t get_or_create_vertex(
 
 // Найти материал в массиве материалов по имени:
 static Material* find_material(Array *materials, const char *name) {
-    if (!materials || !name) return NULL;
+    if (!materials || !name) return nullptr;
     for (size_t i = 0; i < Array_len(materials); i++) {
         Material *mat = (Material*)Array_get_ptr(materials, i);
         if (mat && mat->name && strcmp(mat->name, name) == 0) return mat;
     }
-    return NULL;
+    return nullptr;
 }
 
 // Загрузить текстуру из MTL-файла:
 static Texture* load_texture(Renderer *renderer, const char *mtl_dir, const char *raw_path, bool albedo) {
     char *path = Files_path_join(mtl_dir, raw_path);
-    if (!path) return NULL;
+    if (!path) return nullptr;
 
     FILE *f = fopen(path, "rb");
     if (!f) {
         log_msg("[W] ObjLoader_load: texture not loaded: %s\n", path);
         mm_free(path);
-        return NULL;
+        return nullptr;
     }
     fclose(f);
     Texture *texture = Texture_create(renderer);
@@ -194,19 +193,19 @@ static Texture* load_texture(Renderer *renderer, const char *mtl_dir, const char
 
 // Парсить путь к текстуре:
 static char* parse_texture_path(char *args) {
-    char *last = NULL;
+    char *last = nullptr;
     char *token = strtok(args, " \t\r\n");
     while (token) {
         if (token[0] == '-') {
-            token = strtok(NULL, " \t\r\n");
+            token = strtok(nullptr, " \t\r\n");
             while (token && token[0] != '-') {
                 last = token;
-                token = strtok(NULL, " \t\r\n");
+                token = strtok(nullptr, " \t\r\n");
             }
             continue;
         }
         last = token;
-        token = strtok(NULL, " \t\r\n");
+        token = strtok(nullptr, " \t\r\n");
     }
     return last;
 }
@@ -222,7 +221,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
     // Получаем папку MTL-файла:
     char *mtl_dir = Files_dirname_dup(filepath);
     char line[2048];
-    Material *mat = NULL;  // Текущий материал.
+    Material *mat = nullptr;  // Текущий материал.
     bool roughness_set = false, metallic_set = false;
 
     // Читаем файл построчно:
@@ -313,7 +312,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
             // Загружает только если текстура еще не указана:
             if (path && !mat->albedo_map) {
                 mat->albedo_map = load_texture(renderer, mtl_dir, path, true);
-                mat->owns_albedo_map = mat->albedo_map != NULL;
+                mat->owns_albedo_map = mat->albedo_map != nullptr;
             }
         }
 
@@ -334,7 +333,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
             // Загружает только если текстура еще не указана:
             if (path && !mat->normal_map) {
                 mat->normal_map = load_texture(renderer, mtl_dir, path, false);
-                mat->owns_normal_map = mat->normal_map != NULL;
+                mat->owns_normal_map = mat->normal_map != nullptr;
             }
         }
 
@@ -344,7 +343,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
             // Загружает только если текстура еще не указана:
             if (path && !mat->emissive_map) {
                 mat->emissive_map = load_texture(renderer, mtl_dir, path, true);
-                mat->owns_emissive_map = mat->emissive_map != NULL;
+                mat->owns_emissive_map = mat->emissive_map != nullptr;
                 if (mat->emissive_map && mat->emissive_strength == 0.0f) mat->emissive_strength = 1.0f;
             }
         }
@@ -356,7 +355,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
             // Загружает только если текстура еще не указана:
             if (path && !mat->height_map) {
                 mat->height_map = load_texture(renderer, mtl_dir, path, false);
-                mat->owns_height_map = mat->height_map != NULL;
+                mat->owns_height_map = mat->height_map != nullptr;
             }
         }
 
@@ -367,7 +366,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
             // Загружает только если текстура еще не указана:
             if (path && !mat->occlusion_map) {
                 mat->occlusion_map = load_texture(renderer, mtl_dir, path, false);
-                mat->owns_occlusion_map = mat->occlusion_map != NULL;
+                mat->owns_occlusion_map = mat->occlusion_map != nullptr;
             }
         }
 
@@ -377,7 +376,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
             // Загружает только если текстура еще не указана:
             if (path && !mat->roughness_map) {
                 mat->roughness_map = load_texture(renderer, mtl_dir, path, false);
-                mat->owns_roughness_map = mat->roughness_map != NULL;
+                mat->owns_roughness_map = mat->roughness_map != nullptr;
                 if (mat->roughness_map && !roughness_set) mat->roughness = 1.0f;
             }
         }
@@ -388,7 +387,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
             // Загружает только если текстура еще не указана:
             if (path && !mat->metallic_map) {
                 mat->metallic_map = load_texture(renderer, mtl_dir, path, false);
-                mat->owns_metallic_map = mat->metallic_map != NULL;
+                mat->owns_metallic_map = mat->metallic_map != nullptr;
                 if (mat->metallic_map && !metallic_set) mat->metallic = 1.0f;
             }
         }
@@ -404,7 +403,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
 
 // Загрузить модели из OBJ-файла с материалами:
 OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
-    if (!renderer || !filepath) return (OBJFile){ 0 };
+    if (!renderer || !filepath) return (OBJFile){};
 
     // Создаём структуру:
     OBJFile objfile = {
@@ -417,7 +416,7 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
     if (!f) {
         Array_destroy(&objfile.models);
         Array_destroy(&objfile.materials);
-        return (OBJFile){ 0 };
+        return (OBJFile){};
     }
 
     // Создаём временные массивы:
@@ -431,7 +430,7 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
     vertex_cache->hash_func = hash_obj_index;      // Устанавливаем свою функцию хэширования.
 
     // Временные переменные для парсинга:
-    Material *default_mat = Material_create_default(NULL);
+    Material *default_mat = Material_create_default(nullptr);
     Array_push(objfile.materials, &default_mat);
     Material *current_mat = default_mat;
     Model *current_model = Model_create(renderer);
@@ -505,7 +504,7 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
             ObjIndex face[64];
             int face_count = 0;
             char *token = strtok(s, " \t\r\n");
-            while ((token = strtok(NULL, " \t\r\n"))) {
+            while ((token = strtok(nullptr, " \t\r\n"))) {
                 if (face_count >= (int)(sizeof(face) / sizeof(face[0]))) break;
                 ObjIndex idx;
                 if (parse_face_token(token, &idx)) face[face_count++] = idx;

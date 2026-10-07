@@ -29,7 +29,7 @@ FrameAnimator2D* FrameAnimator2D_create(uint32_t frames, float duration) {
 void FrameAnimator2D_destroy(FrameAnimator2D **animator) {
     if (!animator || !*animator) return;
     mm_free(*animator);
-    *animator = NULL;
+    *animator = nullptr;
 }
 
 // Обновить анимацию:

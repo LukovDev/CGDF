@@ -54,13 +54,13 @@ static inline double Time_now(double *x) {
         uli.LowPart  = ft.dwLowDateTime;
         uli.HighPart = ft.dwHighDateTime;
         // Вычитаем разницу между 1601 и 1970 годами (в 100-нс интервалах):
-        result = (double)(uli.QuadPart - 116444736000000000ULL) / 10000000.0;
+        result = (double)(uli.QuadPart - 116'444'736'000'000'000ULL) / 10'000'000.0;
     #else
         struct timeval tv;
-        gettimeofday(&tv, NULL);
+        gettimeofday(&tv, nullptr);
         result = (double)tv.tv_sec + (double)tv.tv_usec / 1e6;
     #endif
-    if (x != NULL) { *x = result; }
+    if (x != nullptr) { *x = result; }
     return result;
 }
 
@@ -74,7 +74,7 @@ static inline void Time_sleep(double seconds) {
         struct timespec ts;
         ts.tv_sec  = (time_t)floor(seconds);
         ts.tv_nsec = (long)((seconds - ts.tv_sec) * 1e9);
-        nanosleep(&ts, NULL);
+        nanosleep(&ts, nullptr);
     #endif
 }
 
@@ -90,18 +90,18 @@ static inline void Time_delay(double seconds) {
         const double OS_TICK = 0.001;
     #endif
 
-    double start = Time_now(NULL);                        // Получаем текущее время.
+    double start = Time_now(nullptr);                     // Получаем текущее время.
     double sleep_dur = seconds - fmod(seconds, OS_TICK);  // Сколько реально времени точно можно поспать.
     if (sleep_dur > 0.0) { Time_sleep(sleep_dur); }       // Спим не нагружая процессор циклом.
     double target = start + seconds;
-    while (Time_now(NULL) < target);  // Докручиваем время проверяя текущее время с целевым временем.
+    while (Time_now(nullptr) < target);  // Докручиваем время проверяя текущее время с целевым временем.
 }
 
 
 // Узнать у устройства смещение часового времени:
 static inline TimeOffsetUTC Time_get_utc_offset(void) {
     // Вычисляем:
-    time_t now = time(NULL);
+    time_t now = time(nullptr);
     struct tm gmt;
     struct tm loc;
     #if defined(_WIN32)
@@ -132,7 +132,7 @@ static inline TimeCurrent Time_get_current(bool local_time) {
 
     // Получаем часовой пояс устройства:
     int32_t offset_utc = Time_get_utc_offset().offset;
-    double unix_time = Time_now(NULL);
+    double unix_time = Time_now(nullptr);
 
     // Целые секунды и миллисекунды:
     uint64_t utc_sec = (uint64_t)unix_time;
@@ -157,7 +157,7 @@ static inline TimeCurrent Time_get_current(bool local_time) {
     int cycles400 = days / 146097;
     result.year += cycles400 * 400;
     days -= (uint32_t)cycles400 * 146097;
-    while (1) {
+    while (true) {
         uint32_t dy = _Time_is_leap_(result.year) ? 366 : 365;
         if (days < dy) break;
         days -= dy;

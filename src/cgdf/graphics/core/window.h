@@ -81,13 +81,13 @@ struct WinConfig {
 
 
 // Создать конфигурацию окна:
-WinConfig* Window_create_config(const WindowScene *scene);
+[[nodiscard]] WinConfig* Window_create_config(const WindowScene *scene);
 
 // Уничтожить конфигурацию окна:
 void Window_destroy_config(WinConfig **config);
 
 // Создать окно:
-Window* Window_create(WinConfig *config);
+[[nodiscard]] Window* Window_create(WinConfig *config);
 
 // Уничтожить окно:
 void Window_destroy(Window **window);
@@ -106,7 +106,7 @@ bool Window_close(Window *self);
 bool Window_quit(Window *self);
 
 // Установить заголовок окна:
-void Window_set_title(Window *self, const char *title, ...);
+PRINTF_FORMAT(2, 3) void Window_set_title(Window *self, const char *title, ...);
 
 // Получить заголовок окна:
 const char* Window_get_title(Window *self);

@@ -13,7 +13,7 @@
 
 
 // Создать буфер вершин:
-BufferVBO* BufferVBO_create(const void* data, const size_t size, int mode) {
+BufferVBO* BufferVBO_create(const void *data, const size_t size, int mode) {
     BufferVBO *vbo = (BufferVBO*)mm_alloc(sizeof(BufferVBO));
 
     // Заполняем поля:
@@ -27,7 +27,7 @@ BufferVBO* BufferVBO_create(const void* data, const size_t size, int mode) {
     if (vbo->id == 0) {
         log_msg("[E] BufferVBO_create: Creating VBO failed.\n");
         mm_free(vbo);
-        return NULL;
+        return nullptr;
     }
 
     // Заполняем буфер:
@@ -45,7 +45,7 @@ void BufferVBO_destroy(BufferVBO **vbo) {
     BufferVBO_end(*vbo);
     BufferGC_GL_push(BGC_GL_VBO, (*vbo)->id);  // Добавляем буфер в стек на уничтожение.
     mm_free(*vbo);
-    *vbo = NULL;
+    *vbo = nullptr;
 }
 
 

@@ -40,22 +40,22 @@ void mm_used_size_add(size_t size);
 void mm_used_size_sub(size_t size);
 
 // Выделение памяти с явным выравниванием:
-void* mm_alloc_aligned(size_t size, size_t alignment);
+[[nodiscard]] void* mm_alloc_aligned(size_t size, size_t alignment);
 
 // Выделение памяти:
-void* mm_alloc(size_t size);
+[[nodiscard]] void* mm_alloc(size_t size);
 
 // Выделение памяти с обнулением:
-void* mm_calloc(size_t count, size_t size);
+[[nodiscard]] void* mm_calloc(size_t count, size_t size);
 
 // Расширение блока памяти:
-void* mm_realloc(void *ptr, size_t new_size);
+[[nodiscard]] void* mm_realloc(void *ptr, size_t new_size);
 
 // Копирование строки:
-char* mm_strdup(const char *str);
+[[nodiscard]] char* mm_strdup(const char *str);
 
 // Освобождение памяти:
 void mm_free(void *ptr);
 
 // Вызовите если получите проблему при выделении памяти:
-void mm_alloc_error(void);
+[[noreturn]] void mm_alloc_error(void);

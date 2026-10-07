@@ -24,7 +24,7 @@ static ShaderCacheUniformValue* _find_cached_uniform_(Shader *self, int loc, Sha
         ShaderCacheUniformValue *item = (ShaderCacheUniformValue*)Array_get(self->uniform_values, i);
         if (item->location == loc && item->type == type) return item;
     }
-    return NULL;
+    return nullptr;
 }
 
 static ShaderCacheSampler* _find_cached_sampler_(Shader *self, int32_t location) {
@@ -32,7 +32,7 @@ static ShaderCacheSampler* _find_cached_sampler_(Shader *self, int32_t location)
         ShaderCacheSampler *item = (ShaderCacheSampler*)Array_get(self->sampler_units, i);
         if (item->location == location) return item;
     }
-    return NULL;
+    return nullptr;
 }
 
 static const char* _shader_type_str_(GLenum type) {
@@ -62,18 +62,18 @@ static char* _get_shader_info_log_(GLuint obj, bool is_program) {
     if (len <= 1) return mm_strdup("No shader source.");
 
     char *buf = mm_alloc(len);
-    if (is_program) glGetProgramInfoLog(obj, len, NULL, buf);
-    else glGetShaderInfoLog(obj, len, NULL, buf);
+    if (is_program) glGetProgramInfoLog(obj, len, nullptr, buf);
+    else glGetShaderInfoLog(obj, len, nullptr, buf);
     return buf;
 }
 
-static void _shader_set_error_(Shader *self, const char *fmt, ...) {
+PRINTF_FORMAT(2, 3) static void _shader_set_error_(Shader *self, const char *fmt, ...) {
     if (!self) return;
-    if (self->error) { mm_free(self->error); self->error = NULL; }
+    if (self->error) { mm_free(self->error); self->error = nullptr; }
 
     va_list ap;
     va_start(ap, fmt);
-    int needed = vsnprintf(NULL, 0, fmt, ap);
+    int needed = vsnprintf(nullptr, 0, fmt, ap);
     va_end(ap);
 
     self->error = mm_alloc(needed + 1);
@@ -113,8 +113,8 @@ static void _clear_caches_(Shader *shader, bool destroy_arrays) {
     }
 }
 
-static uint32_t _compile_shader_(Shader *program, const char* source, GLenum type) {
-    const char* type_str = _shader_type_str_(type);
+static uint32_t _compile_shader_(Shader *program, const char *source, GLenum type) {
+    const char *type_str = _shader_type_str_(type);
 
     if (!source) {
         _shader_set_error_(program, "ShaderCompileError (%s): source is NULL\n", type_str);
@@ -123,11 +123,11 @@ static uint32_t _compile_shader_(Shader *program, const char* source, GLenum typ
 
     if (program->error) {
         mm_free(program->error);
-        program->error = NULL;
+        program->error = nullptr;
     }
 
     uint32_t shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, NULL);
+    glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
 
     int compiled = 0;
@@ -142,32 +142,32 @@ static uint32_t _compile_shader_(Shader *program, const char* source, GLenum typ
     return shader;
 }
 
-static void _set_sampler_(Shader *self, const char* name, uint32_t tex_id, TextureType type) {
+static void _set_sampler_(Shader *self, const char *name, uint32_t tex_id, TextureType type) {
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
 
     /*
-    Как работает? Специально для этого был реализован менеджер управления
-    текстурными юнитами (texunit.c/.h -> TexUnits).
+        Как работает? Специально для этого был реализован менеджер управления
+        текстурными юнитами (texunit.c/.h -> TexUnits).
 
-    Концептуально работает так:
-    Шейдер при установке текстуры юниформе проверяет у себя в кэше:
-    - Если нет кэша -> выделяем юнит, привязываем юнит к юниформе, создаём кэш, привязываем текстуру.
-    - Если кэш есть и текстуры совпадают -> ничего не делаем.
-    - Если кэш есть, но текстуры не совпадают -> перепривязываем текстуру к юниту и обновляем кэш.
-    При удалении шейдера: Делаем запрос на освобождение выделенных для шейдера юнитов.
+        Концептуально работает так:
+        Шейдер при установке текстуры юниформе проверяет у себя в кэше:
+        - Если нет кэша -> выделяем юнит, привязываем юнит к юниформе, создаём кэш, привязываем текстуру.
+        - Если кэш есть и текстуры совпадают -> ничего не делаем.
+        - Если кэш есть, но текстуры не совпадают -> перепривязываем текстуру к юниту и обновляем кэш.
+        При удалении шейдера: Делаем запрос на освобождение выделенных для шейдера юнитов.
     */
 
     /* (копия пометки из texunit.c):
-    ВНИМАНИЕ:
-        Мы резервируем нулевой юнит.
-        Нельзя шейдерам использовать нулевой юнит glActiveTexture(GL_TEXTURE0).
-        Потому что нулевой юнит общий, и зарезервирован глобально для всех вызовов привязки текстур.
-        Если вы всё равно укажете нулевой юнит для шейдера, то скорее всего, шейдер может
-        получить другую текстуру, из-за возможных вызовов привязки других текстур к этому юниту.
+        ВНИМАНИЕ:
+            Мы резервируем нулевой юнит.
+            Нельзя шейдерам использовать нулевой юнит glActiveTexture(GL_TEXTURE0).
+            Потому что нулевой юнит общий, и зарезервирован глобально для всех вызовов привязки текстур.
+            Если вы всё равно укажете нулевой юнит для шейдера, то скорее всего, шейдер может
+            получить другую текстуру, из-за возможных вызовов привязки других текстур к этому юниту.
     */
 
-    // Если передали нулевую текстуру, используем текстуру-загрушку:
+    // Если передали нулевую текстуру, используем текстуру-заглушку:
     if (tex_id == 0 && self->renderer && self->renderer->fallback_texture) {
         tex_id = self->renderer->fallback_texture->id;
     }
@@ -214,7 +214,7 @@ static void _set_sampler_(Shader *self, const char* name, uint32_t tex_id, Textu
 
 // Создать шейдерную программу (поля на vert, frag, geom, могут быть освобождены ТОЛЬКО после компиляции шейдера!):
 Shader* Shader_create(Renderer *renderer, const char *vert, const char *frag, const char *geom) {
-    if (!renderer) return NULL;
+    if (!renderer) return nullptr;
 
     // Создаём шейдер:
     Shader *shader = (Shader*)mm_alloc(sizeof(Shader));
@@ -223,7 +223,7 @@ Shader* Shader_create(Renderer *renderer, const char *vert, const char *frag, co
     shader->vertex = vert;
     shader->fragment = frag;
     shader->geometry = geom;
-    shader->error = NULL;
+    shader->error = nullptr;
     shader->id = 0;
     shader->renderer = renderer;
     shader->_is_begin_ = false;
@@ -251,7 +251,7 @@ void Shader_destroy(Shader **shader) {
     // Освобождаем структуру:
     if ((*shader)->error) mm_free((*shader)->error);
     mm_free(*shader);
-    *shader = NULL;
+    *shader = nullptr;
 }
 
 // Компиляция шейдеров в программу:
@@ -261,7 +261,7 @@ void Shader_compile(Shader *self) {
     // Очищаем старые ошибки:
     if (self->error) {
         mm_free(self->error);
-        self->error = NULL;
+        self->error = nullptr;
     }
 
     // Проверяем наличие шейдеров:
@@ -279,8 +279,8 @@ void Shader_compile(Shader *self) {
 
     // Создаём шейдерную программу:
     uint32_t program = glCreateProgram();
-    uint32_t shaders[3] = {0};
-    bool attached[3] = {false, false, false};
+    uint32_t shaders[3] = {};
+    bool attached[3] = {};
 
     if (!program) {
         _shader_set_error_(self, "ShaderCreateError: The OpenGL context has not been created or is inactive.\n");
@@ -329,7 +329,7 @@ void Shader_compile(Shader *self) {
 
 // Получить ошибку компиляции или линковки:
 const char* Shader_get_error(Shader *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->error;
 }
 
@@ -353,7 +353,7 @@ void Shader_end(Shader *self) {
 }
 
 // Получить локацию переменной:
-int32_t Shader_get_location(Shader *self, const char* name) {
+int32_t Shader_get_location(Shader *self, const char *name) {
     if (!self || !name || self->id == 0) return -1;
 
     // Ищем и возвращаем локацию в кэше:
@@ -377,7 +377,7 @@ int32_t Shader_get_location(Shader *self, const char* name) {
 }
 
 // Установить значение bool:
-void Shader_set_bool(Shader *self, const char* name, bool value) {
+void Shader_set_bool(Shader *self, const char *name, bool value) {
     if (!self || !self->_is_begin_ || !name) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
@@ -401,7 +401,7 @@ void Shader_set_bool(Shader *self, const char* name, bool value) {
 }
 
 // Установить значение int:
-void Shader_set_int(Shader *self, const char* name, int value) {
+void Shader_set_int(Shader *self, const char *name, int value) {
     if (!self || !self->_is_begin_ || !name) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
@@ -425,7 +425,7 @@ void Shader_set_int(Shader *self, const char* name, int value) {
 }
 
 // Установить значение float:
-void Shader_set_float(Shader *self, const char* name, float value) {
+void Shader_set_float(Shader *self, const char *name, float value) {
     if (!self || !self->_is_begin_ || !name) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
@@ -449,7 +449,7 @@ void Shader_set_float(Shader *self, const char* name, float value) {
 }
 
 // Установить значение vec2:
-void Shader_set_vec2(Shader *self, const char* name, Vec2f value) {
+void Shader_set_vec2(Shader *self, const char *name, Vec2f value) {
     if (!self || !self->_is_begin_ || !name) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
@@ -477,7 +477,7 @@ void Shader_set_vec2(Shader *self, const char* name, Vec2f value) {
 }
 
 // Установить значение vec3:
-void Shader_set_vec3(Shader *self, const char* name, Vec3f value) {
+void Shader_set_vec3(Shader *self, const char *name, Vec3f value) {
     if (!self || !self->_is_begin_ || !name) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
@@ -507,7 +507,7 @@ void Shader_set_vec3(Shader *self, const char* name, Vec3f value) {
 }
 
 // Установить значение vec4:
-void Shader_set_vec4(Shader *self, const char* name, Vec4f value) {
+void Shader_set_vec4(Shader *self, const char *name, Vec4f value) {
     if (!self || !self->_is_begin_ || !name) return;
     int32_t loc = Shader_get_location(self, name);
     if (loc < 0) return; // Униформа не найдена.
@@ -540,76 +540,76 @@ void Shader_set_vec4(Shader *self, const char* name, Vec4f value) {
 }
 
 // Установить значение mat2:
-void Shader_set_mat2(Shader *self, const char* name, mat2 value) {
+void Shader_set_mat2(Shader *self, const char *name, mat2 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix2fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat3:
-void Shader_set_mat3(Shader *self, const char* name, mat3 value) {
+void Shader_set_mat3(Shader *self, const char *name, mat3 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix3fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat4:
-void Shader_set_mat4(Shader *self, const char* name, mat4 value) {
+void Shader_set_mat4(Shader *self, const char *name, mat4 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat2x3:
-void Shader_set_mat2x3(Shader *self, const char* name, mat2x3 value) {
+void Shader_set_mat2x3(Shader *self, const char *name, mat2x3 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix2x3fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat3x2:
-void Shader_set_mat3x2(Shader *self, const char* name, mat3x2 value) {
+void Shader_set_mat3x2(Shader *self, const char *name, mat3x2 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix3x2fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat2x4:
-void Shader_set_mat2x4(Shader *self, const char* name, mat2x4 value) {
+void Shader_set_mat2x4(Shader *self, const char *name, mat2x4 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix2x4fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat4x2:
-void Shader_set_mat4x2(Shader *self, const char* name, mat4x2 value) {
+void Shader_set_mat4x2(Shader *self, const char *name, mat4x2 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix4x2fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat3x4:
-void Shader_set_mat3x4(Shader *self, const char* name, mat3x4 value) {
+void Shader_set_mat3x4(Shader *self, const char *name, mat3x4 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix3x4fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить значение mat4x3:
-void Shader_set_mat4x3(Shader *self, const char* name, mat4x3 value) {
+void Shader_set_mat4x3(Shader *self, const char *name, mat4x3 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix4x3fv(loc, 1, GL_FALSE, (float*)value);
 }
 
 // Установить 2D текстуру:
-void Shader_set_tex2d(Shader *self, const char* name, uint32_t tex_id) {
+void Shader_set_tex2d(Shader *self, const char *name, uint32_t tex_id) {
     if (!self || !self->renderer || !self->_is_begin_ || !name) return;
     _set_sampler_(self, name, tex_id, TEX_TYPE_2D);
 }
 
 // Установить 3D текстуру:
-void Shader_set_tex3d(Shader *self, const char* name, uint32_t tex_id) {
+void Shader_set_tex3d(Shader *self, const char *name, uint32_t tex_id) {
     if (!self || !self->renderer || !self->_is_begin_ || !name) return;
     _set_sampler_(self, name, tex_id, TEX_TYPE_3D);
 }

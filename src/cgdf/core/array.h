@@ -10,9 +10,9 @@
 
 
 // Определения:
-#define ARRAY_DEFAULT_CAPACITY 1024  // Размер массива по умолчанию.
-#define ARRAY_GROWTH_FACTOR    2     // Коэффициент расширения массива.
-#define ARRAY_SHRINK_FACTOR    0.25  // Коэффициент сжатия массива.
+#define ARRAY_DEFAULT_CAPACITY 1024   // Размер массива по умолчанию.
+#define ARRAY_GROWTH_FACTOR    2.0f   // Коэффициент расширения массива.
+#define ARRAY_SHRINK_FACTOR    0.25f  // Коэффициент сжатия массива.
 
 
 // Перечисление режимов печати:
@@ -45,7 +45,7 @@ struct Array {
 
 
 // Создать массив с заданным размером:
-Array* Array_create(size_t item_size, size_t initial_capacity);
+[[nodiscard]] Array* Array_create(size_t item_size, size_t initial_capacity);
 
 // Уничтожить массив:
 void Array_destroy(Array **arr);
@@ -96,7 +96,7 @@ void Array_remove_swap(Array *arr, size_t index, void *out);
 void Array_pop(Array *arr, void *out);
 
 // Получить и удалить последний элемент из массива (alloc с копированием):
-void* Array_pop_copy(Array *arr);
+[[nodiscard]] void* Array_pop_copy(Array *arr);
 
 // Печать содержимого массива:
 void Array_print(Array *arr, FILE *out, ArrayPrintMode mode);

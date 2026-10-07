@@ -19,8 +19,8 @@
 // Определения:
 #define FONT_ATLAS_SIZE    1024  // Размер атласа по умолчанию (в глифах).
 #define FONT_ATLAS_PADDING 1     // Отступ между глифами со всех сторон (в пикселях).
-#define FONT_ATLAS_SCALING 1.5   // Масштабирование атласа при расширении.
-#define FONT_FALLBACK_SUMB '?'   // Замена нераспознанных символов.
+#define FONT_ATLAS_SCALING 1.5f  // Масштабирование атласа при расширении.
+#define FONT_FALLBACK_SYMB '?'   // Замена нераспознанных символов.
 
 
 // Перечисление точек центрирования:
@@ -106,7 +106,7 @@ struct FontTextBlock {
 
 
 // Создать растровый шрифт:
-FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int font_size);
+[[nodiscard]] FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int font_size);
 
 // Уничтожить растровый шрифт:
 void FontPixmap_destroy(FontPixmap **font);
@@ -175,7 +175,7 @@ void FontPixmap_set_space_advance(FontPixmap *self, float space_advance);
 float FontPixmap_get_space_advance(FontPixmap *self);
 
 // Получить блок текста:
-FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...);
+PRINTF_FORMAT(2, 3) FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...);
 
 // Отрисовать текст:
-void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const char *text, ...);
+PRINTF_FORMAT(5, 6) void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const char *text, ...);

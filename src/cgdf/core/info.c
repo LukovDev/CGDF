@@ -5,7 +5,7 @@
 
 // Подключаем:
 #include "std.h"
-#if defined(_WIN32)
+#ifdef _WIN32
     #include <windows.h>
     #include <intrin.h>
 #elif defined(__APPLE__)
@@ -25,7 +25,7 @@
 
 // Глобальные переменные:
 bool g_Info_cpu_cached_ = false;
-CpuInfo g_Info_cpu_info_cache_ = {0};
+CpuInfo g_Info_cpu_info_cache_ = {};
 
 
 // Получить архитектуру процессора в виде строки:
@@ -61,9 +61,9 @@ CpuInfo Info_get_cpu(void) {
     #endif
 
     // Получаем модель процессора:
-    #if defined(_WIN32)
+    #ifdef _WIN32
         int regs[4];
-        char name[49] = {0};
+        char name[49] = {};
         for (int i = 0; i < 3; i++) {
             __cpuid(regs, 0x80000002 + i);
             memcpy(name + i * 16, regs, 16);
@@ -71,20 +71,20 @@ CpuInfo Info_get_cpu(void) {
         strncpy(info.model, name, sizeof(info.model) - 1);
     #elif defined(__APPLE__)
         size_t len = sizeof(info.model);
-        if (sysctlbyname("machdep.cpu.brand_string", info.model, &len, NULL, 0) != 0) {
+        if (sysctlbyname("machdep.cpu.brand_string", info.model, &len, nullptr, 0) != 0) {
             strncpy(info.model, "Apple Silicon", sizeof(info.model) - 1);
         }
     #elif defined(__linux__)
         #if defined(__x86_64__) || defined(__i386__)
                 uint32_t regs[4];
-                char name[49] = {0};
+                char name[49] = {};
                 for (int i = 0; i < 3; i++) {
                     __get_cpuid(0x80000002 + i, &regs[0], &regs[1], &regs[2], &regs[3]);
                     memcpy(name + i * 16, regs, 16);
                 }
                 strncpy(info.model, name, sizeof(info.model) - 1);
         #else
-            FILE* f = fopen("/proc/cpuinfo", "r");
+            FILE *f = fopen("/proc/cpuinfo", "r");
             if (f) {
                 char line[256];
                 while (fgets(line, sizeof(line), f)) {
@@ -93,9 +93,9 @@ CpuInfo Info_get_cpu(void) {
                         strstr(line, "Hardware") ||
                         strstr(line, "Model"))
                     {
-                        char* col = strchr(line, ':');
+                        char *col = strchr(line, ':');
                         if (col && *(col + 1) != '\0') {
-                            const char* val = col + 1;
+                            const char *val = col + 1;
                             while (*val == ' ') val++;
                             strncpy(info.model, val, sizeof(info.model) - 1);
                             break;
@@ -121,12 +121,12 @@ CpuInfo Info_get_cpu(void) {
     }
 
     // Получаем количество потоков:
-    #if defined(_WIN32)
+    #ifdef _WIN32
         SYSTEM_INFO si; GetSystemInfo(&si);
         info.threads = si.dwNumberOfProcessors;
     #elif defined(__APPLE__)
         int count; size_t c_len = sizeof(count);
-        sysctlbyname("hw.ncpu", &count, &c_len, NULL, 0);
+        sysctlbyname("hw.ncpu", &count, &c_len, nullptr, 0);
         info.threads = count;
     #elif defined(__linux__)
         info.threads = sysconf(_SC_NPROCESSORS_ONLN);
@@ -144,7 +144,7 @@ CpuInfo Info_get_cpu(void) {
 // Функция для получения ОЗУ (в байтах):
 MemInfo Info_get_mem(void) {
     MemInfo info = {.total = 0, .free = 0, .used = 0};
-    #if defined(_WIN32)
+    #ifdef _WIN32
         MEMORYSTATUSEX status;
         status.dwLength = sizeof(status);
         GlobalMemoryStatusEx(&status);
@@ -153,7 +153,7 @@ MemInfo Info_get_mem(void) {
     #elif defined(__APPLE__)
         int64_t mem;
         size_t len = sizeof(mem);
-        sysctlbyname("hw.memsize", &mem, &len, NULL, 0);
+        sysctlbyname("hw.memsize", &mem, &len, nullptr, 0);
         info.total = mem;
         mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
         vm_statistics64_data_t vm_stats;

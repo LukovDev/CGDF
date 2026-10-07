@@ -62,10 +62,10 @@ struct ShaderCacheSampler {
 
 // Структура шейдера:
 struct Shader {
-    const char* vertex;
-    const char* fragment;
-    const char* geometry;
-    char* error;
+    const char *vertex;
+    const char *fragment;
+    const char *geometry;
+    char *error;
     uint32_t id;
     Renderer *renderer;
     bool _is_begin_;
@@ -82,7 +82,7 @@ struct Shader {
 
 
 // Создать шейдерную программу:
-Shader* Shader_create(Renderer *renderer, const char *vert, const char *frag, const char *geom);
+[[nodiscard]] Shader* Shader_create(Renderer *renderer, const char *vert, const char *frag, const char *geom);
 
 // Уничтожить шейдерную программу:
 void Shader_destroy(Shader **shader);
@@ -100,58 +100,58 @@ void Shader_begin(Shader *self);
 void Shader_end(Shader *self);
 
 // Получить локацию переменной:
-int32_t Shader_get_location(Shader *self, const char* name);
+int32_t Shader_get_location(Shader *self, const char *name);
 
 // Установить значение bool:
-void Shader_set_bool(Shader *self, const char* name, bool value);
+void Shader_set_bool(Shader *self, const char *name, bool value);
 
 // Установить значение int:
-void Shader_set_int(Shader *self, const char* name, int value);
+void Shader_set_int(Shader *self, const char *name, int value);
 
 // Установить значение float:
-void Shader_set_float(Shader *self, const char* name, float value);
+void Shader_set_float(Shader *self, const char *name, float value);
 
 // Установить значение vec2:
-void Shader_set_vec2(Shader *self, const char* name, Vec2f value);
+void Shader_set_vec2(Shader *self, const char *name, Vec2f value);
 
 // Установить значение vec3:
-void Shader_set_vec3(Shader *self, const char* name, Vec3f value);
+void Shader_set_vec3(Shader *self, const char *name, Vec3f value);
 
 // Установить значение vec4:
-void Shader_set_vec4(Shader *self, const char* name, Vec4f value);
+void Shader_set_vec4(Shader *self, const char *name, Vec4f value);
 
 // Установить значение mat2:
-void Shader_set_mat2(Shader *self, const char* name, mat2 value);
+void Shader_set_mat2(Shader *self, const char *name, mat2 value);
 
 // Установить значение mat3:
-void Shader_set_mat3(Shader *self, const char* name, mat3 value);
+void Shader_set_mat3(Shader *self, const char *name, mat3 value);
 
 // Установить значение mat4:
-void Shader_set_mat4(Shader *self, const char* name, mat4 value);
+void Shader_set_mat4(Shader *self, const char *name, mat4 value);
 
 // Установить значение mat2x3:
-void Shader_set_mat2x3(Shader *self, const char* name, mat2x3 value);
+void Shader_set_mat2x3(Shader *self, const char *name, mat2x3 value);
 
 // Установить значение mat3x2:
-void Shader_set_mat3x2(Shader *self, const char* name, mat3x2 value);
+void Shader_set_mat3x2(Shader *self, const char *name, mat3x2 value);
 
 // Установить значение mat2x4:
-void Shader_set_mat2x4(Shader *self, const char* name, mat2x4 value);
+void Shader_set_mat2x4(Shader *self, const char *name, mat2x4 value);
 
 // Установить значение mat4x2:
-void Shader_set_mat4x2(Shader *self, const char* name, mat4x2 value);
+void Shader_set_mat4x2(Shader *self, const char *name, mat4x2 value);
 
 // Установить значение mat3x4:
-void Shader_set_mat3x4(Shader *self, const char* name, mat3x4 value);
+void Shader_set_mat3x4(Shader *self, const char *name, mat3x4 value);
 
 // Установить значение mat4x3:
-void Shader_set_mat4x3(Shader *self, const char* name, mat4x3 value);
+void Shader_set_mat4x3(Shader *self, const char *name, mat4x3 value);
 
 // Установить 2D текстуру:
-void Shader_set_tex2d(Shader *self, const char* name, uint32_t tex_id);
+void Shader_set_tex2d(Shader *self, const char *name, uint32_t tex_id);
 
 // Установить 3D текстуру:
-void Shader_set_tex3d(Shader *self, const char* name, uint32_t tex_id);
+void Shader_set_tex3d(Shader *self, const char *name, uint32_t tex_id);
 
 // Очистить кэши шейдера:
 void Shader_clear_caches(Shader *self);

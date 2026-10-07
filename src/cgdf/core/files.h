@@ -24,19 +24,19 @@ bool Files_chdir(const char *path);
 char* Files_get_home(void);
 
 // Получить директорию файла (требуется освободить память):
-char* Files_dirname_dup(const char *filepath);
+[[nodiscard]] char* Files_dirname_dup(const char *filepath);
 
 // Склеить пути (требуется освободить память):
-char* Files_path_join(const char *dir, const char *path);
+[[nodiscard]] char* Files_path_join(const char *dir, const char *path);
 
 // Загружаем файл в строку:
-char* Files_load(const char* file_path, const char* mode);
+[[nodiscard]] char* Files_load(const char *file_path, const char *mode);
 
 // Сохраняем строку в файл:
-bool Files_save(const char* file_path, const char* data, const char* mode);
+bool Files_save(const char *file_path, const char *data, const char *mode);
 
 // Загружаем файл в буфер бинарно:
-unsigned char* Files_load_bin(const char* file_path, const char* mode, size_t* out_size);
+[[nodiscard]] unsigned char* Files_load_bin(const char *file_path, const char *mode, size_t *out_size);
 
 // Сохраняем буфер в файл бинарно:
-bool Files_save_bin(const char* file_path, const void* data, size_t size, const char* mode);
+bool Files_save_bin(const char *file_path, const void *data, size_t size, const char *mode);

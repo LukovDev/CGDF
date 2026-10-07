@@ -117,7 +117,7 @@ static size_t get_tex_size(Texture *self) {
 
 // Создать текстуру:
 Texture* Texture_create(Renderer *renderer) {
-    if (!renderer) return NULL;
+    if (!renderer) return nullptr;
 
     // Заполняем поля:
     Texture *texture = (Texture*)mm_alloc(sizeof(Texture));
@@ -148,7 +148,7 @@ void Texture_destroy(Texture **texture) {
 
     // Освобождаем структуру:
     mm_free(*texture);
-    *texture = NULL;
+    *texture = nullptr;
 }
 
 // Активация текстуры:
@@ -185,10 +185,10 @@ void Texture_empty(
     width = width <= 0 ? 1 : width;
     height = height <= 0 ? 1 : height;
     // Не гарантируем, что текстура будет полностью пустой. Её надо будет очистить!
-    Texture_set_data(self, width, height, NULL, use_mipmap, format, internal, dtype);
+    Texture_set_data(self, width, height, nullptr, use_mipmap, format, internal, dtype);
 }
 
-// Загрузить текстуру (из файла):
+// Загрузить текстуру (из файла):
 void Texture_load(Texture *self, const char *filepath, bool use_mipmap) {
     Pixmap *img = Pixmap_load(filepath, PIXMAP_RGBA);
     if (!img) return;
@@ -255,7 +255,7 @@ void Texture_load_pixmap(Texture *self, Pixmap *pixmap, bool use_mipmap) {
     );
 }
 
-// Загрузить текстуру (из файла) расширенный режим:
+// Загрузить текстуру (из файла) расширенный режим:
 void Texture_load_advanced(
     Texture *self, const char *filepath, bool use_mipmap,
     TextureFormat format, TextureInternalFormat internal, TextureDataType dtype
@@ -366,7 +366,7 @@ void Texture_set_subdata(
 
 // Получить картинку из текстуры:
 Pixmap* Texture_get_pixmap(Texture *self, int channels) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
 
     // Выделяем память под данные (указатель на блок сохраняется в img ниже):
     TextureDataType type = TEX_DATA_UBYTE;
@@ -379,7 +379,7 @@ Pixmap* Texture_get_pixmap(Texture *self, int channels) {
         default: break;
     }
     size_t bpp = channels * (type == TEX_DATA_FLOAT ? sizeof(float) : sizeof(uint8_t));
-    void* data = mm_alloc(self->width * self->height * bpp);
+    void *data = mm_alloc(self->width * self->height * bpp);
 
     // Подбираем формат данных:
     int gl_format;
@@ -399,7 +399,7 @@ Pixmap* Texture_get_pixmap(Texture *self, int channels) {
     Texture_end(self);
 
     // Создаём изображение:
-    Pixmap* pixmap = mm_alloc(sizeof(Pixmap));
+    Pixmap *pixmap = mm_alloc(sizeof(Pixmap));
 
     pixmap->width = self->width;
     pixmap->height = self->height;

@@ -81,7 +81,7 @@ struct Texture {
     TextureFormat format;              // Формат текстуры (каналы).
     TextureInternalFormat internal;    // Внутренний формат текстуры.
     TextureDataType dtype;             // Тип данных текстуры.
-    size_t size;                       // Размер текстуры в байтах в VRAM.
+    size_t size;                       // Размер текстуры в байтах в VRAM.
     int32_t _id_before_begin_;         // Прошлые айди состояния (внутренняя логика).
     int32_t _active_id_before_begin_;  // Прошлые айди состояния (внутренняя логика).
 };
@@ -91,7 +91,7 @@ struct Texture {
 
 
 // Создать текстуру:
-Texture* Texture_create(Renderer *renderer);
+[[nodiscard]] Texture* Texture_create(Renderer *renderer);
 
 // Уничтожить текстуру:
 void Texture_destroy(Texture **texture);
@@ -108,13 +108,13 @@ void Texture_empty(
     TextureFormat format, TextureInternalFormat internal, TextureDataType dtype
 );
 
-// Загрузить текстуру (из файла):
+// Загрузить текстуру (из файла):
 void Texture_load(Texture *self, const char *filepath, bool use_mipmap);
 
 // Загрузить текстуру (из картинки):
 void Texture_load_pixmap(Texture *self, Pixmap *pixmap, bool use_mipmap);
 
-// Загрузить текстуру (из файла) расширенный режим:
+// Загрузить текстуру (из файла) расширенный режим:
 void Texture_load_advanced(
     Texture *self, const char *filepath, bool use_mipmap,
     TextureFormat format, TextureInternalFormat internal, TextureDataType dtype
@@ -133,7 +133,7 @@ void Texture_set_subdata(
 );
 
 // Получить картинку из текстуры:
-Pixmap* Texture_get_pixmap(Texture *self, int channels);
+[[nodiscard]] Pixmap* Texture_get_pixmap(Texture *self, int channels);
 
 // Получить размер текстуры:
 size_t Texture_get_size(Texture *self);

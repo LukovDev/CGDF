@@ -12,38 +12,43 @@
 static int _perlin_hash_(int x, int y, uint64_t seed) {
     uint64_t ux = (uint64_t)x;
     uint64_t uy = (uint64_t)y;
-    uint64_t h = seed ^ (ux * 123456789ULL) ^ (uy * 987654321ULL);
+    uint64_t h = seed ^ (ux * 123'456'789ULL) ^ (uy * 987'654'321ULL);
     h = (h ^ (h >> 16)) * 0x45d9f3bULL;
     h = (h ^ (h >> 16)) * 0x45d9f3bULL;
     h = h ^ (h >> 16);
     return (int)(h & 255);
 }
 
+
 // Функция плавного интерполирования:
 static double _perlin_fade_(double t) {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
+
 
 // Линейная интерполяция:
 static double _perlin_lerp_(double t, double a, double b) {
     return a + t * (b - a);
 }
 
+
 // Вычисление скалярного произведения случайного градиентного вектора и вектора до точки:
 static double _perlin_grad_(int hash, double x, double y) {
     // Используем 8 классических 2D-направлений:
+    const double diag = 0.7071067811865476;  // 1/sqrt(2) - компонента диагонального направления.
     switch (hash & 7) {
         case 0: return  1.0 * x +  0.0 * y;
         case 1: return -1.0 * x +  0.0 * y;
         case 2: return  0.0 * x +  1.0 * y;
         case 3: return  0.0 * x + -1.0 * y;
-        case 4: return  0.7071067811865476 * x +  0.7071067811865476 * y;
-        case 5: return -0.7071067811865476 * x +  0.7071067811865476 * y;
-        case 6: return  0.7071067811865476 * x + -0.7071067811865476 * y;
-        case 7: return -0.7071067811865476 * x + -0.7071067811865476 * y;
+        case 4: return  diag * x +  diag * y;
+        case 5: return -diag * x +  diag * y;
+        case 6: return  diag * x + -diag * y;
+        case 7: return -diag * x + -diag * y;
         default: return 0;
     }
 }
+
 
 // Базовая функция одиночной октавы шума Перлина (возвращает значение от -1.0 до 1.0):
 double Noise_perlin2d(double x, double y, uint64_t seed) {
@@ -70,6 +75,7 @@ double Noise_perlin2d(double x, double y, uint64_t seed) {
     double n = _perlin_lerp_(v, low_x, high_x) * 1.41421356;
     return n;
 }
+
 
 // Функция генерации фрактального шума Перлина (от -1.0 до 1.0):
 double Noise_perlin_fbm(double x, double y, uint64_t seed, int octaves, double persistence, double lacunarity) {

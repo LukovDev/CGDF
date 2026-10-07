@@ -29,8 +29,8 @@ Sprite2D* Sprite2D_create(
     float angle, Vec4f color, bool custom_shader
 ) {
     if (!renderer) {
-        log_msg("[E] Sprite2D_create: Renderer is NULL.\n");
-        return NULL;
+        log_msg("[E] Sprite2D_create: Renderer is nullptr.\n");
+        return nullptr;
     }
     Sprite2D *sprite = (Sprite2D*)mm_alloc(sizeof(Sprite2D));
 
@@ -52,7 +52,7 @@ Sprite2D* Sprite2D_create(
 void Sprite2D_destroy(Sprite2D **sprite) {
     if (!sprite || !*sprite) return;
     mm_free(*sprite);
-    *sprite = NULL;
+    *sprite = nullptr;
 }
 
 // Отрисовать 2D спрайт (без создания экземпляра):
@@ -117,7 +117,7 @@ Sprite3D* Sprite3D_create(
 ) {
     if (!renderer) {
         log_msg("[E] Sprite3D_create: Renderer is NULL.\n");
-        return NULL;
+        return nullptr;
     }
     Sprite3D *sprite = (Sprite3D*)mm_alloc(sizeof(Sprite3D));
 
@@ -138,7 +138,7 @@ Sprite3D* Sprite3D_create(
 void Sprite3D_destroy(Sprite3D **sprite) {
     if (!sprite || !*sprite) return;
     mm_free(*sprite);
-    *sprite = NULL;
+    *sprite = nullptr;
 }
 
 // Отрисовать 3D спрайт (без создания экземпляра):

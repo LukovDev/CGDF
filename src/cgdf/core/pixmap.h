@@ -41,22 +41,22 @@ struct Pixmap {
 
 
 // Создать картинку:
-Pixmap* Pixmap_create(int width, int height, int channels);
+[[nodiscard]] Pixmap* Pixmap_create(int width, int height, int channels);
 
 // Уничтожить картинку:
 void Pixmap_destroy(Pixmap **pixmap);
 
 // Загрузить картинку:
-Pixmap* Pixmap_load(const char *filepath, int channels);
+[[nodiscard]] Pixmap* Pixmap_load(const char *filepath, int channels);
 
 // Сохранить картинку:
 bool Pixmap_save(Pixmap *self, const char *filepath, const char *format);
 
 // Копировать картинку в памяти:
-Pixmap* Pixmap_copy(const Pixmap *source);
+[[nodiscard]] Pixmap* Pixmap_copy(const Pixmap *source);
 
 // Создать стандартную картинку:
-Pixmap* Pixmap_create_default(void);
+[[nodiscard]] Pixmap* Pixmap_create_default(void);
 
 // Получить размер картинки в байтах:
 size_t Pixmap_get_size(Pixmap *self);

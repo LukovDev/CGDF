@@ -43,7 +43,7 @@ static uint32_t* _create_indices_buffer_(uint32_t size, uint32_t batch_size) {
         буфер только один раз и больше не будем в нём менять память. Это производительно.
     */
     uint32_t *indices = (uint32_t*)mm_alloc(size);
-    static const uint32_t pattern[6] = {0, 1, 2, 2, 3, 0};
+    static const uint32_t pattern[BATCH_INDCS_PER_SPRITE] = {0, 1, 2, 2, 3, 0};
     // Проходимся по спрайтам в буфере:
     for (uint32_t i = 0; i < batch_size; i++) {
         uint32_t *dst = indices + i * BATCH_INDCS_PER_SPRITE;  // Определяем сдвиг для записи.
@@ -73,7 +73,7 @@ static void _create_buffers_(SpriteBatch *batch) {
     // Если пакет равен 2048 спрайтам, то размер буфера: 4 * 6 * 2048 = 49152 байт (48 кб) в озу и в видеопамяти.
     size_t size_indices = sizeof(uint32_t) * BATCH_INDCS_PER_SPRITE * batch->batch_size;
 
-    batch->vbo = BufferVBO_create(NULL, size, GL_DYNAMIC_DRAW);
+    batch->vbo = BufferVBO_create(nullptr, size, GL_DYNAMIC_DRAW);
     batch->array = (SpriteVertex*)mm_alloc(size);
 
     // Создаём массив индексов, чтобы из 4 вершины спрайта можно было рисовать 2 треугольника:
@@ -109,7 +109,7 @@ static void _batch_flush_(SpriteBatch *self) {
 
     // Обновляем в шейдере текстуру (предположительно, шейдер уже должен быть активен после вызова SpriteBatch_begin):
     Shader *shader = self->renderer->shader_spritebatch;
-    if (self->_custom_shader_ != NULL) shader = self->_custom_shader_;
+    if (self->_custom_shader_ != nullptr) shader = self->_custom_shader_;
     Shader_set_bool(shader, "u_use_texture", self->current_tex_id != 0 ? true : false);
     Shader_set_tex2d(shader, "u_texture", self->current_tex_id);
 
@@ -117,7 +117,7 @@ static void _batch_flush_(SpriteBatch *self) {
     BufferVBO_set_subdata(self->vbo, self->array, 0, self->vertex_count * sizeof(SpriteVertex));
 
     // Рисуем (буфер VAO должен быть активен):
-    glDrawElements(GL_TRIANGLES, BATCH_INDCS_PER_SPRITE * self->sprite_count, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, BATCH_INDCS_PER_SPRITE * self->sprite_count, GL_UNSIGNED_INT, nullptr);
 
     // Сбрасываем данные:
     self->sprite_count = 0;
@@ -132,16 +132,16 @@ static void _batch_flush_(SpriteBatch *self) {
 SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     if (!renderer) {
         log_msg("[E] SpriteBatch_create: Renderer is NULL.\n");
-        return NULL;
+        return nullptr;
     }
     SpriteBatch *batch = (SpriteBatch*)mm_alloc(sizeof(SpriteBatch));
 
     // Заполняем поля:
     batch->renderer = renderer;
     batch->vao = BufferVAO_create();
-    batch->vbo = NULL;
-    batch->ebo = NULL;
-    batch->array = NULL;
+    batch->vbo = nullptr;
+    batch->ebo = nullptr;
+    batch->array = nullptr;
     batch->sprite_count = 0;
     batch->vertex_count = 0;
     batch->current_tex_id = 0;
@@ -149,7 +149,7 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     batch->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
     batch->batch_size = BATCH_MAX_SPRITES;
     batch->_is_begin_ = false;
-    batch->_custom_shader_ = NULL;
+    batch->_custom_shader_ = nullptr;
     batch->_buffers_init_ = false;
 
     // Буферы инициализируются позже (в begin), ради того чтобы можно было успеть указать кастомный размер пакета.
@@ -168,7 +168,7 @@ void SpriteBatch_destroy(SpriteBatch **batch) {
     if ((*batch)->array) mm_free((*batch)->array);
 
     mm_free(*batch);
-    *batch = NULL;
+    *batch = nullptr;
 }
 
 // Начать отрисовку:
@@ -186,7 +186,7 @@ void SpriteBatch_begin(SpriteBatch *self) {
     mat4 view, proj;
     Renderer_get_view_proj(self->renderer, view, proj);
     Shader *shader = self->renderer->shader_spritebatch;
-    if (self->_custom_shader_ != NULL) shader = self->_custom_shader_;
+    if (self->_custom_shader_ != nullptr) shader = self->_custom_shader_;
     Shader_begin(shader);
     Shader_set_mat4(shader, "u_view", view);
     Shader_set_mat4(shader, "u_proj", proj);
@@ -246,7 +246,7 @@ void SpriteBatch_set_batch_size(SpriteBatch *self, uint32_t size) {
     // Удаляем буферы:
     BufferVBO_destroy(&self->vbo);
     BufferEBO_destroy(&self->ebo);
-    if (self->array) { mm_free(self->array); self->array = NULL; }
+    if (self->array) { mm_free(self->array); self->array = nullptr; }
     self->_buffers_init_ = false;
 
     // Пересоздаём буферы:
@@ -447,7 +447,7 @@ void SpriteBatch_end(SpriteBatch *self) {
     BufferVBO_end(self->vbo);
     BufferVAO_end(self->vao);
     Shader *shader = self->renderer->shader_spritebatch;
-    if (self->_custom_shader_ != NULL) shader = self->_custom_shader_;
+    if (self->_custom_shader_ != nullptr) shader = self->_custom_shader_;
     Shader_end(shader);
     self->_is_begin_ = false;
 }

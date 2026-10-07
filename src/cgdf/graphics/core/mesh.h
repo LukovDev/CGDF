@@ -22,10 +22,10 @@ typedef struct Mesh Mesh;  // Структура сетки.
 
 
 // Создать сетку:
-Mesh* Mesh_create(
-    const Vertex* vertices,
+[[nodiscard]] Mesh* Mesh_create(
+    const Vertex *vertices,
     uint32_t vertex_count,
-    const uint32_t* indices,
+    const uint32_t *indices,
     uint32_t index_count,
     bool is_dynamic,
     Material *material

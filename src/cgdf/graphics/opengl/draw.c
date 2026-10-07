@@ -83,7 +83,7 @@ SimpleDraw* SimpleDraw_create(Renderer *renderer) {
     // Заполняем поля:
     draw->renderer = renderer;
     draw->vao = BufferVAO_create();
-    draw->vbo = BufferVBO_create(NULL, 0, GL_DYNAMIC_DRAW);
+    draw->vbo = BufferVBO_create(nullptr, 0, GL_DYNAMIC_DRAW);
     draw->vertex_count = 0;
 
     // Настраиваем буфер:
@@ -107,7 +107,7 @@ void SimpleDraw_destroy(SimpleDraw **draw) {
     BufferVBO_destroy(&(*draw)->vbo);
 
     mm_free(*draw);
-    *draw = NULL;
+    *draw = nullptr;
 }
 
 

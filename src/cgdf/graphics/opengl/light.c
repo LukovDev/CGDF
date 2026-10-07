@@ -41,7 +41,7 @@ typedef enum {
 
 // Создать 2D освещение:
 Light2D* Light2D_create(Renderer *renderer, Vec3f ambient, float intensity) {
-    if (!renderer) return NULL;
+    if (!renderer) return nullptr;
     Light2D *light = (Light2D*)mm_alloc(sizeof(Light2D));
 
     int width = Renderer_get_width(renderer);
@@ -85,7 +85,7 @@ void Light2D_destroy(Light2D **light) {
     BufferFBO_destroy(&(*light)->framebuffer);
 
     mm_free(*light);
-    *light = NULL;
+    *light = nullptr;
 }
 
 // Начать захватывать отрисовку сцены:

@@ -5,6 +5,7 @@
 #pragma once
 
 // Подключаем:
+#include <stddef.h>
 #include "glad/glad.h"
 
 

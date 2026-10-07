@@ -10,14 +10,14 @@
 
 
 // Определения:
-#define HASHTABLE_DEFAULT_CAPACITY 1024  // Размер хэш-таблицы по-умолчанию.
-#define HASHTABLE_MIN_CAPACITY     1024  // Минимальный размер хэш-таблицы.
-#define HASHTABLE_GROWTH_FACTOR    2     // Коэффициент увеличения таблицы.
-#define HASHTABLE_SHRINK_FACTOR    2     // Коэффициент сжатия таблицы (формула: cap = len*SHRINK_FACTOR).
-#define HASHTABLE_GROWTH_THRESHOLD 0.66  // Порог количества заполненности таблицы для расширения (%).
-#define HASHTABLE_SHRINK_THRESHOLD 0.25  // Порог количества заполненности таблицы для сжатия (%).
-#define HASHTABLE_PROBING_COUNT    64    // Массив записей последних пробирований (аналитика).
-#define HASHTABLE_PROBING_LIMIT    32    // Лимит пробирований при поиске слота.
+#define HASHTABLE_DEFAULT_CAPACITY 1024   // Размер хэш-таблицы по умолчанию.
+#define HASHTABLE_MIN_CAPACITY     1024   // Минимальный размер хэш-таблицы.
+#define HASHTABLE_GROWTH_FACTOR    2.0f   // Коэффициент увеличения таблицы.
+#define HASHTABLE_SHRINK_FACTOR    2.0f   // Коэффициент сжатия таблицы (формула: cap = len*SHRINK_FACTOR).
+#define HASHTABLE_GROWTH_THRESHOLD 0.66f  // Порог количества заполненности таблицы для расширения (%).
+#define HASHTABLE_SHRINK_THRESHOLD 0.25f  // Порог количества заполненности таблицы для сжатия (%).
+#define HASHTABLE_PROBING_COUNT    64     // Массив записей последних пробирований (аналитика).
+#define HASHTABLE_PROBING_LIMIT    32     // Лимит пробирований при поиске слота.
 
 
 // Перечисление режимов печати:
@@ -58,24 +58,24 @@ struct HashTable {
     size_t  capacity;    // Всего выделенных ячеек в памяти (вместимость).
     size_t  prob_count[HASHTABLE_PROBING_COUNT];  // Количество пробирований (поиск слота).
     size_t  prob_index;  // Индекс (счетчик) в массиве prob_count.
-    size_t (*hash_func)(const void* data, size_t len);  // Функция хэша. Можно сменить.
+    size_t (*hash_func)(const void *data, size_t len);  // Функция хэша. Можно сменить.
 };
 
 
 // Функция хэша на основе FNV-1a:
-static inline size_t hash_fnv1a(const void* data, size_t len) {
-    size_t hash = 1469598103934665603ULL;  // Offset basis.
-    const unsigned char* ptr = (const unsigned char*)data;
+static inline size_t hash_fnv1a(const void *data, size_t len) {
+    size_t hash = 14'695'981'039'346'656'037ULL;  // Offset basis.
+    const unsigned char *ptr = (const unsigned char*)data;
     for (size_t i = 0; i < len; i++) {
         hash ^= (size_t)ptr[i];
-        hash *= 1099511628211ULL;  // FNV prime.
+        hash *= 1'099'511'628'211ULL;  // FNV prime.
     }
     return hash;
 }
 
 
 // Создать хэш-таблицу:
-HashTable* HashTable_create(void);
+[[nodiscard]] HashTable* HashTable_create(void);
 
 // Уничтожить хэш-таблицу (не удаляет блоки по указателям):
 void HashTable_destroy(HashTable **table);
@@ -84,7 +84,7 @@ void HashTable_destroy(HashTable **table);
 bool HashTable_set(HashTable *table, const void *key, size_t key_size, const void *value, size_t value_size);
 
 // Получить элемент по ключу. Возвращает true, если ключ найден.
-// Значение и его размер записываются в out_value и out_value_size (оба можно передать NULL):
+// Значение и его размер записываются в out_value и out_value_size (оба можно передать nullptr):
 bool HashTable_get(HashTable *table, const void *key, size_t key_size, void **out_value, size_t *out_value_size);
 
 // Получить слот из таблицы по индексу:

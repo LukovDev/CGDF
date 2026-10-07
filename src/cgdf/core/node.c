@@ -34,6 +34,7 @@ Node* Node_create(Node *parent) {
     return node;
 }
 
+
 // Уничтожить нод:
 void Node_destroy(Node **node) {
     if (!node || !*node) return;
@@ -47,21 +48,23 @@ void Node_destroy(Node **node) {
     if ((*node)->children) {
         for (size_t i = 0; i < Array_len((*node)->children); i++) {
             Node *child = (Node*)Array_get_ptr((*node)->children, i);
-            child->parent = NULL;  // Чтобы потомок не пытался удалить себя из нас.
+            child->parent = nullptr;  // Чтобы потомок не пытался удалить себя из нас.
             Node_destroy(&child);
         }
         Array_destroy(&(*node)->children);
     }
 
     mm_free(*node);
-    *node = NULL;
+    *node = nullptr;
 }
+
 
 // Получить список дочерних нод:
 Array* Node_get_children(Node *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->children;
 }
+
 
 // Установить позицию:
 void Node_set_position(Node *self, Vec3d position) {
@@ -71,6 +74,7 @@ void Node_set_position(Node *self, Vec3d position) {
     Node_invalidate_parent(self);  // Проход потомков в глубину и установка флага parent_changed.
 }
 
+
 // Установить поворот:
 void Node_set_quaternion(Node *self, versor quaternion) {
     if (!self) return;
@@ -79,6 +83,7 @@ void Node_set_quaternion(Node *self, versor quaternion) {
     Node_invalidate_parent(self);  // Проход потомков в глубину и установка флага parent_changed.
 }
 
+
 // Установить масштаб:
 void Node_set_scale(Node *self, Vec3d scale) {
     if (!self) return;
@@ -86,6 +91,7 @@ void Node_set_scale(Node *self, Vec3d scale) {
     self->changed = true;          // Флаг о изменении нода.
     Node_invalidate_parent(self);  // Проход потомков в глубину и установка флага parent_changed.
 }
+
 
 // Вращать узел:
 void Node_rotate(Node *self, Vec3d axis, float angle) {
@@ -97,6 +103,7 @@ void Node_rotate(Node *self, Vec3d axis, float angle) {
     Node_invalidate_parent(self);  // Проход потомков в глубину и установка флага parent_changed.
 }
 
+
 // Получить матрицу трансформации:
 void Node_get_transform(Node *self, mat4 dest) {
     if (!self) {
@@ -106,6 +113,7 @@ void Node_get_transform(Node *self, mat4 dest) {
     Node_recalculate_matrix(self);  // Если требуется, пересчитаем матрицу.
     glm_mat4_copy(self->result_transform, dest);
 }
+
 
 // Получить позицию в мире:
 Vec3d Node_get_world_position(Node *self) {
@@ -118,6 +126,7 @@ Vec3d Node_get_world_position(Node *self) {
     pos.z = self->result_transform[3][2];
     return pos;
 }
+
 
 // Получить поворот в мире:
 void Node_get_world_quaternion(Node *self, versor dest) {
@@ -136,6 +145,7 @@ void Node_get_world_quaternion(Node *self, versor dest) {
     glm_mat4_quat(pure_rot, dest);
 }
 
+
 // Получить масштаб в мире:
 Vec3d Node_get_world_scale(Node *self) {
     if (!self) return (Vec3d){0.0, 0.0, 0.0};
@@ -148,9 +158,10 @@ Vec3d Node_get_world_scale(Node *self) {
     return scale;
 }
 
+
 // Копировать нод c потомками в переданный родитель:
 Node* Node_copy(Node *self, Node *parent) {
-    if (!self || !parent) return NULL;
+    if (!self || !parent) return nullptr;
     Node *copy = (Node*)mm_alloc(sizeof(Node));
     memcpy(copy, self, sizeof(Node));  // Копируем всё разом.
 
@@ -169,6 +180,7 @@ Node* Node_copy(Node *self, Node *parent) {
     return copy;
 }
 
+
 // Удалить дочерний узел (из списка потомков):
 void Node_remove_child(Node *self, Node *child) {
     if (!self || !child) return;
@@ -178,12 +190,13 @@ void Node_remove_child(Node *self, Node *child) {
 
     // Если нашли, удаляем его:
     if (index) {
-        child->parent = NULL;           // Удаляем родителя у потомка.
+        child->parent = nullptr;        // Удаляем родителя у потомка.
         child->parent_changed = true;   // Теперь он сам по себе, матрицы надо пересчитать.
         Node_invalidate_parent(child);  // Помечаем все потомки что родитель изменился.
-        Array_remove(self->children, index-1, NULL);  // index-1 потому что в find счет не с нуля.
+        Array_remove(self->children, index-1, nullptr);  // index-1 потому что в find счет не с нуля.
     }
 }
+
 
 // Установить родителя:
 void Node_set_parent(Node *self, Node *parent) {
@@ -217,11 +230,13 @@ void Node_set_parent(Node *self, Node *parent) {
     Node_invalidate_parent(self);
 }
 
+
 // Получить родителя:
 Node* Node_get_parent(Node *self) {
-    if (!self) return NULL;
+    if (!self) return nullptr;
     return self->parent;
 }
+
 
 // Пересчитать матрицу трансформации:
 void Node_recalculate_matrix(Node *self) {
@@ -248,6 +263,7 @@ void Node_recalculate_matrix(Node *self) {
     }
 }
 
+
 // Проход потомков в глубину с изменением флага parent_changed:
 void Node_invalidate_parent(Node *self) {
     if (!self) return;
@@ -262,11 +278,13 @@ void Node_invalidate_parent(Node *self) {
     }
 }
 
+
 // Получить количество узлов в узле:
 size_t Node_count_nodes(Node *self) {
     if (!self) return 0;
     return Array_len(self->children);
 }
+
 
 // Количество узлов во всем дереве:
 size_t Node_count_all_nodes(Node *self) {

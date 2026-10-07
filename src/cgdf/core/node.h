@@ -37,7 +37,7 @@ struct Node {
 
 
 // Создать нод:
-Node* Node_create(Node *parent);
+[[nodiscard]] Node* Node_create(Node *parent);
 
 // Уничтожить нод:
 void Node_destroy(Node **node);

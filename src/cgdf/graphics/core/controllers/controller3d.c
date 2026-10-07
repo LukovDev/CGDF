@@ -17,7 +17,7 @@ CameraController3D* CameraController3D_create(
     Window *window, Camera3D *camera, float mouse_sensitivity, float ctrl_speed,
     float speed, float shift_speed, float friction, bool up_is_forward
 ) {
-    if (!window || !camera) return NULL;
+    if (!window || !camera) return nullptr;
     CameraController3D *ctrl = (CameraController3D*)mm_alloc(sizeof(CameraController3D));
 
     // Заполняем поля:
@@ -45,7 +45,7 @@ CameraController3D* CameraController3D_create(
 void CameraController3D_destroy(CameraController3D **ctrl) {
     if (!ctrl|| !*ctrl) return;
     mm_free(*ctrl);
-    *ctrl = NULL;
+    *ctrl = nullptr;
 }
 
 // Обновление контроллера:
@@ -64,7 +64,7 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     const int k_right   = K_d;
     const int k_up      = K_e;
     const int k_down    = K_q;
-    const int k_zoom = K_LALT;
+    const int k_zoom    = K_LALT;
 
     // Кнопка мыши для активации управления:
     #ifdef __APPLE__
@@ -203,6 +203,8 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     if (!isfinite(self->target_pos.x)) self->target_pos.x = 0.0f;
     if (!isfinite(self->target_pos.y)) self->target_pos.y = 0.0f;
     if (!isfinite(self->target_pos.z)) self->target_pos.z = 0.0f;
+    if (!isfinite(self->ctrl_speed)) self->ctrl_speed = 0.1f;
+    if (!isfinite(self->shift_speed)) self->shift_speed = 10.0f;
 
     // Проверка на перемещение камеры:
     vec3 diff;
