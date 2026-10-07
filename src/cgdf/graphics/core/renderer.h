@@ -263,6 +263,12 @@ void Renderer_set_shadows_distance(Renderer *self, float distance);
 // Получить дальность теней:
 float Renderer_get_shadows_distance(Renderer *self);
 
+// Установить смещение теней (в текселях):
+void Renderer_set_shadows_bias(Renderer *self, float normal_bias, float depth_bias, float slope_bias);
+
+// Получить смещение теней (в текселях):
+void Renderer_get_shadows_bias(Renderer *self, float *normal_bias, float *depth_bias, float *slope_bias);
+
 // Установить экспозицию:
 void Renderer_set_exposure(Renderer *self, float exposure);
 

@@ -380,8 +380,7 @@ bool Window_open(Window *self) {
     }
 
     // Минимальная версия OpenGL:
-    if (cfg->gl_major < 3) cfg->gl_major = 3;
-    if (cfg->gl_minor < 3) cfg->gl_minor = 3;
+    if (cfg->gl_major < 3 || (cfg->gl_major == 3 && cfg->gl_minor < 3)) { cfg->gl_major = 3; cfg->gl_minor = 3; }
 
     // Инициализируем SDL:
     if (SDL_Init(SDL_INIT_VIDEO) == false) {

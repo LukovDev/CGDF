@@ -83,9 +83,9 @@ void main(void) {
     float handedness = (dot(cross(N_base, T), B) < 0.0) ? 1.0 : -1.0;
     B = cross(N_base, T) * handedness;
     mat3 TBN = mat3(T, B, N_base);
-    
+
     vec2 texCoords = v_texcoord;
-    
+
     // Накладываем эффект POM (параллакс):
     if (u_use_tex_height && u_height_strength > 0.0f && has_uv_basis) {
         // Направление от поверхности на камеру. В ортографии лучи параллельны:
@@ -93,16 +93,16 @@ void main(void) {
         vec3 tangent_view_dir = normalize(transpose(TBN) * view_dir);
         if (!any(isnan(tangent_view_dir)) && !any(isinf(tangent_view_dir))) {
             tangent_view_dir.y = -tangent_view_dir.y;
-            
+
             float num_layers = mix(u_pom_max_layers, u_pom_min_layers, abs(dot(vec3(0, 0, 1), tangent_view_dir)));
             float layer_depth = 1.0f / num_layers;
             float current_layer_depth = 0.0f;
-            
+
             vec2 P = tangent_view_dir.xy / max(tangent_view_dir.z, 0.01) * u_height_strength;
             vec2 deltaUVs = P / num_layers;
             vec2 UVs = texCoords;
             float current_depth_map_value = 1.0f - sample_height(UVs, duv1, duv2);
-            
+
             // Проходимся по слоям пока не попадем по высоте:
             int max_steps = int(u_pom_max_layers) + 1;  // Больше этого шагов при правильной работе не бывает.
             for (int steps = 0; current_layer_depth < current_depth_map_value && steps < max_steps; steps++) {
@@ -110,7 +110,7 @@ void main(void) {
                 UVs -= deltaUVs;
                 current_depth_map_value = 1.0f - sample_height(UVs, duv1, duv2);
             }
-            
+
             // Применяем иллюзию (бинарный поиск):
             vec2 uv_above = UVs + deltaUVs;
             vec2 uv_below = UVs;
@@ -126,7 +126,7 @@ void main(void) {
                 }
             }
             texCoords = (uv_above + uv_below) * 0.5;
-            
+
             // Удаляем фрагменты за пределами координат:
             if (u_pom_cutoff_enabled) {
                 vec2 tile = floor(v_texcoord);  // В каком тайле находится исходный пиксель.
@@ -134,51 +134,51 @@ void main(void) {
             }
         }
     }
-    
+
     // 1. Albedo & Alpha cutoff:
     vec4 albedo_tex = u_use_tex_albedo ? textureGrad(u_tex_albedo, texCoords, duv1, duv2) : vec4(1.0);
     vec4 final_albedo = u_albedo * albedo_tex * v_color;
-    
+
     // Alpha cutoff (отсечение прозрачных пикселей):
     if (final_albedo.a < u_alpha_cutoff) { discard; }
     vec3 albedo = final_albedo.rgb;
-    
+
     // 2. Roughness & Metallic & AO:
     float roughness = u_roughness;
     if (u_use_tex_roughness) { roughness *= textureGrad(u_tex_roughness, texCoords, duv1, duv2).r; }
-    
+
     float metallic = u_metallic;
     if (u_use_tex_metallic) { metallic *= textureGrad(u_tex_metallic, texCoords, duv1, duv2).r; }
-    
+
     float ao = u_ao;
     if (u_use_tex_occlusion) { ao *= textureGrad(u_tex_occlusion, texCoords, duv1, duv2).r; }
-    
+
     // 3. Normal:
     vec3 normal = N_base;
     if (u_use_tex_normal && has_uv_basis) { normal = get_normal_from_map(normal, texCoords, TBN, duv1, duv2); }
-    
+
     // 4. Height:
     float height = 0.0;
     if (u_use_tex_height) { height = sample_height(texCoords, duv1, duv2); }
-    
+
     // 5. Emissive:
     vec3 emissive = u_emissive_color * u_emissive_strength;
     if (u_use_tex_emissive) { emissive *= textureGrad(u_tex_emissive, texCoords, duv1, duv2).rgb; }
-    
+
     // 6. Distortion:
     float distortion = u_distortion;
     float aberration = u_distortion_aberration;
-    
+
     // Упаковываем выходные данные в GBuffer:
     // Layout 0: Альбедо (RGB) + Шероховатость (A):
     g_albedo_roughness = vec4(albedo, roughness);
-    
+
     // Layout 1: Нормаль (RGB) + Окклюзия (A):
     g_normal_ao = vec4(normal, ao);
-    
+
     // Layout 2: Металл (R) + Высота (G) + Аберрация (B) + Искажение (A):
     g_pbr_properties = vec4(metallic, height, aberration, distortion);
-    
+
     // Layout 3: Свечение (RGB) + Зарезервировано (A):
     g_emissive = vec4(emissive, 0.0);
 }

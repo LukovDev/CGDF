@@ -75,6 +75,9 @@ typedef struct Lighting3D {
     float     shadows_distance;  // Радиус области вокруг камеры, где считаются тени (в единицах мира).
     BufferFBO *shadows_fbo;      // Буфер кадра карты теней (только глубина).
     Texture   *shadows_tex;      // Карта теней (текстура глубины).
+    float shadows_normal_bias;   // Смещение тени по нормали (в текселях теней).
+    float shadows_depth_bias;    // Постоянное смещение глубины (в текселях теней).
+    float shadows_slope_bias;    // Наклонное смещение глубины (в текселях теней).
 } Lighting3D;
 
 
@@ -216,6 +219,34 @@ static void _lighting_set_shadows_size_(Lighting3D *self, int size) {
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (float[4]){1.0f, 1.0f, 1.0f, 1.0f});
     Texture_end(self->shadows_tex);
     self->shadows_size = size;
+}
+
+// Матрица камеры солнца для области радиусом R вокруг центра (с привязкой к текселям):
+static void _shadows_light_matrix_(Lighting3D *self, vec3 center, float R, int size, mat4 out_view_proj) {
+    // Камера солнца стоит против направления лучей и смотрит на центр:
+    vec3 dir = {self->sun_direction.x, self->sun_direction.y, self->sun_direction.z};
+    glm_vec3_normalize(dir);
+    vec3 eye;
+    glm_vec3_scale(dir, -2.0f * R, eye);  // Отходим от центра на 2R против лучей.
+    glm_vec3_add(center, eye, eye);
+    vec3 up = {0.0f, 1.0f, 0.0f};
+    if (fabsf(dir[1]) > 0.99f) { up[0] = 0.0f; up[1] = 0.0f; up[2] = 1.0f; }  // Солнце строго сверху.
+
+    // Создаём камеру солнца:
+    mat4 light_view, light_proj;
+    glm_lookat(eye, center, up, light_view);
+    glm_ortho(-R, R, -R, R, 0.1f, 4.0f * R, light_proj);  // Квадрат 2R x 2R, глубина 4R.
+    glm_mat4_mul(light_proj, light_view, out_view_proj);
+
+    // Привязка к сетке текселей, чтобы ничего не мерцало и не ползало при движении камеры:
+    vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};  // Любая фиксированная точка мира.
+    glm_mat4_mulv(out_view_proj, origin, origin);  // Куда она попала в пространстве карты теней.
+    float half_size = (float)size * 0.5f;
+    float texel_x = origin[0] * half_size;  // Та же позиция в текселях.
+    float texel_y = origin[1] * half_size;
+    light_proj[3][0] += (roundf(texel_x) - texel_x) / half_size;
+    light_proj[3][1] += (roundf(texel_y) - texel_y) / half_size;
+    glm_mat4_mul(light_proj, light_view, out_view_proj);  // Пересобираем итоговую матрицу с поправкой.
 }
 
 // create shader:
@@ -454,6 +485,9 @@ void Renderer_init(Renderer *self) {
     self->lighting->shadows_distance = 10.0f;  // 10 метров вокруг камеры тени наивысшего качества.
     self->lighting->shadows_fbo = BufferFBO_create();
     self->lighting->shadows_tex = Texture_create(self);
+    self->lighting->shadows_normal_bias = 1.5f;  // В среднем надо сдвигать на +- 1 тексель. Берем с запасом.
+    self->lighting->shadows_depth_bias = 0.0f;   // Обычно 0, поднимать если угри остались.
+    self->lighting->shadows_slope_bias = 3.0f;   // Обычно 1.5-3, растёт с радиусом PCF.
     // Обновляем размеры текстур кадровых буферов:
     _lighting_resize_(self->lighting, Renderer_get_width(self), Renderer_get_height(self));
     _lighting_set_shadows_size_(self->lighting, self->lighting->shadows_size);
@@ -517,6 +551,7 @@ void Renderer_display(Renderer *self) {
     Renderer_get_view_proj(self, view, proj);
     glm_mat4_mul(proj, view, view_proj);
     glm_mat4_inv(view_proj, inv_view_proj);
+    glm_mat4_identity(light_view_proj);
 
     // -------- Проход 0 - Тени: --------
 
@@ -527,29 +562,21 @@ void Renderer_display(Renderer *self) {
         Renderer_set_blending(self, false);
         Renderer_set_cull_mode(self, RENDERER_CULL_NONE);  // Тонкие и двусторонние объекты тоже отбрасывают тень.
 
+        // Центр теней не ровно в позиции камеры, а дальше по направлению взгляда наполовину:
         float R = self->lighting->shadows_distance;
-
-        // "Камера солнца": стоит против направления лучей и смотрит на центр:
-        vec3 dir = {self->lighting->sun_direction.x, self->lighting->sun_direction.y, self->lighting->sun_direction.z};
-        glm_vec3_normalize(dir);
-        vec3 target = {camera_pos.x, camera_pos.y, camera_pos.z};
-        vec3 eye;
-        glm_vec3_scale(dir, -2.0f * R, eye);  // Отходим от центра на 2R против лучей.
-        glm_vec3_add(target, eye, eye);
-        vec3 up = {0.0f, 1.0f, 0.0f};
-        if (fabsf(dir[1]) > 0.99f) { up[0] = 0.0f; up[1] = 0.0f; up[2] = 1.0f; }  // Солнце строго сверху.
-
-        mat4 light_view, light_proj;
-        glm_lookat(eye, target, up, light_view);
-        glm_ortho(-R, R, -R, R, 0.1f, 4.0f * R, light_proj);  // Квадрат 2R x 2R, глубина 4R.
-        glm_mat4_mul(light_proj, light_view, light_view_proj);
+        vec3 center = {
+            camera_pos.x + camera_forward.x * R * 0.5f,
+            camera_pos.y + camera_forward.y * R * 0.5f,
+            camera_pos.z + camera_forward.z * R * 0.5f
+        };
+        _shadows_light_matrix_(self->lighting, center, R, self->lighting->shadows_size, light_view_proj);
 
         // Состояние прохода теней:
         BufferFBO_begin(self->lighting->shadows_fbo);
         glViewport(0, 0, self->lighting->shadows_size, self->lighting->shadows_size);
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_POLYGON_OFFSET_FILL);  // Смещение глубины против "теневых угрей":
-        glPolygonOffset(2.0f, 4.0f);       // Сильнее на наклонных к солнцу поверхностях.
+        glPolygonOffset(self->lighting->shadows_slope_bias, 0.0f);  // Сильнее на наклонных к солнцу поверхностях.
 
         // Рисуем модели из стека команд на отрисовку:
         Shader_begin(self->shader_shadow);
@@ -688,6 +715,14 @@ void Renderer_display(Renderer *self) {
     Shader_set_bool(self->shader_lighting,  "u_shadows_enabled",   self->lighting->shadows_enabled);
     Shader_set_bool(self->shader_lighting,  "u_shadows_smooth",    self->lighting->shadows_smooth);
     Shader_set_tex2d(self->shader_lighting, "u_shadow_map",        self->lighting->shadows_tex->id);
+    // Передаём смещение теней:
+    float R = self->lighting->shadows_distance;
+    float texel_world = (2.0f * R) / (float)self->lighting->shadows_size;
+    float normal_offset = self->lighting->shadows_normal_bias * texel_world;
+    float depth_bias = (self->lighting->shadows_depth_bias * texel_world) / (4.0f * R);
+    Shader_set_float(self->shader_lighting, "u_shadow_normal_offset", normal_offset);
+    Shader_set_float(self->shader_lighting, "u_shadow_depth_bias", depth_bias);
+
     // Рисуем всё на весь экран:
     Mesh_render(self->sprite_mesh, false);
     Shader_end(self->shader_lighting);
@@ -1025,6 +1060,22 @@ void Renderer_set_shadows_distance(Renderer *self, float distance) {
 float Renderer_get_shadows_distance(Renderer *self) {
     if (!self) return 0.0f;
     return self->lighting->shadows_distance;
+}
+
+// Установить смещение теней (в текселях):
+void Renderer_set_shadows_bias(Renderer *self, float normal_bias, float depth_bias, float slope_bias) {
+    if (!self) return;
+    self->lighting->shadows_normal_bias = normal_bias;
+    self->lighting->shadows_depth_bias = depth_bias;
+    self->lighting->shadows_slope_bias = slope_bias;
+}
+
+// Получить смещение теней (в текселях):
+void Renderer_get_shadows_bias(Renderer *self, float *normal_bias, float *depth_bias, float *slope_bias) {
+    if (!self) return;
+    if (normal_bias) *normal_bias = self->lighting->shadows_normal_bias;
+    if (depth_bias)  *depth_bias  = self->lighting->shadows_depth_bias;
+    if (slope_bias)  *slope_bias  = self->lighting->shadows_slope_bias;
 }
 
 // Установить экспозицию:
