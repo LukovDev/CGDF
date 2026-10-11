@@ -24,6 +24,11 @@
 #include "gl.h"
 
 
+// Максимальное количество каскадов теней:
+#define SHADOW_CASCADES_MAX 16  // Должно совпадать с CASCADES_MAX в lighting_pass_shader.frag
+#define SHADOW_PCF_RADIUS   2   // Радиус PCF (в текселях).
+
+
 // Глобальная конфигурация дебага рендеринга:
 RendererDebugConfig g_Renderer_debug_config = {
     .debug_enabled = false,
@@ -69,15 +74,26 @@ typedef struct Lighting3D {
     Vec3f ambient_color;      // Цвет фонового освещения.
     float ambient_intensity;  // Интенсивность фонового освещения.
     // Настройки теней:
-    bool      shadows_enabled;   // Включить тени.
-    bool      shadows_smooth;    // Мягкие тени.
-    int       shadows_size;      // Размер карты теней (в пикселях, квадрат).
-    float     shadows_distance;  // Радиус области вокруг камеры, где считаются тени (в единицах мира).
-    BufferFBO *shadows_fbo;      // Буфер кадра карты теней (только глубина).
-    Texture   *shadows_tex;      // Карта теней (текстура глубины).
-    float shadows_normal_bias;   // Смещение тени по нормали (в текселях теней).
-    float shadows_depth_bias;    // Постоянное смещение глубины (в текселях теней).
-    float shadows_slope_bias;    // Наклонное смещение глубины (в текселях теней).
+    BufferFBO *shadows_fbo;     // Буфер кадра карты теней (только глубина).
+    Texture   *shadows_tex;     // Карта теней (текстура глубины).
+    bool  shadows_enabled;      // Включить тени.
+    bool  shadows_smooth;       // Мягкие тени.
+    int   shadows_size;         // Ширина атласа каскадов (в пикселях).
+    float shadows_distance;     // Дальность теней вдоль взгляда камеры (в единицах мира).
+    float shadows_normal_bias;  // Смещение тени по нормали (в текселях теней).
+    float shadows_depth_bias;   // Постоянное смещение глубины (в текселях теней).
+    float shadows_slope_bias;   // Наклонное смещение глубины (в текселях теней).
+    // Каскады теней:
+    int   shadows_cascades;      // Количество каскадов (1..SHADOW_CASCADES_MAX).
+    int   shadows_grid_cols;     // Колонки атласа каскадов.
+    int   shadows_grid_rows;     // Строки атласа каскадов.
+    int   shadows_tile;          // Размер одного каскада в атласе (в пикселях).
+    float shadows_split_lambda;  // Распределение каскадов: 0 = равномерно, 1 = логарифмически.
+    float shadows_blend;         // Доля каскада под плавный переход в следующий.
+    bool  shadows_debug;         // Отладка каскадов.
+    mat4  cascade_matrices[SHADOW_CASCADES_MAX];    // Матрицы каскадов.
+    float cascade_radius[SHADOW_CASCADES_MAX];      // Сферы каскадов.
+    float cascade_splits[SHADOW_CASCADES_MAX + 1];  // Границы каскадов.
 } Lighting3D;
 
 
@@ -205,10 +221,27 @@ static inline void _lighting_resize_(Lighting3D *self, int width, int height) {
     Texture_empty(self->light_tex, width, height, false, TEX_FORMAT_RGBA, TEX_INTERNAL_RGBA16F, TEX_DATA_FLOAT);
 }
 
-// Установить размер текстуры теней (пересоздаёт):
-static void _lighting_set_shadows_size_(Lighting3D *self, int size) {
+// Пересоздать атлас каскадов под текущие размер и количество каскадов:
+static void _lighting_update_shadows_atlas_(Lighting3D *self) {
     if (!self) return;
-    Texture_empty(self->shadows_tex, size, size, false, TEX_FORMAT_DEPTH, TEX_INTERNAL_DEPTH32F, TEX_DATA_FLOAT);
+
+    // Сетка. Сначала по ширине (1x1, 2x1, 2x2, 3x2, 3x3, ...):
+    int cols = 1;
+    while (cols * cols < self->shadows_cascades) cols++;
+    int rows = (self->shadows_cascades + cols - 1) / cols;
+
+    // Ширина атласа не может быть больше максимального размера текстуры:
+    int width = self->shadows_size;
+    int max_size = Renderer_get_max_texture_size(self->renderer);
+    if (width > max_size) {
+        log_msg("[W] Shadows atlas size %d is bigger than max texture size %d.\n", width, max_size);
+        width = max_size;
+    }
+    int tile = width / cols;
+
+    // Используем DEPTH16 для глубины теней:
+    Texture_empty(self->shadows_tex, tile * cols, tile * rows, false,
+                  TEX_FORMAT_DEPTH, TEX_INTERNAL_DEPTH16, TEX_DATA_FLOAT);
     Renderer_set_shadows_smooth(self->renderer, self->shadows_smooth);
     Texture_begin(self->shadows_tex);
     // Включаем аппаратное сравнение:
@@ -219,7 +252,41 @@ static void _lighting_set_shadows_size_(Lighting3D *self, int size) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (float[4]){1.0f, 1.0f, 1.0f, 1.0f});
     Texture_end(self->shadows_tex);
-    self->shadows_size = size;
+
+    // Сохраняем параметры:
+    self->shadows_grid_cols = cols;
+    self->shadows_grid_rows = rows;
+    self->shadows_tile = tile;
+}
+
+// Границы каскадов по дальности (смесь логарифмического и равномерного деления):
+static void _shadows_calc_splits_(float near, float far, float lambda, int count, float *out_splits) {
+    out_splits[0] = near;
+    for (int i = 1; i <= count; i++) {
+        float t = (float)i / (float)count;
+        float log_split = near * powf(far / near, t);  // Логарифм: больше деталей вблизи.
+        float lin_split = near + (far - near) * t;     // Равномерно: больше деталей вдали.
+        out_splits[i] = lambda * log_split + (1.0f - lambda) * lin_split;
+    }
+}
+
+// Описанная сфера среза пирамиды камеры [n, f] (не зависит от поворота камеры, поэтому тени не мерцают):
+static void _shadows_slice_sphere_(
+    vec3 cam_pos, vec3 cam_forward, float n, float f, float tan_half_fov, float aspect,
+    vec3 out_center, float *out_radius
+) {
+    float k2 = tan_half_fov * tan_half_fov * (1.0f + aspect * aspect);  // Квадрат тангенса по диагонали.
+    float z, r;
+    if (k2 >= (f - n) / (f + n)) {  // Широкий срез: центр сферы на дальней плоскости.
+        z = f;
+        r = f * sqrtf(k2);
+    } else {
+        z = 0.5f * (f + n) * (1.0f + k2);
+        r = 0.5f * sqrtf((f - n) * (f - n) + 2.0f * (f * f + n * n) * k2 + (f + n) * (f + n) * k2 * k2);
+    }
+    glm_vec3_scale(cam_forward, z, out_center);
+    glm_vec3_add(cam_pos, out_center, out_center);
+    *out_radius = r;
 }
 
 // Матрица камеры солнца для области радиусом R вокруг центра (с привязкой к текселям):
@@ -469,39 +536,45 @@ void Renderer_init(Renderer *self) {
     self->gbuffer = GBuffer_create(self, Renderer_get_width(self), Renderer_get_height(self));
 
     // 3D освещение:
-    self->lighting = (Lighting3D*)mm_alloc(sizeof(Lighting3D));
-    self->lighting->renderer = self;
-    self->lighting->light_fbo = BufferFBO_create();
-    self->lighting->light_tex = Texture_create(self);
-    // Настройки освещения:
-    self->lighting->sun_direction = (Vec3f){-0.57735f, -0.57735f, -0.57735f};
-    self->lighting->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
-    self->lighting->sun_intensity = 10.0f;
-    self->lighting->ambient_color = (Vec3f){0.6f, 0.7f, 1.0f};
-    self->lighting->ambient_intensity = 0.1f;
-    // Настройки теней:
-    self->lighting->shadows_enabled = true;    // По умолчанию тени включены.
-    self->lighting->shadows_smooth = true;     // По умолчанию мягкие тени.
-    self->lighting->shadows_size = 2048;       // 2048 размер текстуры теней.
-    self->lighting->shadows_distance = 10.0f;  // 10 метров вокруг камеры тени наивысшего качества.
-    self->lighting->shadows_fbo = BufferFBO_create();
-    self->lighting->shadows_tex = Texture_create(self);
-    self->lighting->shadows_normal_bias = 1.5f;  // В среднем надо сдвигать на +- 1 тексель. Берем с запасом.
-    self->lighting->shadows_depth_bias = 0.0f;   // Обычно 0, поднимать если угри остались.
-    self->lighting->shadows_slope_bias = 3.0f;   // Обычно 1.5-3, растёт с радиусом PCF.
+    self->lighting = (Lighting3D*)mm_calloc(1, sizeof(Lighting3D));
+    Lighting3D *lt = self->lighting;
+    lt->renderer = self;
+    lt->light_fbo = BufferFBO_create();
+    lt->light_tex = Texture_create(self);
+    // Настройки освещения (значения по умолчанию):
+    lt->sun_direction = (Vec3f){-0.57735f, -0.57735f, -0.57735f};
+    lt->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
+    lt->sun_intensity = 10.0f;
+    lt->ambient_color = (Vec3f){0.6f, 0.7f, 1.0f};
+    lt->ambient_intensity = 0.1f;
+    // Настройки теней (значения по умолчанию):
+    lt->shadows_fbo = BufferFBO_create();
+    lt->shadows_tex = Texture_create(self);
+    lt->shadows_enabled = true;      // По умолчанию тени включены.
+    lt->shadows_smooth = true;       // По умолчанию мягкие тени.
+    lt->shadows_size = 8192;         // Ширина атласа: 4 каскада по 2048.
+    lt->shadows_distance = 100.0f;   // Тени до 100 метров вдоль взгляда.
+    lt->shadows_normal_bias = 1.5f;  // В среднем надо сдвигать на +- 1 тексель. Берем с запасом.
+    lt->shadows_depth_bias = 0.5f;   // Обычно 0.5, поднимать если угри остались. Постоянное смещение.
+    lt->shadows_slope_bias = 1.0f;   // Обычно 1-3, растёт с радиусом PCF. Против угрей на склонах.
+    // Каскады теней (значения по умолчанию):
+    lt->shadows_cascades = 4;          // Количество каскадов.
+    lt->shadows_split_lambda = 0.75f;  // Больше к 1 - больше деталей вблизи и меньше в дали.
+    lt->shadows_blend = 0.25f;         // 25% от каскада смешивается с другим.
+    lt->shadows_debug = false;         // Отладочный режим отрисовки каскадов.
     // Обновляем размеры текстур кадровых буферов:
-    _lighting_resize_(self->lighting, Renderer_get_width(self), Renderer_get_height(self));
-    _lighting_set_shadows_size_(self->lighting, self->lighting->shadows_size);
+    _lighting_resize_(lt, Renderer_get_width(self), Renderer_get_height(self));
+    _lighting_update_shadows_atlas_(lt);
     // Привязываем текстуру к буферу кадра света:
-    BufferFBO_begin(self->lighting->light_fbo);
-    BufferFBO_attach(self->lighting->light_fbo, BUFFER_FBO_COLOR, 0, self->lighting->light_tex->id);
-    BufferFBO_apply(self->lighting->light_fbo);
-    BufferFBO_end(self->lighting->light_fbo);
+    BufferFBO_begin(lt->light_fbo);
+    BufferFBO_attach(lt->light_fbo, BUFFER_FBO_COLOR, 0, lt->light_tex->id);
+    BufferFBO_apply(lt->light_fbo);
+    BufferFBO_end(lt->light_fbo);
     // Привязываем текстуру глубины к буферу кадра теней:
-    BufferFBO_begin(self->lighting->shadows_fbo);
-    BufferFBO_attach(self->lighting->shadows_fbo, BUFFER_FBO_DEPTH, 0, self->lighting->shadows_tex->id);
-    BufferFBO_apply(self->lighting->shadows_fbo);
-    BufferFBO_end(self->lighting->shadows_fbo);
+    BufferFBO_begin(lt->shadows_fbo);
+    BufferFBO_attach(lt->shadows_fbo, BUFFER_FBO_DEPTH, 0, lt->shadows_tex->id);
+    BufferFBO_apply(lt->shadows_fbo);
+    BufferFBO_end(lt->shadows_fbo);
 
     // Поднимаем флаг инициализации:
     self->initialized = true;
@@ -536,62 +609,81 @@ void Renderer_display(Renderer *self) {
     Vec3f camera_pos = {};
     Vec3f camera_forward = {0.0f, 0.0f, -1.0f};
     bool camera_ortho = false;
-    if (Renderer_is_camera_2d(self)) {
-        Vec2d pos = ((Camera2D*)self->camera)->position;
-        camera_pos = (Vec3f){pos.x, pos.y, 0.0f};
-    } else {
-        Vec3d pos = ((Camera3D*)self->camera)->position;
-        camera_pos = (Vec3f){pos.x, pos.y, pos.z};
-        Vec3d f = Camera3D_get_forward((Camera3D*)self->camera);
+    if (Renderer_is_camera_3d(self)) {
+        Camera3D *cam = (Camera3D*)self->camera;
+        camera_pos = (Vec3f){cam->position.x, cam->position.y, cam->position.z};
+        Vec3d f = Camera3D_get_forward(cam);
         camera_forward = (Vec3f){f.x, f.y, f.z};
-        camera_ortho = Camera3D_get_ortho((Camera3D*)self->camera);
+        camera_ortho = Camera3D_get_ortho(cam);
+    } else {
+        Camera2D *cam = (Camera2D*)self->camera;
+        camera_pos = (Vec3f){cam->position.x, cam->position.y, 0.0f};
     }
 
     // Подготавливаем матрицы:
-    mat4 view, proj, view_proj, inv_view_proj, light_view_proj;
+    mat4 view, proj, view_proj, inv_view_proj;
     Renderer_get_view_proj(self, view, proj);
     glm_mat4_mul(proj, view, view_proj);
     glm_mat4_inv(view_proj, inv_view_proj);
-    glm_mat4_identity(light_view_proj);
+
+    // Освещение и каскады теней:
+    Lighting3D *lt = self->lighting;
+    int cascades = camera_ortho ? 1 : lt->shadows_cascades;  // Для ортокамеры сферы не подходят. Используем 1 каскад.
 
     // -------- Проход 0 - Тени: --------
 
-    if (self->lighting->shadows_enabled) {
+    if (lt->shadows_enabled && Renderer_is_camera_3d(self)) {
         // Настраиваем состояние рендеринга:
         Renderer_set_depth_test(self, true);
         Renderer_set_depth_mask(self, true);
         Renderer_set_blending(self, false);
         Renderer_set_cull_mode(self, RENDERER_CULL_NONE);  // Тонкие и двусторонние объекты тоже отбрасывают тень.
 
-        // Центр теней не ровно в позиции камеры, а дальше по направлению взгляда наполовину:
-        float R = self->lighting->shadows_distance;
-        vec3 center = {
-            camera_pos.x + camera_forward.x * R * 0.5f,
-            camera_pos.y + camera_forward.y * R * 0.5f,
-            camera_pos.z + camera_forward.z * R * 0.5f
-        };
-        _shadows_light_matrix_(self->lighting, center, R, self->lighting->shadows_size, light_view_proj);
+        Camera3D *cam = (Camera3D*)self->camera;
+        int tile = lt->shadows_tile;
+        float *splits = lt->cascade_splits;
+        vec3 cam_pos = {camera_pos.x, camera_pos.y, camera_pos.z};
+        vec3 cam_fwd = {camera_forward.x, camera_forward.y, camera_forward.z};
+        float tan_half_fov = tanf(radians(cam->fov) * 0.5f);
+        float aspect = (float)width / (float)height;
+        float pad = (float)tile / ((float)tile - 2.0f * (SHADOW_PCF_RADIUS + 4.0f));
+
+        // Рассчитываем расположение каскадов:
+        _shadows_calc_splits_(cam->z_near, lt->shadows_distance, lt->shadows_split_lambda, cascades, splits);
+        for (int c = 0; c < cascades; c++) {
+            // Начало каскада сдвигаем назад на полосу перехода предыдущего, чтобы она попала в обе карты:
+            float n = (c == 0) ? splits[0] : splits[c] - (splits[c] - splits[c - 1]) * lt->shadows_blend;
+            vec3 center;
+            float radius;
+            _shadows_slice_sphere_(cam_pos, cam_fwd, n, splits[c + 1], tan_half_fov, aspect, center, &radius);
+            lt->cascade_radius[c] = radius * pad;
+            _shadows_light_matrix_(lt, center, lt->cascade_radius[c], tile, lt->cascade_matrices[c]);
+        }
 
         // Состояние прохода теней:
-        BufferFBO_begin(self->lighting->shadows_fbo);
-        glViewport(0, 0, self->lighting->shadows_size, self->lighting->shadows_size);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_POLYGON_OFFSET_FILL);  // Смещение глубины против "теневых угрей":
-        glPolygonOffset(self->lighting->shadows_slope_bias, 0.0f);  // Сильнее на наклонных к солнцу поверхностях.
+        BufferFBO_begin(lt->shadows_fbo);
+        glClear(GL_DEPTH_BUFFER_BIT);  // Очищает весь атлас (glViewport на очистку не влияет).
+        glEnable(GL_DEPTH_CLAMP);      // Объекты перед ближней плоскостью прижимаются к ней, а не обрезаются.
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(lt->shadows_slope_bias, 0.0f);
 
         // Рисуем модели из стека команд на отрисовку:
         Shader_begin(self->shader_shadow);
-        Shader_set_mat4(self->shader_shadow, "u_light_view_proj", light_view_proj);
-        for (size_t i = 0; i < Array_len(self->draw_commands); i++) {
-            DrawCommand *cmd = (DrawCommand*)Array_get(self->draw_commands, i);
-            if (!cmd || !cmd->mesh || !cmd->cast_shadow) continue;  // Если каст теней отключен, пропускаем.
-            Shader_set_mat4(self->shader_shadow, "u_model", cmd->transform);
-            Mesh_render(cmd->mesh, false);  // wireframe не нужен.
+        for (int c = 0; c < cascades; c++) {
+            glViewport((c % lt->shadows_grid_cols) * tile, (c / lt->shadows_grid_cols) * tile, tile, tile);
+            Shader_set_mat4(self->shader_shadow, "u_light_view_proj", lt->cascade_matrices[c]);
+            for (size_t i = 0; i < Array_len(self->draw_commands); i++) {
+                DrawCommand *cmd = (DrawCommand*)Array_get(self->draw_commands, i);
+                if (!cmd || !cmd->mesh || !cmd->cast_shadow) continue;  // Если каст теней отключен, пропускаем.
+                Shader_set_mat4(self->shader_shadow, "u_model", cmd->transform);
+                Mesh_render(cmd->mesh, false);  // wireframe не нужен.
+            }
         }
         Shader_end(self->shader_shadow);
         glDisable(GL_POLYGON_OFFSET_FILL);
-        BufferFBO_end(self->lighting->shadows_fbo);
-        glViewport(0, 0, width, height);  // Возвращаем размер экрана.
+        glDisable(GL_DEPTH_CLAMP);
+        BufferFBO_end(lt->shadows_fbo);
+        glViewport(0, 0, width, height);
     }
 
     // -------- Проход 1 - GBuffer: --------
@@ -692,9 +784,9 @@ void Renderer_display(Renderer *self) {
     Renderer_set_cull_mode(self, RENDERER_CULL_NONE);
 
     // Включаем и очищаем буфер кадра:
-    BufferFBO_begin(self->lighting->light_fbo);
-    BufferFBO_apply(self->lighting->light_fbo);
-    BufferFBO_clear(self->lighting->light_fbo, 0.0f, 0.0f, 0.0f, 0.0f);
+    BufferFBO_begin(lt->light_fbo);
+    BufferFBO_apply(lt->light_fbo);
+    BufferFBO_clear(lt->light_fbo, 0.0f, 0.0f, 0.0f, 0.0f);
 
     // Включаем шейдер и настраиваем:
     Shader_begin(self->shader_lighting);
@@ -702,32 +794,46 @@ void Renderer_display(Renderer *self) {
     Shader_set_vec3(self->shader_lighting,  "u_camera_forward",    camera_forward);
     Shader_set_bool(self->shader_lighting,  "u_camera_ortho",      camera_ortho);
     Shader_set_mat4(self->shader_lighting,  "u_inv_view_proj",     inv_view_proj);
-    Shader_set_mat4(self->shader_lighting,  "u_light_view_proj",   light_view_proj);
+    // GBuffer:
     Shader_set_tex2d(self->shader_lighting, "u_albedo_roughness",  GBuffer_get_tex_albedo_roughness(self->gbuffer)->id);
     Shader_set_tex2d(self->shader_lighting, "u_normal_ao",         GBuffer_get_tex_normal_ao(self->gbuffer)->id);
     Shader_set_tex2d(self->shader_lighting, "u_pbr",               GBuffer_get_tex_pbr_properties(self->gbuffer)->id);
     Shader_set_tex2d(self->shader_lighting, "u_emissive",          GBuffer_get_tex_emissive(self->gbuffer)->id);
     Shader_set_tex2d(self->shader_lighting, "u_depth",             GBuffer_get_tex_depth(self->gbuffer)->id);
-    Shader_set_vec3(self->shader_lighting,  "u_sun_dir",           self->lighting->sun_direction);
-    Shader_set_vec3(self->shader_lighting,  "u_sun_color",         self->lighting->sun_color);
-    Shader_set_float(self->shader_lighting, "u_sun_intensity",     self->lighting->sun_intensity);
-    Shader_set_vec3(self->shader_lighting,  "u_ambient_color",     self->lighting->ambient_color);
-    Shader_set_float(self->shader_lighting, "u_ambient_intensity", self->lighting->ambient_intensity);
-    Shader_set_bool(self->shader_lighting,  "u_shadows_enabled",   self->lighting->shadows_enabled);
-    Shader_set_bool(self->shader_lighting,  "u_shadows_smooth",    self->lighting->shadows_smooth);
-    Shader_set_tex2d(self->shader_lighting, "u_shadow_map",        self->lighting->shadows_tex->id);
-    // Передаём смещение теней:
-    float R = self->lighting->shadows_distance;
-    float texel_world = (2.0f * R) / (float)self->lighting->shadows_size;
-    float normal_offset = self->lighting->shadows_normal_bias * texel_world;
-    float depth_bias = (self->lighting->shadows_depth_bias * texel_world) / (4.0f * R);
-    Shader_set_float(self->shader_lighting, "u_shadow_normal_offset", normal_offset);
-    Shader_set_float(self->shader_lighting, "u_shadow_depth_bias", depth_bias);
+    // Light:
+    Shader_set_vec3(self->shader_lighting,  "u_sun_dir",           lt->sun_direction);
+    Shader_set_vec3(self->shader_lighting,  "u_sun_color",         lt->sun_color);
+    Shader_set_float(self->shader_lighting, "u_sun_intensity",     lt->sun_intensity);
+    Shader_set_vec3(self->shader_lighting,  "u_ambient_color",     lt->ambient_color);
+    Shader_set_float(self->shader_lighting, "u_ambient_intensity", lt->ambient_intensity);
+    // Shadows:
+    Shader_set_tex2d(self->shader_lighting, "u_shadow_map",        lt->shadows_tex->id);
+    Shader_set_bool(self->shader_lighting,  "u_shadows_enabled",   lt->shadows_enabled);
+    Shader_set_bool(self->shader_lighting,  "u_shadows_smooth",    lt->shadows_smooth);
+    Shader_set_bool(self->shader_lighting,  "u_shadows_debug",     lt->shadows_debug);
+    Shader_set_int(self->shader_lighting,   "u_shadow_pcf_radius", SHADOW_PCF_RADIUS);
+    Shader_set_float(self->shader_lighting, "u_shadow_depth_bias", lt->shadows_depth_bias / (2.0f * lt->shadows_tile));
+    Shader_set_int(self->shader_lighting,   "u_cascade_count",     cascades);
+    Shader_set_float(self->shader_lighting, "u_cascade_blend",     lt->shadows_blend);
+    Shader_set_ivec2(self->shader_lighting, "u_cascade_grid", (Vec2i){lt->shadows_grid_cols, lt->shadows_grid_rows});
+    // Каскады теней:
+    char name[64];
+    for (int c = 0; c < cascades; c++) {
+        float texel_world = (2.0f * lt->cascade_radius[c]) / (float)lt->shadows_tile;  // Тексель каскада в метрах.
+        snprintf(name, sizeof(name), "u_cascade_matrices[%d]", c);
+        Shader_set_mat4(self->shader_lighting, name, lt->cascade_matrices[c]);
+        snprintf(name, sizeof(name), "u_cascade_normal_offset[%d]", c);
+        Shader_set_float(self->shader_lighting, name, lt->shadows_normal_bias * texel_world);
+    }
+    for (int c = 0; c <= cascades; c++) {
+        snprintf(name, sizeof(name), "u_cascade_splits[%d]", c);
+        Shader_set_float(self->shader_lighting, name, lt->cascade_splits[c]);
+    }
 
     // Рисуем всё на весь экран:
     Mesh_render(self->sprite_mesh, false);
     Shader_end(self->shader_lighting);
-    BufferFBO_end(self->lighting->light_fbo);
+    BufferFBO_end(lt->light_fbo);
 
     // -------- Финальный проход (на экран): --------
 
@@ -739,7 +845,7 @@ void Renderer_display(Renderer *self) {
     glDepthFunc(GL_ALWAYS);  // Пишем глубину сцены в экранный буфер всегда, независимо от того, что в нём было.
 
     Shader_begin(self->shader_final);
-    Shader_set_tex2d(self->shader_final, "u_hdr",      self->lighting->light_tex->id);
+    Shader_set_tex2d(self->shader_final, "u_hdr",      lt->light_tex->id);
     Shader_set_tex2d(self->shader_final, "u_depth",    GBuffer_get_tex_depth(self->gbuffer)->id);
     Shader_set_float(self->shader_final, "u_exposure", self->exposure);
     Shader_set_bool(self->shader_final,  "u_aces_tm",  self->tonemap == RENDERER_TONEMAP_ACES ? true : false);
@@ -1039,15 +1145,16 @@ bool Renderer_get_shadows_smooth(Renderer *self) {
     return self->lighting->shadows_smooth;
 }
 
-// Установить размер карты теней:
+// Установить размер атласа каскадов теней:
 void Renderer_set_shadows_size(Renderer *self, int size) {
     if (!self || size <= 0) return;
     int max_size = Renderer_get_max_texture_size(self);
     if (size > max_size) size = max_size;
-    _lighting_set_shadows_size_(self->lighting, size);
+    self->lighting->shadows_size = size;
+    _lighting_update_shadows_atlas_(self->lighting);
 }
 
-// Получить размер карты теней:
+// Получить размер атласа каскадов теней:
 int Renderer_get_shadows_size(Renderer *self) {
     if (!self) return 0;
     return self->lighting->shadows_size;
@@ -1079,6 +1186,58 @@ void Renderer_get_shadows_bias(Renderer *self, float *normal_bias, float *depth_
     if (normal_bias) *normal_bias = self->lighting->shadows_normal_bias;
     if (depth_bias)  *depth_bias  = self->lighting->shadows_depth_bias;
     if (slope_bias)  *slope_bias  = self->lighting->shadows_slope_bias;
+}
+
+// Установить количество каскадов теней (пересоздаёт атлас теней):
+void Renderer_set_shadows_cascades(Renderer *self, int count) {
+    if (!self) return;
+    if (count < 1) count = 1;
+    if (count > SHADOW_CASCADES_MAX) count = SHADOW_CASCADES_MAX;
+    if (count == self->lighting->shadows_cascades) return;
+    self->lighting->shadows_cascades = count;
+    _lighting_update_shadows_atlas_(self->lighting);
+}
+
+// Получить количество каскадов теней:
+int Renderer_get_shadows_cascades(Renderer *self) {
+    if (!self) return 0;
+    return self->lighting->shadows_cascades;
+}
+
+// Установить распределение каскадов (0 = равномерно, 1 = логарифмически):
+void Renderer_set_shadows_split_lambda(Renderer *self, float lambda) {
+    if (!self) return;
+    self->lighting->shadows_split_lambda = glm_clamp(lambda, 0.0f, 1.0f);
+}
+
+// Получить распределение каскадов:
+float Renderer_get_shadows_split_lambda(Renderer *self) {
+    if (!self) return 0.0f;
+    return self->lighting->shadows_split_lambda;
+}
+
+// Установить сглаживание перехода каскадов:
+void Renderer_set_shadows_blend(Renderer *self, float blend) {
+    if (!self) return;
+    self->lighting->shadows_blend = glm_clamp(blend, 0.0f, 0.5f);
+}
+
+// Получить сглаживание перехода каскадов:
+float Renderer_get_shadows_blend(Renderer *self) {
+    if (!self) return 0.0f;
+    return self->lighting->shadows_blend;
+}
+
+// Включить отладку каскадов теней:
+void Renderer_set_shadows_debug(Renderer *self, bool enabled) {
+    if (!self) return;
+    self->lighting->shadows_debug = enabled;
+}
+
+// Получить отладку каскадов теней:
+bool Renderer_get_shadows_debug(Renderer *self) {
+    if (!self) return false;
+    return self->lighting->shadows_debug;
 }
 
 // Установить экспозицию:

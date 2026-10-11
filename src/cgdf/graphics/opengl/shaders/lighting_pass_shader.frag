@@ -1,11 +1,12 @@
 #version 330 core
 
+#define CASCADES_MAX 16  // Должно совпадать с SHADOW_CASCADES_MAX в renderer.c
+
 // Камера:
 uniform vec3 u_camera_pos;
-uniform vec3 u_camera_forward;   // Куда смотрит камера.
-uniform bool u_camera_ortho;     // Ортографическая ли камера.
-uniform mat4 u_inv_view_proj;    // Обратная матрица (проекция * вид): экран -> мир.
-uniform mat4 u_light_view_proj;  // Матрица камеры солнца.
+uniform vec3 u_camera_forward;  // Куда смотрит камера.
+uniform bool u_camera_ortho;    // Ортографическая ли камера.
+uniform mat4 u_inv_view_proj;   // Обратная матрица (проекция * вид): экран -> мир.
 
 // Текстуры G-Buffer:
 uniform sampler2D u_albedo_roughness;
@@ -15,8 +16,8 @@ uniform sampler2D u_emissive;
 uniform sampler2D u_depth;
 
 // Солнце (направленный свет):
-uniform vec3 u_sun_dir;  // Направление, КУДА светит солнце (нормализованное).
-uniform vec3 u_sun_color;
+uniform vec3  u_sun_dir;
+uniform vec3  u_sun_color;
 uniform float u_sun_intensity;
 
 // Фоновый свет:
@@ -24,16 +25,75 @@ uniform vec3 u_ambient_color;
 uniform float u_ambient_intensity;
 
 // Тени:
-uniform bool u_shadows_enabled;
-uniform bool u_shadows_smooth;
-uniform sampler2DShadow u_shadow_map;  // Карта теней (с аппаратным сравнением).
-uniform float u_shadow_normal_offset;
+uniform sampler2DShadow u_shadow_map;
+uniform bool  u_shadows_enabled;
+uniform bool  u_shadows_smooth;
+uniform bool  u_shadows_debug;
+uniform int   u_shadow_pcf_radius;
 uniform float u_shadow_depth_bias;
+// Каскады:
+uniform int   u_cascade_count;
+uniform float u_cascade_blend;
+uniform ivec2 u_cascade_grid;
+uniform mat4  u_cascade_matrices[CASCADES_MAX];
+uniform float u_cascade_normal_offset[CASCADES_MAX];
+uniform float u_cascade_splits[CASCADES_MAX + 1];
 
 in vec2 v_texcoord;
 out vec4 FragColor;
 
 const float PI = 3.14159265359;
+
+// Тень из одного каскада (1 - освещено, 0 - в тени):
+float sample_cascade(int c, vec3 P, vec3 N, float NdotL) {
+    vec3 offset_pos = P + N * u_cascade_normal_offset[c] * mix(0.5, 1.0, 1.0 - NdotL);
+    vec4 light_pos = u_cascade_matrices[c] * vec4(offset_pos, 1.0);
+    vec3 coords = light_pos.xyz / light_pos.w * 0.5 + 0.5;
+    vec2 tile = vec2(float(c % u_cascade_grid.x), float(c / u_cascade_grid.x));
+    coords.xy = (coords.xy + tile) / vec2(u_cascade_grid);  // Координаты каскада -> координаты атласа.
+    float ref = coords.z - u_shadow_depth_bias;
+
+    // textureLod вместо texture: без тонких линий на швах каскадов:
+    if (u_shadows_smooth) {
+        int r = u_shadow_pcf_radius;
+        vec2 texel = 1.0 / vec2(textureSize(u_shadow_map, 0));
+        float lit = 0.0;
+        for (int x = -r; x <= r; x++) {
+            for (int y = -r; y <= r; y++) {
+                lit += textureLod(u_shadow_map, vec3(coords.xy + vec2(x, y) * texel, ref), 0.0);
+            }
+        }
+        return lit / float((2 * r + 1) * (2 * r + 1));
+    }
+    return textureLod(u_shadow_map, vec3(coords.xy, ref), 0.0);
+}
+
+// Насколько точка освещена солнцем (cascade и blend - для режима отладки):
+float calc_shadow(vec3 P, vec3 N, vec3 L, out int cascade, out float blend) {
+    float NdotL = max(dot(N, L), 0.0);
+    float d = dot(P - u_camera_pos, u_camera_forward);  // Расстояние вдоль взгляда камеры.
+    int last = u_cascade_count - 1;
+    cascade = -1;
+    blend = 0.0;
+    if (d >= u_cascade_splits[last + 1]) return 1.0;  // Дальше всех каскадов - тени нет.
+
+    // Выбираем каскад по дальности:
+    cascade = 0;
+    for (int i = 0; i < last; i++) {
+        if (d > u_cascade_splits[i + 1]) cascade = i + 1;
+    }
+    float shadow = sample_cascade(cascade, P, N, NdotL);
+
+    // В конце каскада плавно переходим в следующий (последний плавно гаснет в "нет тени"):
+    float near = u_cascade_splits[cascade];
+    float far = u_cascade_splits[cascade + 1];
+    blend = smoothstep(far - (far - near) * u_cascade_blend, far, d);
+    if (blend > 0.0) {
+        float next = (cascade < last) ? sample_cascade(cascade + 1, P, N, NdotL) : 1.0;
+        shadow = mix(shadow, next, blend);
+    }
+    return shadow;
+}
 
 // Восстановить мировую позицию пикселя из его глубины:
 vec3 reconstruct_world_pos(vec2 uv, float depth) {
@@ -65,31 +125,6 @@ float geometry_smith(float NdotV, float NdotL, float roughness) {
 // F: доля отражённого света в зависимости от угла (Френель, приближение Schlick):
 vec3 fresnel_schlick(float cos_theta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
-}
-
-// Насколько точка освещена солнцем:
-float calc_shadow(vec3 P, vec3 N, vec3 L) {
-    float NdotL = max(dot(N, L), 0.0);
-    vec3 offset_pos = P + N * u_shadow_normal_offset * (1.0 - NdotL);
-
-    // Переводим точку в координаты камеры солнца и затем в 0..1 (координаты текстуры + глубина):
-    vec4 light_pos = u_light_view_proj * vec4(offset_pos, 1.0);
-    vec3 coords = light_pos.xyz / light_pos.w * 0.5 + 0.5;
-    if (coords.z > 1.0) return 1.0;  // Дальше дальней плоскости, тени нет.
-
-    if (u_shadows_smooth) {
-        // PCF: усредняем (2r+1)^2 выборок вокруг точки. Мягкий край:
-        const int r = 1;
-        vec2 texel = 1.0 / vec2(textureSize(u_shadow_map, 0));
-        float lit = 0.0;
-        for (int x = -r; x <= r; x++) {
-            for (int y = -r; y <= r; y++) {
-                lit += texture(u_shadow_map, vec3(coords.xy + vec2(x, y) * texel, coords.z - u_shadow_depth_bias));
-            }
-        }
-        return lit / float((2 * r + 1) * (2 * r + 1));
-    }
-    return texture(u_shadow_map, vec3(coords.xy, coords.z - u_shadow_depth_bias));
 }
 
 void main(void) {
@@ -128,11 +163,22 @@ void main(void) {
     vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);  // Что не отразилось, рассеялось (у металлов рассеяния нет).
 
     vec3 radiance = u_sun_color * u_sun_intensity;
-    float shadow = u_shadows_enabled ? calc_shadow(P, N, L) : 1.0;
+    int cascade = -1;
+    float blend = 0.0;
+    float shadow = u_shadows_enabled ? calc_shadow(P, N, L, cascade, blend) : 1.0;
     vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL * shadow;
 
     // Фоновый свет:
     vec3 ambient = u_ambient_color * u_ambient_intensity * albedo * ao;
 
     FragColor = vec4(ambient + Lo + emissive, 1.0);
+
+    // Отладка каскадов:
+    if (u_shadows_debug && cascade >= 0) {
+        const vec3 tint[4] = vec3[4](
+            vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(1.0, 1.0, 0.0)
+        );
+        vec3 next = (cascade < u_cascade_count - 1) ? tint[(cascade + 1) % 4] : vec3(1.0);
+        FragColor.rgb *= mix(tint[cascade % 4], next, blend);
+    }
 }

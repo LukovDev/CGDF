@@ -24,6 +24,7 @@ static Material *mat_1;
 static Material *mat_2;
 static Material *material;
 static Material *floor_material;
+static Material *grass_mat;
 static OBJFile objfile;
 static OBJFile objfile2;
 static OBJFile objfile3;
@@ -34,6 +35,7 @@ static OBJFile home;
 static OBJFile motocycle;
 static OBJFile automobile;
 static OBJFile hydrant;
+static OBJFile map;
 static Texture *poweredby;
 
 
@@ -109,7 +111,7 @@ void start(Window *self) {
         (Vec3d){0.0f, 0.0f, 0.0f},
         (Vec3d){1.0f, 1.0f, 1.0f},
         90.0f,
-        0.01f, 5000.0f,
+        0.1f, 1000.0f,
         false
     );
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
@@ -292,6 +294,41 @@ void start(Window *self) {
     mat_2->roughness = 1.0f;
     mat_2->metallic = 1.0f;
 
+    Texture *map_albedo = Texture_create(self->renderer);
+    Texture *map_normal = Texture_create(self->renderer);
+    Texture *map_occlusion = Texture_create(self->renderer);
+    Texture *map_roughness = Texture_create(self->renderer);
+    Texture *map_metallic = Texture_create(self->renderer);
+    Texture *map_emission = Texture_create(self->renderer);
+    // Texture *map_height = Texture_create(self->renderer);
+    Texture_load(map_albedo, "data/packs/pbr-pack/floors/grass/albedo.png", true);
+    Texture_load(map_normal, "data/packs/pbr-pack/floors/grass/normal.png", true);
+    Texture_load(map_occlusion, "data/packs/pbr-pack/floors/grass/ao.png", true);
+    Texture_load(map_roughness, "data/packs/pbr-pack/floors/grass/roughness.png", true);
+    Texture_load(map_metallic, "data/packs/pbr-pack/floors/grass/metallic.png", true);
+    Texture_load(map_emission, "data/packs/pbr-pack/floors/grass/albedo.png", true);
+    // Texture_load(map_height, "data/packs/pbr-pack/floors/grass/height.png", true);
+
+    grass_mat = Material_create(
+        "Material_Map", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
+        1.0f, 0.25f, 1.0f, 1.0f,
+        (Vec3f){1, 1, 1}, 0.0f,
+        0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
+        0.0f, 0.0f, map_albedo, map_normal, map_occlusion,
+        map_roughness, map_metallic, map_emission,
+        nullptr
+    );
+    grass_mat->owns_albedo_map = true;
+    grass_mat->owns_normal_map = true;
+    grass_mat->owns_occlusion_map = true;
+    grass_mat->owns_roughness_map = true;
+    grass_mat->owns_metallic_map = true;
+    grass_mat->owns_emissive_map = true;
+    // grass_mat->owns_height_map = true;
+    grass_mat->height_cutoff_enabled = false;
+    grass_mat->roughness = 1.0f;
+    grass_mat->metallic = 1.0f;
+
     objfile = ObjLoader_load(self->renderer, "data/obj/cat/cat.obj");
     objfile2 = ObjLoader_load(self->renderer, "data/obj/demo_scene/demo_scene.obj");
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
@@ -302,12 +339,19 @@ void start(Window *self) {
     motocycle = ObjLoader_load(self->renderer, "data/obj/bmw_s1000_rr/bmw_s1000_rr.obj");
     automobile = ObjLoader_load(self->renderer, "data/obj/bugatti_chiron_mansory/bugatti_chiron_mansory.obj");
     hydrant = ObjLoader_load(self->renderer, "data/obj/hydrant/hydrant.obj");
+    map = ObjLoader_load(self->renderer, "data/obj/map/map.obj");
 
     // Model *model0 = Array_get_ptr(model.models, 0);
     // for (size_t i=0; i<Array_len(model0->meshes); i++) {
     //     Mesh *mesh = Array_get_ptr(model0->meshes, i);
     //     Mesh_set_material(mesh, material);
     // }
+
+    Model *mapmod = Array_get_ptr(map.models, 0);
+    for (size_t i=0; i<Array_len(mapmod->meshes) ? 1 : 0; i++) {
+        Mesh *mesh = Array_get_ptr(mapmod->meshes, i);
+        Mesh_set_material(mesh, grass_mat);
+    }
     
     Model *floor = Array_get_ptr(objfile2.models, 0);
     for (size_t i=0; i<Array_len(floor->meshes); i++) {
@@ -343,6 +387,7 @@ void destroy([[maybe_unused]] Window *self) {
     Material_destroy(&floor_material);
     Material_destroy(&mat_1);
     Material_destroy(&mat_2);
+    Material_destroy(&grass_mat);
 
     destroy_objfile(objfile);
     destroy_objfile(objfile2);
@@ -354,6 +399,7 @@ void destroy([[maybe_unused]] Window *self) {
     destroy_objfile(motocycle);
     destroy_objfile(automobile);
     destroy_objfile(hydrant);
+    destroy_objfile(map);
 }
 
 
@@ -385,11 +431,11 @@ void update(Window *self, float dtime) {
     Camera3D_update(camera3d);
 
     [[maybe_unused]] double time = Window_get_time(self)/1.0f;
-    // Renderer_set_sun_dir(self->renderer, Vec3f_norm((Vec3f){
-    //     radians(sin(time)),
-    //     -fabs(radians(sin(time))),
-    //     radians(cos(time))
-    // }));
+    Renderer_set_sun_dir(self->renderer, Vec3f_norm((Vec3f){
+        sin(time) * (sin(time/3.0f) / 2.0f + 0.5f),
+        -(fabs(cos(time/3.0f)) / 2.0f + 0.5f),
+        cos(time) * (sin(time/3.0f) / 2.0f + 0.5f)
+    }));
 
     Renderer_set_sun_intensity(self->renderer, glm_clamp(-Renderer_get_sun_dir(self->renderer).y*10.0f, 0.0f, 10.0f));
 }
@@ -533,6 +579,10 @@ void render(Window *self, float dtime) {
         // glm_scale(model->transform, (vec3){0.1f, 0.1f, 0.1f});
         Model_render(model, true, wireframe);
     }
+    for (size_t i=0; i < Array_len(map.models); i++) {
+        Model *model = Array_get_ptr(map.models, i);
+        Model_render(model, true, wireframe);
+    }
     Renderer_display(self->renderer);
 
     if (true) {
@@ -577,7 +627,7 @@ void render(Window *self, float dtime) {
     float x2 = width, y2 = height-h - h;
     float x3 = width, y3 = height-h - h * 2;
     float x4 = width, y4 = height-h - h * 3;
-    if (true) {
+    if (text_en) {
         Shader_begin(self->renderer->shader);
         Shader_set_bool(self->renderer->shader, "u_use_gbuffer", true);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 0);
@@ -602,9 +652,11 @@ void render(Window *self, float dtime) {
         Shader_begin(self->renderer->shader);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 4);
         Shader_end(self->renderer->shader);
-
         Sprite2D_render(self->renderer, depth, x4 - w - w, y1, w, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
 
+        Shader_begin(self->renderer->shader);
+        Shader_set_int(self->renderer->shader, "u_gbuffer_view", 5);
+        Shader_end(self->renderer->shader);
         Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_NONE);                   // Читаем как обычную текстуру глубины.
         Sprite2D_render(self->renderer, shadows, x4 - w - h, y2, h, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
         Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE); // Возвращаем для теней.
@@ -623,12 +675,13 @@ void render(Window *self, float dtime) {
     FontPixmap_set_bg_padding(font, (Vec4f){8, 8, 8, 8});
     FontPixmap_set_line_height(font, 16.0f);
 
-    if (true) {
+    if (text_en) {
         FontPixmap_render(font, 8 + x1 - w, 8 + y1, 0, "Lighting");
         FontPixmap_render(font, 8 + x2 - w, 8 + y2, 0, "Normal+AO");
         FontPixmap_render(font, 8 + x3 - w, 8 + y3, 0, "PBR (R-Metall, G-Height, B-Aberration, A-Distortion)");
         FontPixmap_render(font, 8 + x4 - w, 8 + y4, 0, "Emissive");
         FontPixmap_render(font, 8 + x4 - w-w, 8 + y1, 0, "Depth");
+        FontPixmap_render(font, 8 + x4 - w-h, 8 + y2, 0, "Sun Shadow");
     }
 
     static float fps = 0.0f;

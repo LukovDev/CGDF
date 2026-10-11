@@ -251,10 +251,10 @@ void Renderer_set_shadows_smooth(Renderer *self, bool smooth);
 // Мягкие ли тени:
 bool Renderer_get_shadows_smooth(Renderer *self);
 
-// Установить размер карты теней:
+// Установить размер атласа каскадов теней:
 void Renderer_set_shadows_size(Renderer *self, int size);
 
-// Получить размер карты теней:
+// Получить размер атласа каскадов теней:
 int Renderer_get_shadows_size(Renderer *self);
 
 // Установить дальность теней:
@@ -268,6 +268,30 @@ void Renderer_set_shadows_bias(Renderer *self, float normal_bias, float depth_bi
 
 // Получить смещение теней (в текселях):
 void Renderer_get_shadows_bias(Renderer *self, float *normal_bias, float *depth_bias, float *slope_bias);
+
+// Установить количество каскадов теней (пересоздаёт атлас теней):
+void Renderer_set_shadows_cascades(Renderer *self, int count);
+
+// Получить количество каскадов теней:
+int Renderer_get_shadows_cascades(Renderer *self);
+
+// Установить распределение каскадов (0 = равномерно, 1 = логарифмически):
+void Renderer_set_shadows_split_lambda(Renderer *self, float lambda);
+
+// Получить распределение каскадов:
+float Renderer_get_shadows_split_lambda(Renderer *self);
+
+// Установить сглаживание перехода каскадов:
+void Renderer_set_shadows_blend(Renderer *self, float blend);
+
+// Получить сглаживание перехода каскадов:
+float Renderer_get_shadows_blend(Renderer *self);
+
+// Включить отладку каскадов теней:
+void Renderer_set_shadows_debug(Renderer *self, bool enabled);
+
+// Получить отладку каскадов теней:
+bool Renderer_get_shadows_debug(Renderer *self);
 
 // Установить экспозицию:
 void Renderer_set_exposure(Renderer *self, float exposure);

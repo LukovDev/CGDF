@@ -27,10 +27,14 @@ void main(void) {
             FragColor = vec4(s.rgb, 1.0);
         } else if (u_gbuffer_view == 3) {
             FragColor = vec4(s.rgb, 1.0);
-        } else {
+        } else if (u_gbuffer_view == 4) {
             float near = 0.01;
             float far = 50.0;
             FragColor = vec4(vec3((2.0 * near * far) / (far + near - s.r * (far - near)) / far), 1.0);
+        } else if (u_gbuffer_view == 5) {
+            float near = 0.01;
+            float far = 1.0;
+            FragColor = vec4(vec3(s.r), 1.0);
         }
         return;
     }

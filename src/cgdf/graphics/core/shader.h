@@ -19,6 +19,9 @@ typedef enum ShaderCacheUniformType {
     SHADERCACHE_UNIFORM_VEC2,
     SHADERCACHE_UNIFORM_VEC3,
     SHADERCACHE_UNIFORM_VEC4,
+    SHADERCACHE_UNIFORM_IVEC2,
+    SHADERCACHE_UNIFORM_IVEC3,
+    SHADERCACHE_UNIFORM_IVEC4,
 } ShaderCacheUniformType;
 
 
@@ -114,11 +117,20 @@ void Shader_set_float(Shader *self, const char *name, float value);
 // Установить значение vec2:
 void Shader_set_vec2(Shader *self, const char *name, Vec2f value);
 
+// Установить значение ivec2:
+void Shader_set_ivec2(Shader *self, const char *name, Vec2i value);
+
 // Установить значение vec3:
 void Shader_set_vec3(Shader *self, const char *name, Vec3f value);
 
+// Установить значение ivec3:
+void Shader_set_ivec3(Shader *self, const char *name, Vec3i value);
+
 // Установить значение vec4:
 void Shader_set_vec4(Shader *self, const char *name, Vec4f value);
+
+// Установить значение ivec4:
+void Shader_set_ivec4(Shader *self, const char *name, Vec4i value);
 
 // Установить значение mat2:
 void Shader_set_mat2(Shader *self, const char *name, mat2 value);

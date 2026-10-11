@@ -477,6 +477,34 @@ void Shader_set_vec2(Shader *self, const char *name, Vec2f value) {
     glUniform2fv(loc, 1, (float*)&value);
 }
 
+// Установить значение ivec2:
+void Shader_set_ivec2(Shader *self, const char *name, Vec2i value) {
+    if (!self || !self->_is_begin_ || !name) return;
+    int32_t loc = Shader_get_location(self, name);
+    if (loc < 0) return; // Униформа не найдена.
+
+    // Ищем униформу в кэше:
+    ShaderCacheUniformValue *u = _find_cached_uniform_(self, loc, SHADERCACHE_UNIFORM_IVEC2);
+
+    // Если нашли:
+    if (u) {
+        // Если значение не изменилось - выходим:
+        if (cmp_float(u->vec2[0], value.x) && cmp_float(u->vec2[1], value.y)) return;
+        // Если значение изменилось - обновляем:
+        u->vec2[0] = (float)value.x;
+        u->vec2[1] = (float)value.y;
+    } else {  // Иначе добавляем новую запись:
+        ShaderCacheUniformValue cache = {
+            .type = SHADERCACHE_UNIFORM_IVEC2,
+            .location = loc,
+            .vec2[0] = (float)value.x,
+            .vec2[1] = (float)value.y
+        };
+        Array_push(self->uniform_values, &cache);
+    }
+    glUniform2iv(loc, 1, (int*)&value);
+}
+
 // Установить значение vec3:
 void Shader_set_vec3(Shader *self, const char *name, Vec3f value) {
     if (!self || !self->_is_begin_ || !name) return;
@@ -505,6 +533,36 @@ void Shader_set_vec3(Shader *self, const char *name, Vec3f value) {
         Array_push(self->uniform_values, &cache);
     }
     glUniform3fv(loc, 1, (float*)&value);
+}
+
+// Установить значение ivec3:
+void Shader_set_ivec3(Shader *self, const char *name, Vec3i value) {
+    if (!self || !self->_is_begin_ || !name) return;
+    int32_t loc = Shader_get_location(self, name);
+    if (loc < 0) return; // Униформа не найдена.
+
+    // Ищем униформу в кэше:
+    ShaderCacheUniformValue *u = _find_cached_uniform_(self, loc, SHADERCACHE_UNIFORM_IVEC3);
+
+    // Если нашли:
+    if (u) {
+        // Если значение не изменилось - выходим:
+        if (cmp_float(u->vec3[0], value.x) && cmp_float(u->vec3[1], value.y) && cmp_float(u->vec3[2], value.z)) return;
+        // Если значение изменилось - обновляем:
+        u->vec3[0] = (float)value.x;
+        u->vec3[1] = (float)value.y;
+        u->vec3[2] = (float)value.z;
+    } else {  // Иначе добавляем новую запись:
+        ShaderCacheUniformValue cache = {
+            .type = SHADERCACHE_UNIFORM_IVEC3,
+            .location = loc,
+            .vec3[0] = (float)value.x,
+            .vec3[1] = (float)value.y,
+            .vec3[2] = (float)value.z
+        };
+        Array_push(self->uniform_values, &cache);
+    }
+    glUniform3iv(loc, 1, (int*)&value);
 }
 
 // Установить значение vec4:
@@ -538,6 +596,39 @@ void Shader_set_vec4(Shader *self, const char *name, Vec4f value) {
         Array_push(self->uniform_values, &cache);
     }
     glUniform4fv(loc, 1, (float*)&value);
+}
+
+// Установить значение ivec4:
+void Shader_set_ivec4(Shader *self, const char *name, Vec4i value) {
+    if (!self || !self->_is_begin_ || !name) return;
+    int32_t loc = Shader_get_location(self, name);
+    if (loc < 0) return; // Униформа не найдена.
+
+    // Ищем униформу в кэше:
+    ShaderCacheUniformValue *u = _find_cached_uniform_(self, loc, SHADERCACHE_UNIFORM_IVEC4);
+
+    // Если нашли:
+    if (u) {
+        // Если значение не изменилось - выходим:
+        if (cmp_float(u->vec4[0], value.x) && cmp_float(u->vec4[1], value.y) &&
+            cmp_float(u->vec4[2], value.z) && cmp_float(u->vec4[3], value.w)) return;
+        // Если значение изменилось - обновляем:
+        u->vec4[0] = (float)value.x;
+        u->vec4[1] = (float)value.y;
+        u->vec4[2] = (float)value.z;
+        u->vec4[3] = (float)value.w;
+    } else {  // Иначе добавляем новую запись:
+        ShaderCacheUniformValue cache = {
+            .type = SHADERCACHE_UNIFORM_IVEC4,
+            .location = loc,
+            .vec4[0] = (float)value.x,
+            .vec4[1] = (float)value.y,
+            .vec4[2] = (float)value.z,
+            .vec4[3] = (float)value.w
+        };
+        Array_push(self->uniform_values, &cache);
+    }
+    glUniform4iv(loc, 1, (int*)&value);
 }
 
 // Установить значение mat2:
