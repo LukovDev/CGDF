@@ -57,8 +57,8 @@ static inline Vec2d Utils_world2d_to_screen(Camera2D *camera, Vec2d world_point)
 
     // Смещаем результат к центру экрана (так как камера центрирована):
     return (Vec2d){
-        (camera->width / 2.0f) + screen_rel_x,
-        (camera->height / 2.0f) + screen_rel_y
+        ((float)camera->width / 2.0f) + screen_rel_x,
+        ((float)camera->height / 2.0f) + screen_rel_y
     };
 }
 

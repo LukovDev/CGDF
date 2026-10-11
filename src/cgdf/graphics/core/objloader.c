@@ -78,12 +78,12 @@ static bool make_vertex(ObjIndex idx, Array *positions, Array *normals, Array *t
     int n_index = convert_obj_index(idx.n, normals);
     int t_index = convert_obj_index(idx.t, texcoords);
 
-    Vec3d *p_ptr = (Vec3d*)Array_get(positions, p_index);
+    Vec3d *p_ptr = p_index < 0 ? nullptr : (Vec3d*)Array_get(positions, p_index);
     if (!p_ptr) return false;
 
     // Получаем нормали и текстурные координаты:
-    Vec3d *n_ptr = (Vec3d*)Array_get(normals, n_index);
-    Vec2d *t_ptr = (Vec2d*)Array_get(texcoords, t_index);
+    Vec3d *n_ptr = n_index < 0 ? nullptr : (Vec3d*)Array_get(normals, n_index);
+    Vec2d *t_ptr = t_index < 0 ? nullptr : (Vec2d*)Array_get(texcoords, t_index);
     Vec3d p = *p_ptr;
     Vec3d n = n_ptr ? *n_ptr : (Vec3d){0.0, 0.0, 0.0};
     Vec2d t = t_ptr ? *t_ptr : (Vec2d){0.0, 0.0};

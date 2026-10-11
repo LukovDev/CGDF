@@ -131,7 +131,7 @@ static inline void rehash(HashTable *table, size_t new_capacity) {
 
 
 // Расширяем хэш-таблицу:
-static inline void growth(HashTable *table, float factor) {
+static inline void growth(HashTable *table, double factor) {
     if (!table) return;
     if (factor <= 0) factor = HASHTABLE_GROWTH_FACTOR;
     size_t new_capacity = (size_t)(table->capacity * factor);
@@ -141,7 +141,7 @@ static inline void growth(HashTable *table, float factor) {
 
 
 // Сжимаем хэш-таблицу:
-static inline void shrink(HashTable *table, float factor) {
+static inline void shrink(HashTable *table, double factor) {
     if (!table) return;
     if (factor <= 0) factor = HASHTABLE_SHRINK_FACTOR;
     size_t new_capacity = (size_t)(table->len * factor);

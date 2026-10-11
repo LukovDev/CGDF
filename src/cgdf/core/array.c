@@ -26,7 +26,9 @@ Array* Array_create(size_t item_size, size_t initial_capacity) {
 
     // Создаём массив:
     Array *arr = (Array*)mm_alloc(sizeof(Array));
-    arr->data = mm_alloc(initial_capacity*item_size);  // Выделяем блок памяти под элементы заданного размера.
+    size_t size;
+    if (ckd_mul(&size, initial_capacity, item_size)) mm_alloc_error();
+    arr->data = mm_alloc(size);  // Выделяем блок памяти под элементы заданного размера.
     arr->item_size = item_size;
     arr->len = 0;
     arr->capacity = initial_capacity;
@@ -46,27 +48,31 @@ void Array_destroy(Array **arr) {
 
 
 // Расширяем массив:
-void Array_growth(Array *arr, float factor) {
+void Array_growth(Array *arr, double factor) {
     if (!arr) return;
     if (factor <= 0) factor = ARRAY_GROWTH_FACTOR;
     size_t new_capacity = (size_t)(arr->capacity * factor);
     if (new_capacity <= arr->capacity) new_capacity = arr->capacity + 1;
     if (new_capacity > arr->capacity) {  // Расширяем если можно.
         arr->capacity = new_capacity;
-        arr->data = mm_realloc(arr->data, arr->item_size * arr->capacity);
+        size_t size;
+        if (ckd_mul(&size, arr->item_size, arr->capacity)) mm_alloc_error();
+        arr->data = mm_realloc(arr->data, size);
     }
 }
 
 
 // Сжимаем массив:
-void Array_shrink(Array *arr, float factor) {
+void Array_shrink(Array *arr, double factor) {
     if (!arr) return;
     if (factor <= 0) factor = ARRAY_SHRINK_FACTOR;
     size_t new_capacity = (size_t)(arr->len + arr->len*factor);
     if (arr->len <= 0) new_capacity = arr->init_cap;
     if (new_capacity < arr->capacity) {  // Сжимаем если можно.
         arr->capacity = new_capacity;
-        arr->data = mm_realloc(arr->data, arr->item_size * arr->capacity);
+        size_t size;
+        if (ckd_mul(&size, arr->item_size, arr->capacity)) mm_alloc_error();
+        arr->data = mm_realloc(arr->data, size);
     }
 }
 
@@ -162,7 +168,9 @@ void Array_fill(Array *arr, const void *element, size_t count) {
 
     // Выделяем память под элементы (если размер массива меньше нужного):
     if (arr->capacity < count) {
-        arr->data = mm_realloc(arr->data, arr->item_size * count);
+        size_t size;
+        if (ckd_mul(&size, arr->item_size, count)) mm_alloc_error();
+        arr->data = mm_realloc(arr->data, size);
         arr->capacity = count;
     }
 
@@ -197,7 +205,9 @@ void Array_copy(Array *dst, Array *src) {
 
     // Выделяем память под элементы (если есть разница в размере массивов):
     if (dst->item_size != src->item_size || dst->capacity != src->capacity) {
-        dst->data = mm_realloc(dst->data, src->item_size * src->capacity);
+        size_t size;
+        if (ckd_mul(&size, src->item_size, src->capacity)) mm_alloc_error();
+        dst->data = mm_realloc(dst->data, size);
     }
 
     // Копируем параметры массива:
@@ -356,6 +366,8 @@ void Array_clear(Array *arr, bool free_data) {
     arr->len = 0;
     if (arr->capacity != arr->init_cap) {
         arr->capacity = arr->init_cap;
-        arr->data = mm_realloc(arr->data, arr->item_size * arr->capacity);
+        size_t size;
+        if (ckd_mul(&size, arr->item_size, arr->capacity)) mm_alloc_error();
+        arr->data = mm_realloc(arr->data, size);
     }
 }

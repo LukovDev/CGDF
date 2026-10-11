@@ -83,7 +83,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     // Управление камерой в случае если мы не попали на интерфейс и зажали ПКМ:
     if (self->is_pressed && !self->pressed_pass) {
         // Управление с помощью мыши:
-        float roll = radians(self->euler.z);
+        float roll = glm_rad((float)self->euler.z);
         float cam_dx = cosf(roll) * (float)mouse_rel.x - sinf(roll) * (float)mouse_rel.y;
         float cam_dy = sinf(roll) * (float)mouse_rel.x + cosf(roll) * (float)mouse_rel.y;
 
@@ -96,7 +96,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
         _check_mouse_pos_(window, camera->width, camera->height);
 
         // Ограничиваем вращение камеры вверх-вниз до -89/89 градусов:
-        self->euler.x = glm_clamp(self->euler.x, -89.9f, +89.9f);
+        self->euler.x = fmin(fmax(self->euler.x, -89.9), 89.9);
     }
 
     // Управление обзором камеры:
@@ -137,7 +137,7 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
     } else { camera->size = (Vec3d){1.0f, 1.0f, 1.0f}; }
 
     // Вычисляем позицию камеры и вращение:
-    float pitch = radians(self->target_rot.x), yaw = radians(self->target_rot.y);
+    float pitch = glm_rad((float)self->target_rot.x), yaw = glm_rad((float)self->target_rot.y);
     vec3 forward = {cosf(pitch) * sinf(-yaw), sinf(pitch), cosf(pitch) * cosf(-yaw)};
     glm_vec3_normalize(forward);
     camera->position.x = self->target_pos.x + forward[0] * self->distance;
@@ -162,6 +162,6 @@ void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, 
         diff
     );
     float pos_delta = glm_vec3_norm(diff);
-    float dst_delta = fabs(self->target_dst - self->distance);
+    float dst_delta = fabsf(self->target_dst - self->distance);
     self->is_movement = (pos_delta > 0.001f || dst_delta > 0.001f);
 }

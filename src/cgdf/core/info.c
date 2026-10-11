@@ -125,12 +125,14 @@ CpuInfo Info_get_cpu(void) {
         SYSTEM_INFO si; GetSystemInfo(&si);
         info.threads = si.dwNumberOfProcessors;
     #elif defined(__APPLE__)
-        int count; size_t c_len = sizeof(count);
-        sysctlbyname("hw.ncpu", &count, &c_len, nullptr, 0);
+        int count = 1; size_t c_len = sizeof(count);
+        if (sysctlbyname("hw.ncpu", &count, &c_len, nullptr, 0) != 0) count = 1;
         info.threads = count;
     #elif defined(__linux__)
-        info.threads = sysconf(_SC_NPROCESSORS_ONLN);
+        long n = sysconf(_SC_NPROCESSORS_ONLN);
+        info.threads = n > 0 ? (int)n : 1;
     #endif
+    if (info.threads < 1) info.threads = 1;  // Защита от некорректных значений.
 
     // Кэширование результата:
     if (!g_Info_cpu_cached_) {

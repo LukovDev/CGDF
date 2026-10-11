@@ -151,6 +151,9 @@ static void MainLoop(Window *self, WinConfig *config) {
     WinVars *vars = self->vars;
     if (!vars || !vars->window) return;
 
+    // Дробный остаток смещения мыши:
+    float mouse_rel_rem_x = 0.0f, mouse_rel_rem_y = 0.0f;
+
     // Основной цикл окна:
     vars->running = true;
     while (vars->running) {
@@ -251,10 +254,16 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если мышь передвинулась:
                 case SDL_EVENT_MOUSE_MOTION: {
-                    input->mouse->rel.x += event.motion.xrel;
-                    input->mouse->rel.y += event.motion.yrel;
-                    input->mouse->pos.x = event.motion.x;
-                    input->mouse->pos.y = event.motion.y;
+                    // SDL возвращает дробное перемещение, по этому не теряем его:
+                    mouse_rel_rem_x += event.motion.xrel;
+                    mouse_rel_rem_y += event.motion.yrel;
+                    int dx = (int)mouse_rel_rem_x, dy = (int)mouse_rel_rem_y;
+                    mouse_rel_rem_x -= (float)dx;
+                    mouse_rel_rem_y -= (float)dy;
+                    input->mouse->rel.x += dx;
+                    input->mouse->rel.y += dy;
+                    input->mouse->pos.x = (int)lroundf(event.motion.x);
+                    input->mouse->pos.y = (int)lroundf(event.motion.y);
                 } break;
 
                 // Если колёсико мыши провернулось:
@@ -265,7 +274,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если нажимают кнопку мыши:
                 case SDL_EVENT_MOUSE_BUTTON_DOWN: {
-                    if (event.button.button >= 1 && event.button.button <= input->mouse->max_keys) {
+                    if (event.button.button >= 1 && (size_t)event.button.button <= input->mouse->max_keys) {
                         input->mouse->pressed[event.button.button - 1] = true;
                         input->mouse->down[event.button.button - 1] = true;
                     }
@@ -273,7 +282,7 @@ static void MainLoop(Window *self, WinConfig *config) {
 
                 // Если отпускают кнопку мыши:
                 case SDL_EVENT_MOUSE_BUTTON_UP: {
-                    if (event.button.button >= 1 && event.button.button <= input->mouse->max_keys) {
+                    if (event.button.button >= 1 && (size_t)event.button.button <= input->mouse->max_keys) {
                         input->mouse->pressed[event.button.button - 1] = false;
                         input->mouse->up[event.button.button - 1] = true;
                     }
@@ -282,7 +291,7 @@ static void MainLoop(Window *self, WinConfig *config) {
                 // Если нажимают кнопку на клавиатуре:
                 case SDL_EVENT_KEY_DOWN: {
                     Input_Scancode scancode = ConvertScancode(event.key.scancode);
-                    if ((int)scancode < input->keyboard->max_keys) {
+                    if ((size_t)scancode < input->keyboard->max_keys) {
                         if (!input->keyboard->pressed[scancode]) {
                             input->keyboard->pressed[scancode] = true;
                             input->keyboard->down[scancode] = true;
@@ -293,7 +302,7 @@ static void MainLoop(Window *self, WinConfig *config) {
                 // Если отпускают кнопку на клавиатуре:
                 case SDL_EVENT_KEY_UP: {
                     Input_Scancode scancode = ConvertScancode(event.key.scancode);
-                    if ((int)scancode < input->keyboard->max_keys) {
+                    if ((size_t)scancode < input->keyboard->max_keys) {
                         input->keyboard->pressed[scancode] = false;
                         input->keyboard->up[scancode] = true;
                     }
@@ -302,8 +311,8 @@ static void MainLoop(Window *self, WinConfig *config) {
         }
 
         // Обработка основных функций (обновление и отрисовка):
-        if (scene->update) scene->update(self, Window_get_dtime(self));
-        if (scene->render) scene->render(self, Window_get_dtime(self));
+        if (scene->update) scene->update(self, (float)Window_get_dtime(self));
+        if (scene->render) scene->render(self, (float)Window_get_dtime(self));
 
         // Очищаем все буфера (массивное удаление всех буферов за раз):
         Renderer_buffers_flush(self->renderer);

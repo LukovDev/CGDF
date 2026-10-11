@@ -71,7 +71,7 @@ typedef struct Lighting3D {
     // Настройки теней:
     bool      shadows_enabled;   // Включить тени.
     bool      shadows_smooth;    // Мягкие тени.
-    uint32_t  shadows_size;      // Размер карты теней (в пикселях, квадрат).
+    int       shadows_size;      // Размер карты теней (в пикселях, квадрат).
     float     shadows_distance;  // Радиус области вокруг камеры, где считаются тени (в единицах мира).
     BufferFBO *shadows_fbo;      // Буфер кадра карты теней (только глубина).
     Texture   *shadows_tex;      // Карта теней (текстура глубины).
@@ -210,10 +210,11 @@ static void _lighting_set_shadows_size_(Lighting3D *self, int size) {
     if (!self) return;
     Texture_empty(self->shadows_tex, size, size, false, TEX_FORMAT_DEPTH, TEX_INTERNAL_DEPTH32F, TEX_DATA_FLOAT);
     Renderer_set_shadows_smooth(self->renderer, self->shadows_smooth);
-    // Включаем аппаратное сравнение глубины:
     Texture_begin(self->shadows_tex);
+    // Включаем аппаратное сравнение:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    // Если координаты текстуры выйдут за диапазон, цвет всегда будет белым:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (float[4]){1.0f, 1.0f, 1.0f, 1.0f});
@@ -473,7 +474,7 @@ void Renderer_init(Renderer *self) {
     self->lighting->light_fbo = BufferFBO_create();
     self->lighting->light_tex = Texture_create(self);
     // Настройки освещения:
-    self->lighting->sun_direction = (Vec3f){-0.57735, -0.57735, -0.57735};
+    self->lighting->sun_direction = (Vec3f){-0.57735f, -0.57735f, -0.57735f};
     self->lighting->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
     self->lighting->sun_intensity = 10.0f;
     self->lighting->ambient_color = (Vec3f){0.6f, 0.7f, 1.0f};
@@ -1040,7 +1041,9 @@ bool Renderer_get_shadows_smooth(Renderer *self) {
 
 // Установить размер карты теней:
 void Renderer_set_shadows_size(Renderer *self, int size) {
-    if (!self) return;
+    if (!self || size <= 0) return;
+    int max_size = Renderer_get_max_texture_size(self);
+    if (size > max_size) size = max_size;
     _lighting_set_shadows_size_(self->lighting, size);
 }
 

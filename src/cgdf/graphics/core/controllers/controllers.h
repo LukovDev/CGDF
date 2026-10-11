@@ -20,7 +20,6 @@ static const int DEFAULT_MOUSE_POS_OFFSET = 16;  // Область от края
 typedef struct CameraController2D CameraController2D;  // Простой контроллер для 2D камеры.
 typedef struct CameraController3D CameraController3D;  // Простой контроллер для 3D камеры.
 typedef struct CameraOrbitController3D CameraOrbitController3D;    // Орбитальный контроллер для 3D камеры.
-typedef struct CameraPlanetController3D CameraPlanetController3D;  // Планетарный контроллер для 3D камеры.
 
 
 // Простой контроллер для 2D камеры:
@@ -69,28 +68,6 @@ struct CameraOrbitController3D {
     Vec3d target_pos;    // Целевая позиция камеры.
     Vec3d target_rot;    // Целевой поворот камеры.
     float target_dst;    // Целевая дистанция камеры.
-    float target_fov;    // Целевой угол обзора.
-    bool pressed_pass;   // Пропуск нажатия (внутренняя логика).
-    bool is_pressed;     // Нажата клавиша (внутренняя логика).
-    bool is_movement;    // Перемещается ли камера или нет.
-};
-
-
-// Планетарный контроллер для 3D камеры:
-struct CameraPlanetController3D {
-    Window *window;      // Указатель на окно.
-    Camera3D *camera;    // Указатель на 3D камеру.
-    float mouse_sensitivity;  // Коэффициент чувствительности мыши.
-    float ctrl_speed;    // Скорость камеры при зажатом CTRL (ед/сек).
-    float speed;         // Скорость камеры без клавиш модификаторов (ед/сек).
-    float shift_speed;   // Скорость камеры при зажатом SHIFT (ед/сек).
-    float altitude;      // Высота от центра сферы.
-    float friction;      // Коэффициент скольжения камеры.
-    bool up_is_forward;  // Вверх - вперед.
-    Vec3d center;        // Центр сферы.
-    Vec3d euler;         // Поворот камеры.
-    Vec3d target_pos;    // Целевая позиция камеры.
-    float target_alt;    // Целевая альтитуда.
     float target_fov;    // Целевой угол обзора.
     bool pressed_pass;   // Пропуск нажатия (внутренняя логика).
     bool is_pressed;     // Нажата клавиша (внутренняя логика).
@@ -160,19 +137,3 @@ void CameraOrbitController3D_destroy(CameraOrbitController3D **ctrl);
 
 // Обновление контроллера:
 void CameraOrbitController3D_update(CameraOrbitController3D *self, float dtime, bool pressed_pass);
-
-
-// -------- API 3D планетарного контроллера: --------
-
-
-// Создать 3D контроллер:
-[[nodiscard]] CameraPlanetController3D* CameraPlanetController3D_create(
-    Window *window, Camera3D *camera, float mouse_sensitivity, float ctrl_speed,
-    float speed, float shift_speed, float friction, bool up_is_forward
-);
-
-// Уничтожить 3D планетарный контроллер:
-void CameraPlanetController3D_destroy(CameraPlanetController3D **ctrl);
-
-// Обновление контроллера:
-void CameraPlanetController3D_update(CameraPlanetController3D *self, float dtime, bool pressed_pass);

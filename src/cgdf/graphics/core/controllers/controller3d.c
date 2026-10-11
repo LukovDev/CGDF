@@ -91,9 +91,9 @@ void CameraController3D_update(CameraController3D *self, float dtime, bool press
     // Управление камерой в случае если мы не попали на интерфейс и зажали ПКМ:
     if (self->is_pressed && !self->pressed_pass) {
         // Вращение камеры:
-        self->euler.y -= mouse_rel.x * self->mouse_sensitivity * ((camera->fov < 60.0f) ? (camera->fov / 60.0f) : 1.0f);
-        self->euler.x -= mouse_rel.y * self->mouse_sensitivity * ((camera->fov < 60.0f) ? (camera->fov / 60.0f) : 1.0f);
-        self->euler.x = glm_clamp(self->euler.x, -89.9f, 89.9f);
+        self->euler.y -= (float)mouse_rel.x*self->mouse_sensitivity*((camera->fov < 60.0f)?(camera->fov/60.0f):1.0f);
+        self->euler.x -= (float)mouse_rel.y*self->mouse_sensitivity*((camera->fov < 60.0f)?(camera->fov/60.0f):1.0f);
+        self->euler.x = fmin(fmax(self->euler.x, -89.9), 89.9);
         _check_mouse_pos_(window, camera->width, camera->height);
         Camera3D_set_euler(camera, (Vec3d){self->euler.x, self->euler.y, 0.0});
 

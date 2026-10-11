@@ -12,8 +12,8 @@
 // Определения:
 #define HASHTABLE_DEFAULT_CAPACITY 1024   // Размер хэш-таблицы по умолчанию.
 #define HASHTABLE_MIN_CAPACITY     1024   // Минимальный размер хэш-таблицы.
-#define HASHTABLE_GROWTH_FACTOR    2.0f   // Коэффициент увеличения таблицы.
-#define HASHTABLE_SHRINK_FACTOR    2.0f   // Коэффициент сжатия таблицы (формула: cap = len*SHRINK_FACTOR).
+#define HASHTABLE_GROWTH_FACTOR    2.0    // Коэффициент увеличения таблицы.
+#define HASHTABLE_SHRINK_FACTOR    2.0    // Коэффициент сжатия таблицы (формула: cap = len*SHRINK_FACTOR).
 #define HASHTABLE_GROWTH_THRESHOLD 0.66f  // Порог количества заполненности таблицы для расширения (%).
 #define HASHTABLE_SHRINK_THRESHOLD 0.25f  // Порог количества заполненности таблицы для сжатия (%).
 #define HASHTABLE_PROBING_COUNT    64     // Массив записей последних пробирований (аналитика).

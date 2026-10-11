@@ -79,7 +79,7 @@ float calc_shadow(vec3 P, vec3 N, vec3 L) {
 
     if (u_shadows_smooth) {
         // PCF: усредняем (2r+1)^2 выборок вокруг точки. Мягкий край:
-        const int r = 2;
+        const int r = 1;
         vec2 texel = 1.0 / vec2(textureSize(u_shadow_map, 0));
         float lit = 0.0;
         for (int x = -r; x <= r; x++) {

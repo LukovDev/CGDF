@@ -172,7 +172,7 @@ static FontGlyph* generate_glyph(FontPixmap *self, uint32_t codepoint) {
     if (!bitmap) return nullptr;
 
     // Конвертируем bitmap в RGBA8:
-    unsigned char *rgba = mm_alloc(width * height * 4);
+    unsigned char *rgba = mm_alloc((size_t)width * height * 4);
     for (int i = 0; i < width * height; i++) {
         rgba[i*4+0] = 255;
         rgba[i*4+1] = 255;
@@ -210,7 +210,7 @@ static FontGlyph* generate_glyph(FontPixmap *self, uint32_t codepoint) {
     // Получаем advance:
     int advance, lsb;
     stbtt_GetCodepointHMetrics(&self->info, codepoint, &advance, &lsb);
-    advance = (int)(advance * self->scale);
+    advance = (int)((float)advance * self->scale);
 
     // Создаём глиф в куче:
     FontGlyph *glyph = (FontGlyph*)mm_alloc(sizeof(FontGlyph));
@@ -326,7 +326,8 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     int min_size = 1;  // Минимальный размер текста - 1 пиксель.
     int max_size = Renderer_get_max_texture_size(renderer)-FONT_ATLAS_PADDING*2-1; // Чтобы хотя бы один глиф влез.
     if (max_size < min_size) max_size = min_size;
-    font_size = glm_clamp(font_size, min_size, max_size);
+    if (font_size < min_size) font_size = min_size;
+    else if (font_size > max_size) font_size = max_size;
 
     // Заполняем поля:
     font->renderer = renderer;
@@ -346,9 +347,9 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
 
     // Метрики которые нельзя редактировать:
     font->font_size = font_size;
-    font->scale = stbtt_ScaleForPixelHeight(&font->info, font_size);
+    font->scale = stbtt_ScaleForPixelHeight(&font->info, (float)font_size);
     stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
-    font->line_advance = (font->ascent - font->descent + font->line_gap) * font->scale;
+    font->line_advance = (float)(font->ascent - font->descent + font->line_gap) * font->scale;
 
     // Метрики которые можно редактировать:
     font->line_height = 0.0f;
@@ -358,7 +359,7 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     // Получаем размер пробела:
     int sp_adv = 0, sp_lsb = 0;
     stbtt_GetCodepointHMetrics(&font->info, ' ', &sp_adv, &sp_lsb);
-    font->space_advance = sp_adv * font->scale;
+    font->space_advance = (float)sp_adv * font->scale;
 
     // Инициализируем атлас:
     int atlas_size = (int)sqrt(FONT_ATLAS_SIZE) * (font->font_size + FONT_ATLAS_PADDING * 2);
@@ -575,7 +576,7 @@ FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...)
 
     // Стартовые состояния:
     float pen_x = 0.0f;
-    float baseline = self->ascent * self->scale;
+    float baseline = (float)self->ascent * self->scale;
     uint32_t prev_cp = 0;   // Кодпоинт предыдущего символа.
     bool has_prev = false;  // Есть ли предыдущий символ.
     int lines = 1;
@@ -627,7 +628,7 @@ FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...)
         }
 
         float drawX = pen_x + g->offset_x;
-        float drawY = baseline - g->offset_y - g->height;
+        float drawY = baseline - g->offset_y - (float)g->height;
 
         if (g->width > 0 && g->height > 0) {
             float gx0 = drawX;
@@ -710,12 +711,12 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
     // Центрирование:
     FontTextBlock block = FontPixmap_get_text_block(self, "%s", render_text);
     float pen_x = 0.0f;
-    float baseline = self->ascent * self->scale;
+    float baseline = (float)self->ascent * self->scale;
     const float sx = self->scale_factor.x;
     const float sy = self->scale_factor.y;
 
     // Для вращения:
-    float angle_rad = radians(angle);
+    float angle_rad = glm_rad(angle);
     float s = sinf(angle_rad);
     float c = cosf(angle_rad);
     float pivot_x = x;
@@ -813,7 +814,7 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
 
             // Точки отрисовки символов:
             float drawX = block_x + ((pen_x + g->offset_x) * sx - block.start.x);
-            float drawY = block_y + ((baseline - g->offset_y - g->height) * sy - block.start.y);
+            float drawY = block_y + ((baseline - g->offset_y - (float)g->height) * sy - block.start.y);
             float gw = (float)g->width * sx;   // Ширина глифа.
             float gh = (float)g->height * sy;  // Высота глифа.
 

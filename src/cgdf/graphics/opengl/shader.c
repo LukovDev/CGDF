@@ -75,6 +75,7 @@ PRINTF_FORMAT(2, 3) static void _shader_set_error_(Shader *self, const char *fmt
     va_start(ap, fmt);
     int needed = vsnprintf(nullptr, 0, fmt, ap);
     va_end(ap);
+    if (needed < 0) return;  // Ошибка форматирования.
 
     self->error = mm_alloc(needed + 1);
 

@@ -128,7 +128,7 @@ void Light2D_light_end(Light2D *self) {
 void Light2D_render(Light2D *self) {
     if (!self || !self->renderer || self->_is_scene_begin_ || self->_is_light_begin_) return;
     Renderer *rnd = self->renderer;
-    Vec2f resolution = (Vec2f){Renderer_get_width(rnd), Renderer_get_height(rnd)};
+    Vec2f resolution = (Vec2f){(float)Renderer_get_width(rnd), (float)Renderer_get_height(rnd)};
     Shader_begin(rnd->shader_light2d);
     Shader_set_tex2d(rnd->shader_light2d, "u_albedo_texture", self->albedo_tex->id);  // Текстура окружения.
     Shader_set_tex2d(rnd->shader_light2d, "u_light_texture", self->light_tex->id);    // Текстура освещения.

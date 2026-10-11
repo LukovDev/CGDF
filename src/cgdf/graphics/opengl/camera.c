@@ -214,9 +214,9 @@ void Camera3D_update(Camera3D *self) {
     self->z_near = glm_max(self->z_near, 0.00001f);
 
     // Также ограничиваем размеры минимальным значением:
-    self->size.x = glm_max(self->size.x, 0.00001f);
-    self->size.y = glm_max(self->size.y, 0.00001f);
-    self->size.z = glm_max(self->size.z, 0.00001f);
+    self->size.x = fmax(self->size.x, 0.00001);
+    self->size.y = fmax(self->size.y, 0.00001);
+    self->size.z = fmax(self->size.z, 0.00001);
 
     // Обновляем матрицу проекции в случае изменения параметров камеры:
     if (!cmp_float(self->fov, self->_oldfov_) ||
@@ -290,7 +290,7 @@ void Camera3D_resize(Camera3D *self, int width, int height) {
         float hght = ((float)self->height)*0.5f / 100.0f * self->size.y;
         glm_ortho(-wdth, wdth, -hght, hght, -self->z_far, self->z_far, self->proj);
     } else {
-        glm_perspective(radians(self->fov), aspect, self->z_near, self->z_far, self->proj);
+        glm_perspective(glm_rad(self->fov), aspect, self->z_near, self->z_far, self->proj);
     }
 }
 
@@ -299,9 +299,9 @@ void Camera3D_set_euler(Camera3D *self, Vec3d rotation) {
     if (!self) return;
 
     versor qx, qy, qz, tmp;
-    glm_quatv(qx, radians(rotation.x), (vec3){1, 0, 0});
-    glm_quatv(qy, radians(rotation.y), (vec3){0, 1, 0});
-    glm_quatv(qz, radians(rotation.z), (vec3){0, 0, 1});
+    glm_quatv(qx, glm_rad((float)rotation.x), (vec3){1, 0, 0});
+    glm_quatv(qy, glm_rad((float)rotation.y), (vec3){0, 1, 0});
+    glm_quatv(qz, glm_rad((float)rotation.z), (vec3){0, 0, 1});
     glm_quat_mul(qy, qx, tmp);
     glm_quat_mul(tmp, qz, self->quaternion);
     glm_quat_normalize(self->quaternion);
@@ -336,7 +336,7 @@ void Camera3D_rotate_pitch(Camera3D *self, float angle) {
     if (!self) return;
 
     versor q;
-    glm_quatv(q, radians(angle), (vec3){1, 0, 0});
+    glm_quatv(q, glm_rad(angle), (vec3){1, 0, 0});
     glm_quat_mul(self->quaternion, q, self->quaternion);
     glm_quat_normalize(self->quaternion);
 }
@@ -346,7 +346,7 @@ void Camera3D_rotate_yaw(Camera3D *self, float angle) {
     if (!self) return;
 
     versor q;
-    glm_quatv(q, radians(angle), (vec3){0, 1, 0});
+    glm_quatv(q, glm_rad(angle), (vec3){0, 1, 0});
     glm_quat_mul(q, self->quaternion, self->quaternion);
     glm_quat_normalize(self->quaternion);
 }
@@ -356,7 +356,7 @@ void Camera3D_rotate_roll(Camera3D *self, float angle) {
     if (!self) return;
 
     versor q;
-    glm_quatv(q, radians(angle), (vec3){0, 0, 1});
+    glm_quatv(q, glm_rad(angle), (vec3){0, 0, 1});
     glm_quat_mul(self->quaternion, q, self->quaternion);
     glm_quat_normalize(self->quaternion);
 }
@@ -367,9 +367,9 @@ Vec3d Camera3D_get_euler(Camera3D *self) {
 
     mat4 m;
     glm_quat_mat4(self->quaternion, m);
-    float pitch = degrees(asinf(-m[2][1]));
-    float yaw   = degrees(atan2f(m[2][0], m[2][2]));
-    float roll  = degrees(atan2f(m[0][1], m[1][1]));
+    float pitch = glm_deg(asinf(-m[2][1]));
+    float yaw   = glm_deg(atan2f(m[2][0], m[2][2]));
+    float roll  = glm_deg(atan2f(m[0][1], m[1][1]));
     return (Vec3d){pitch, yaw, roll};
 }
 

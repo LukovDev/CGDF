@@ -102,7 +102,7 @@ static size_t get_tex_size(Texture *self) {
     size_t total = 0;
     int width = self->width, height = self->height;
     while (true) {
-        total += width * height * bytes_per_internal(self->internal);
+        total += (size_t)width * height * bytes_per_internal(self->internal);
         if (!self->has_mipmap) break;
         if (width == 1 && height == 1) break;
         width  = width  > 1 ? width  / 2 : 1;
@@ -379,7 +379,7 @@ Pixmap* Texture_get_pixmap(Texture *self, int channels) {
         default: break;
     }
     size_t bpp = channels * (type == TEX_DATA_FLOAT ? sizeof(float) : sizeof(uint8_t));
-    void *data = mm_alloc(self->width * self->height * bpp);
+    void *data = mm_alloc((size_t)self->width * self->height * bpp);
 
     // Подбираем формат данных:
     int gl_format;

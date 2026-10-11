@@ -68,7 +68,7 @@ void Sprite2D_render(
     glm_mat4_identity(model);
     // Порядок применения трансформации должен применяться на матрицу наоборот:
     glm_translate(model, (vec3){x+width*0.5f, y+height*0.5f, 0.0f});
-    if (angle != 0.0f) glm_rotate(model, radians(angle), (vec3){0.0f, 0.0f, 1.0f});
+    if (angle != 0.0f) glm_rotate(model, glm_rad(angle), (vec3){0.0f, 0.0f, 1.0f});
     glm_scale(model, (vec3){width*0.5f, height*0.5f, 0.0f});
 
     // Настраиваем дефолтный шейдер:
@@ -157,9 +157,9 @@ void Sprite3D_render(
     // вызовы glm_rotate должны идти в обратном порядке: Y -> X -> Z.
     // Порядок применения трансформации должен применяться на матрицу наоборот:
     glm_translate(model, (vec3){position.x, position.y, position.z});
-    if (rotation.y != 0.0f) glm_rotate(model, radians(rotation.y), (vec3){0.0f, 1.0f, 0.0f});
-    if (rotation.x != 0.0f) glm_rotate(model, radians(rotation.x), (vec3){1.0f, 0.0f, 0.0f});
-    if (rotation.z != 0.0f) glm_rotate(model, radians(rotation.z), (vec3){0.0f, 0.0f, 1.0f});
+    if (rotation.y != 0.0f) glm_rotate(model, glm_rad(rotation.y), (vec3){0.0f, 1.0f, 0.0f});
+    if (rotation.x != 0.0f) glm_rotate(model, glm_rad(rotation.x), (vec3){1.0f, 0.0f, 0.0f});
+    if (rotation.z != 0.0f) glm_rotate(model, glm_rad(rotation.z), (vec3){0.0f, 0.0f, 1.0f});
     glm_scale(model, (vec3){width * 0.5f, height * 0.5f, 1.0f});
 
     // Настраиваем дефолтный шейдер:

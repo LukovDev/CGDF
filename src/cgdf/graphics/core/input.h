@@ -156,24 +156,24 @@ typedef struct Window Window;
 
 // Состояние мыши:
 struct Input_MouseState {
-    int max_keys;   // Количество кнопок (обычно равно 8 на каждый из полей состояний).
-    bool *pressed;  // Нажатые кнопки.
-    bool *down;     // Нажатия в этом кадре.
-    bool *up;       // Отпускания в этом кадре.
-    bool focused;   // Находится ли курсор над окном.
-    bool visible;   // Видимость курсора.
-    Vec2i pos;      // Позиция курсора.
-    Vec2i rel;      // Смещение за кадр.
-    Vec2f wheel;    // Прокрутка колёсика мыши.
+    size_t max_keys;  // Количество кнопок (обычно равно 8 на каждый из полей состояний).
+    bool *pressed;    // Нажатые кнопки.
+    bool *down;       // Нажатия в этом кадре.
+    bool *up;         // Отпускания в этом кадре.
+    bool focused;     // Находится ли курсор над окном.
+    bool visible;     // Видимость курсора.
+    Vec2i pos;        // Позиция курсора.
+    Vec2i rel;        // Смещение за кадр.
+    Vec2f wheel;      // Прокрутка колёсика мыши.
 };
 
 
 // Состояние клавиатуры:
 struct Input_KeyboardState {
-    int max_keys;   // Количество клавиш (обычно равно 512 на каждый из полей состояний).
-    bool *pressed;  // Нажатые клавиши.
-    bool *down;     // Нажатия в этом кадре.
-    bool *up;       // Отпускания в этом кадре.
+    size_t max_keys;  // Количество клавиш (обычно равно 512 на каждый из полей состояний).
+    bool *pressed;    // Нажатые клавиши.
+    bool *down;       // Нажатия в этом кадре.
+    bool *up;         // Отпускания в этом кадре.
 };
 
 
@@ -187,13 +187,13 @@ struct Input {
 
 
 // Создать структуру мыши:
-[[nodiscard]] Input_MouseState* Input_MouseState_create(int max_keys);
+[[nodiscard]] Input_MouseState* Input_MouseState_create(size_t max_keys);
 
 // Уничтожить структуру мыши:
 void Input_MouseState_destroy(Input_MouseState **mouse_state);
 
 // Создать структуру клавиатуры:
-[[nodiscard]] Input_KeyboardState* Input_KeyboardState_create(int max_keys);
+[[nodiscard]] Input_KeyboardState* Input_KeyboardState_create(size_t max_keys);
 
 // Уничтожить структуру клавиатуры:
 void Input_KeyboardState_destroy(Input_KeyboardState **keyboard_state);

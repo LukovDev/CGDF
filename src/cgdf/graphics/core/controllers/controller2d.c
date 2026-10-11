@@ -56,12 +56,12 @@ void CameraController2D_update(CameraController2D *self, float dtime, bool press
     if (Input_get_mouse_pressed(window)[1]) {
         float zoom = camera->zoom;
         Vec2i delta_pos = (Vec2i){mouse_pos.x - self->fixed_mouse_pos.x, mouse_pos.y - self->fixed_mouse_pos.y};
-        self->target_pos.x += ((delta_pos.x*1.0f/(250.0f*5.0f))*self->offset_scale*zoom*meter)*(dtime*60.0f);
-        self->target_pos.y -= ((delta_pos.y*1.0f/(250.0f*5.0f))*self->offset_scale*zoom*meter)*(dtime*60.0f);
+        self->target_pos.x += (((float)delta_pos.x/(250.0f*5.0f))*self->offset_scale*zoom*meter)*(dtime*60.0f);
+        self->target_pos.y -= (((float)delta_pos.y/(250.0f*5.0f))*self->offset_scale*zoom*meter)*(dtime*60.0f);
     } else if (Input_get_mouse_pressed(window)[2]) {
         is_zooming = true;
-        camera->position.x -= (mouse_rel.x * camera->zoom) * meter/100.0f;
-        camera->position.y += (mouse_rel.y * camera->zoom) * meter/100.0f;
+        camera->position.x -= ((float)mouse_rel.x * camera->zoom) * meter/100.0f;
+        camera->position.y += ((float)mouse_rel.y * camera->zoom) * meter/100.0f;
         self->target_pos = camera->position;
         _check_mouse_pos_(window, camera->width, camera->height);
         self->fixed_mouse_pos = (Vec2i){mouse_pos.x, mouse_pos.y};

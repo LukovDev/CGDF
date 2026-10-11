@@ -141,9 +141,9 @@ static inline TimeCurrent Time_get_current(bool local_time) {
 
     // Считаем:
     uint64_t total_sec = utc_sec;
-    if (local_time) { total_sec += offset_utc; }
+    if (local_time) { total_sec = (uint64_t)((int64_t)total_sec + offset_utc); }
     result.ticks = total_sec;  // Целые секунды (всего тиков).
-    result.ms = (uint32_t)(frac * 1000.0f);  // Миллисекунды.
+    result.ms = (uint32_t)(frac * 1000.0);  // Миллисекунды.
     result.sec = total_sec % 60;  // Секунды.
     total_sec /= 60;
     result.min = total_sec % 60;  // Минуты.

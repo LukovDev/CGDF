@@ -13,7 +13,6 @@ static Texture *tex1;
 static Texture *blue_noise;
 static CameraController3D *ctrl3d;
 static CameraOrbitController3D *ctrl_orbit;
-static CameraPlanetController3D *ctrl_planet;
 static Camera3D *camera3d;
 static Camera2D *camera2d;
 static SpriteBatch *batch;
@@ -115,7 +114,6 @@ void start(Window *self) {
     );
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
     ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f);
-    ctrl_planet = CameraPlanetController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
 
     log_msg("[I] Loading data...\n");
 
@@ -340,7 +338,6 @@ void destroy([[maybe_unused]] Window *self) {
     Camera3D_destroy(&camera3d);
     CameraController3D_destroy(&ctrl3d);
     CameraOrbitController3D_destroy(&ctrl_orbit);
-    CameraPlanetController3D_destroy(&ctrl_planet);
 
     Material_destroy(&material);
     Material_destroy(&floor_material);
@@ -379,7 +376,6 @@ void update(Window *self, float dtime) {
     if (orbit_enabled) {
         ctrl_orbit->target_pos = (Vec3d){0.0f, 1.0f, 0.0f};
         CameraOrbitController3D_update(ctrl_orbit, dtime, false);
-        // CameraPlanetController3D_update(ctrl_planet, dtime, false);
         ctrl3d->euler = Camera3D_get_euler(camera3d);
     } else {
         CameraController3D_update(ctrl3d, dtime, false);

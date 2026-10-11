@@ -86,15 +86,15 @@ size_t mm_get_used_size(void) { return mm_used_size; }
 
 
 // Получить сколько всего используется памяти в килобайтах этим менеджером памяти:
-double mm_get_used_size_kb(void) { return mm_get_used_size() / 1024.0; }  // b -> kb.
+double mm_get_used_size_kb(void) { return (double)mm_get_used_size() / 1024.0; }  // b -> kb.
 
 
 // Получить сколько всего используется памяти в мегабайтах этим менеджером памяти:
-double mm_get_used_size_mb(void) { return mm_get_used_size() / 1024.0 / 1024.0; }  // b -> kb -> mb.
+double mm_get_used_size_mb(void) { return (double)mm_get_used_size() / 1024.0 / 1024.0; }  // b -> kb -> mb.
 
 
 // Получить сколько всего используется памяти в гигабайтах этим менеджером памяти:
-double mm_get_used_size_gb(void) { return mm_get_used_size() / 1024.0 / 1024.0 / 1024.0; }  // b -> kb -> mb -> gb.
+double mm_get_used_size_gb(void) { return (double)mm_get_used_size() / 1024.0 / 1024.0 / 1024.0; }  // b -> kb -> mb -> gb.
 
 
 // Получить размер блока в байтах:

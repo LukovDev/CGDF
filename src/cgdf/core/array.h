@@ -10,9 +10,9 @@
 
 
 // Определения:
-#define ARRAY_DEFAULT_CAPACITY 1024   // Размер массива по умолчанию.
-#define ARRAY_GROWTH_FACTOR    2.0f   // Коэффициент расширения массива.
-#define ARRAY_SHRINK_FACTOR    0.25f  // Коэффициент сжатия массива.
+#define ARRAY_DEFAULT_CAPACITY 1024  // Размер массива по умолчанию.
+#define ARRAY_GROWTH_FACTOR    2.0   // Коэффициент расширения массива.
+#define ARRAY_SHRINK_FACTOR    0.25  // Коэффициент сжатия массива.
 
 
 // Перечисление режимов печати:
@@ -51,10 +51,10 @@ struct Array {
 void Array_destroy(Array **arr);
 
 // Расширяем массив:
-void Array_growth(Array *arr, float factor);
+void Array_growth(Array *arr, double factor);
 
 // Сжимаем массив:
-void Array_shrink(Array *arr, float factor);
+void Array_shrink(Array *arr, double factor);
 
 // Добавить элемент в массив (передайте указатель на данные, которые надо скопировать внутрь массива):
 void Array_push(Array *arr, const void *element);

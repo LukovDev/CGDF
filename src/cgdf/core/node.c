@@ -97,7 +97,7 @@ void Node_set_scale(Node *self, Vec3d scale) {
 void Node_rotate(Node *self, Vec3d axis, float angle) {
     if (!self) return;
     versor step;
-    glm_quat(step, radians(angle), axis.x, axis.y, axis.z);
+    glm_quat(step, glm_rad(angle), axis.x, axis.y, axis.z);
     glm_quat_mul(self->quaternion, step, self->quaternion);
     self->changed = true;          // Флаг о изменении нода.
     Node_invalidate_parent(self);  // Проход потомков в глубину и установка флага parent_changed.

@@ -16,7 +16,7 @@
 
 
 // Создать структуру мыши:
-Input_MouseState* Input_MouseState_create(int max_keys) {
+Input_MouseState* Input_MouseState_create(size_t max_keys) {
     Input_MouseState *ms = (Input_MouseState*)mm_calloc(1, sizeof(Input_MouseState));
     ms->max_keys = max_keys;
     ms->visible = true;
@@ -38,7 +38,7 @@ void Input_MouseState_destroy(Input_MouseState **mouse_state) {
 
 
 // Создать структуру клавиатуры:
-Input_KeyboardState* Input_KeyboardState_create(int max_keys) {
+Input_KeyboardState* Input_KeyboardState_create(size_t max_keys) {
     Input_KeyboardState *kb = (Input_KeyboardState*)mm_calloc(1, sizeof(Input_KeyboardState));
     kb->max_keys = max_keys;
     kb->pressed = (bool*)mm_calloc(max_keys, sizeof(bool));

@@ -151,6 +151,7 @@ char* Files_load(const char *file_path, const char *mode) {
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     rewind(f);
+    if (size < 0) { fclose(f); return nullptr; }  // ftell вернул ошибку.
 
     // Выделяем память и +1 для '\0':
     char *buffer = (char*)mm_alloc(size + 1);
@@ -187,6 +188,7 @@ unsigned char* Files_load_bin(const char *file_path, const char *mode, size_t *o
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     rewind(f);
+    if (size < 0) { fclose(f); return nullptr; }  // ftell вернул ошибку.
 
     unsigned char *buffer = (unsigned char*)mm_alloc(size);
     if (!buffer) {
