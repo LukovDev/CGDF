@@ -17,6 +17,13 @@ typedef struct Renderer Renderer;  // Повторное локальное оп
 // (Определение структуры Light2D находится в реализации).
 
 
+// Типы 3D источников света:
+typedef enum Light3DType {
+    LIGHT3D_POINT,
+    LIGHT3D_SPOT,
+} Light3DType;
+
+
 // -------- API 2D освещения: --------
 
 
@@ -53,4 +60,14 @@ void Light2D_resize(Light2D *self, int width, int height);
 
 // -------- API 3D освещения: --------
 
-// Функции для добавления источников света в рендеринг.
+// Отрисовать точечный источник света:
+void Light3D_point(
+    Renderer *self, Vec3f position, float size, Vec3f color,
+    float intensity, float radius, bool cast_shadow
+);
+
+// Отрисовать прожекторный источник света:
+void Light3D_spot(
+    Renderer *self, Vec3f position, Vec3f direction, float size, Vec3f color,
+    float intensity, float distance, float angle, float inner_angle, bool cast_shadow
+);

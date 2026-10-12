@@ -7,7 +7,7 @@
 
 // Подключаем:
 #include <math.h>
-#include <cglm/cglm.h>
+#include "libs/cglm/cglm.h"
 
 
 // -------- Реализация полезных функций: --------

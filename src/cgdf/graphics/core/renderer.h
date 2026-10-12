@@ -96,8 +96,10 @@ struct Renderer {
     Shader *shader_light2d;       // Шейдер 2D освещения.
 
     // Отрисовка сцены:
-    Array *draw_commands;         // Массив команд на отрисовку.
+    Array *draw_commands;         // Массив команд на отрисовку (только для 3D).
+    Array *draw_lightings;        // Массив источников света на отрисовку (только для 3D).
     size_t draw_calls_count;      // Количество вызовов отрисовки.
+    size_t lights_count;          // Количество источников света.
     GBuffer *gbuffer;             // G-Buffer.
     bool gbuffer_dirty;           // Флаг для очистки гбуфера.
     Lighting3D *lighting;         // 3D освещение сцены.
@@ -131,14 +133,26 @@ void Renderer_init(Renderer *self);
 // Отрисовать всё что накопили, на экран:
 void Renderer_display(Renderer *self);
 
-// Создать команду отрисовки:
+// Создать команду отрисовки (только для 3D):
 void Renderer_create_draw_command(
     Renderer *self, Mesh *mesh, Material *material,
     mat4 transform, bool cast_shadow, bool wireframe
 );
 
+// Создать источник света (только для 3D):
+void Renderer_create_draw_lighting(
+    Renderer *self, Vec3f position, Vec3f direction, float size, Vec3f color, float intensity,
+    float radius, float angle, float inner_angle, bool cast_shadow, Light3DType type
+);
+
 // Получить количество вызовов отрисовки:
 size_t Renderer_get_draw_calls_count(Renderer *self);
+
+// Получить только видимое количество источников света:
+size_t Renderer_get_visible_lights_count(Renderer *self);
+
+// Получить количество источников света:
+size_t Renderer_get_lights_count(Renderer *self);
 
 // Освобождение буферов:
 void Renderer_buffers_flush(Renderer *self);

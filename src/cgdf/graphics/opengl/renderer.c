@@ -24,7 +24,8 @@
 #include "gl.h"
 
 
-// Максимальное количество каскадов теней:
+// Определения:
+#define LIGHTS_BATCH 64  // Источников света за один проход освещения. Должно совпадать с lighting_pass_shader.frag
 #define SHADOW_CASCADES_MAX 16  // Должно совпадать с CASCADES_MAX в lighting_pass_shader.frag
 #define SHADOW_PCF_RADIUS   2   // Радиус PCF (в текселях).
 
@@ -62,11 +63,37 @@ typedef struct DrawCommand {
 } DrawCommand;
 
 
+// Источник света. Всё копируется в момент вызова:
+typedef struct DrawLighting {
+    Vec3f position;     // Позиция света.
+    Vec3f direction;    // Направление света.
+    float size;         // Размер источника света.
+    Vec3f color;        // Цвет света.
+    float intensity;    // Интенсивность.
+    float radius;       // Радиус.
+    float angle;        // Угол конуса от края до края (в градусах).
+    float inner_angle;  // Внутренний угол конуса от края до края (в градусах).
+    bool cast_shadow;   // Отбрасывать ли тени.
+    Light3DType type;   // Тип источника света.
+} DrawLighting;
+
+
+// Источник света в виде, готовом для GPU (4 x vec4 = 64 байта):
+typedef struct LightGPU {
+    Vec4f pos_radius;  // xyz = позиция, w = радиус.
+    Vec4f color;       // rgb = цвет * интенсивность, a = cos внутреннего угла.
+    Vec4f spot;        // xyz = направление, w - cos внешнего угла.
+    Vec4f params;      // x = размер источника, yzw = запас.
+} LightGPU;
+static_assert(sizeof(LightGPU) == 64, "renderer.c: LightGPU must be 4 x vec4 without padding.");
+
+
 // Структура освещения в 3D:
 typedef struct Lighting3D {
     Renderer  *renderer;
-    BufferFBO *light_fbo;  // Буфер кадра освещения.
-    Texture   *light_tex;  // Результат освещения (HDR, RGBA16F).
+    BufferFBO *light_fbo;       // Буфер кадра освещения.
+    Texture   *light_tex;       // Результат освещения (HDR, RGBA16F).
+    Array     *visible_lights;  // Видимые источники текущего кадра (LightGPU), заполняются в проходе подготовки.
     // Настройки освещения:
     Vec3f sun_direction;      // Направление солнца.
     Vec3f sun_color;          // Цвет солнца.
@@ -91,9 +118,10 @@ typedef struct Lighting3D {
     float shadows_split_lambda;  // Распределение каскадов: 0 = равномерно, 1 = логарифмически.
     float shadows_blend;         // Доля каскада под плавный переход в следующий.
     bool  shadows_debug;         // Отладка каскадов.
-    mat4  cascade_matrices[SHADOW_CASCADES_MAX];    // Матрицы каскадов.
-    float cascade_radius[SHADOW_CASCADES_MAX];      // Сферы каскадов.
-    float cascade_splits[SHADOW_CASCADES_MAX + 1];  // Границы каскадов.
+    mat4  cascade_matrices[SHADOW_CASCADES_MAX];       // Матрицы каскадов.
+    float cascade_radius[SHADOW_CASCADES_MAX];         // Сферы каскадов.
+    float cascade_splits[SHADOW_CASCADES_MAX + 1];     // Границы каскадов.
+    float cascade_normal_offset[SHADOW_CASCADES_MAX];  // Смещение по нормали каждого каскада (в метрах).
 } Lighting3D;
 
 
@@ -317,7 +345,15 @@ static void _shadows_light_matrix_(Lighting3D *self, vec3 center, float R, int s
     glm_mat4_mul(light_proj, light_view, out_view_proj);  // Пересобираем итоговую матрицу с поправкой.
 }
 
-// create shader:
+// Сфера целиком за одной из плоскостей пирамиды камеры - её не видно:
+static bool _sphere_in_frustum_(vec4 planes[6], vec3 center, float radius) {
+    for (int i = 0; i < 6; i++) {
+        if (glm_vec3_dot(planes[i], center) + planes[i][3] < -radius) return false;
+    }
+    return true;
+}
+
+// Создать шейдер:
 static inline Shader* _shd_(Renderer *rnd, const char *vert, const char *frag, const char *geom) {
     Shader *shader = Shader_create(rnd, vert, frag, geom);
     if (!shader) {
@@ -388,7 +424,9 @@ Renderer* Renderer_create(void) {
 
     // Отрисовка сцены:
     rnd->draw_commands = nullptr;
+    rnd->draw_lightings = nullptr;
     rnd->draw_calls_count = 0;
+    rnd->lights_count = 0;
     rnd->gbuffer = nullptr;
     rnd->gbuffer_dirty = false;
     rnd->lighting = nullptr;
@@ -412,6 +450,7 @@ void Renderer_destroy(Renderer **rnd) {
     GBuffer_destroy(&(*rnd)->gbuffer);
     Material_destroy(&(*rnd)->fallback_mat);
     Array_destroy(&(*rnd)->draw_commands);
+    Array_destroy(&(*rnd)->draw_lightings);
 
     // Удаляем освещение:
     if ((*rnd)->lighting) {
@@ -419,6 +458,7 @@ void Renderer_destroy(Renderer **rnd) {
         BufferFBO_destroy(&(*rnd)->lighting->shadows_fbo);
         Texture_destroy(&(*rnd)->lighting->light_tex);
         Texture_destroy(&(*rnd)->lighting->shadows_tex);
+        Array_destroy(&(*rnd)->lighting->visible_lights);
         mm_free((*rnd)->lighting);
         (*rnd)->lighting = nullptr;
     }
@@ -533,6 +573,7 @@ void Renderer_init(Renderer *self) {
 
     // Отрисовка сцены:
     self->draw_commands = Array_create(sizeof(DrawCommand), ARRAY_DEFAULT_CAPACITY);
+    self->draw_lightings = Array_create(sizeof(DrawLighting), ARRAY_DEFAULT_CAPACITY);
     self->gbuffer = GBuffer_create(self, Renderer_get_width(self), Renderer_get_height(self));
 
     // 3D освещение:
@@ -541,6 +582,7 @@ void Renderer_init(Renderer *self) {
     lt->renderer = self;
     lt->light_fbo = BufferFBO_create();
     lt->light_tex = Texture_create(self);
+    lt->visible_lights = Array_create(sizeof(LightGPU), ARRAY_DEFAULT_CAPACITY);
     // Настройки освещения (значения по умолчанию):
     lt->sun_direction = (Vec3f){-0.57735f, -0.57735f, -0.57735f};
     lt->sun_color = (Vec3f){1.0f, 0.96f, 0.9f};
@@ -586,6 +628,7 @@ void Renderer_display(Renderer *self) {
     if (!self) return;
     if (!self->camera) {
         Array_clear(self->draw_commands, false);
+        Array_clear(self->draw_lightings, false);
         return;
     }
 
@@ -593,8 +636,9 @@ void Renderer_display(Renderer *self) {
     int width = Renderer_get_width(self);
     int height = Renderer_get_height(self);
 
-    // Сбрасываем счетчик отрисовок:
+    // Сбрасываем счетчики отрисовок:
     self->draw_calls_count = 0;
+    self->lights_count = 0;
 
     // Для очистки gbuffer при пустом стеке команд:
     if (!Array_len(self->draw_commands)) {
@@ -623,19 +667,66 @@ void Renderer_display(Renderer *self) {
         camera_near = -1.0f;
     }
 
+    // Освещение и каскады теней:
+    Lighting3D *lt = self->lighting;
+    int cascades = camera_ortho ? 1 : lt->shadows_cascades;  // Для ортокамеры сферы не подходят. Используем 1 каскад.
+
+    // -------- Проход 0 - Подготовка: --------
+
     // Подготавливаем матрицы:
     mat4 view, proj, view_proj, inv_view_proj;
     Renderer_get_view_proj(self, view, proj);
     glm_mat4_mul(proj, view, view_proj);
     glm_mat4_inv(view_proj, inv_view_proj);
 
-    // Освещение и каскады теней:
-    Lighting3D *lt = self->lighting;
-    int cascades = camera_ortho ? 1 : lt->shadows_cascades;  // Для ортокамеры сферы не подходят. Используем 1 каскад.
+    // ---- Источники света:
 
-    // -------- Проход 0 - Тени: --------
+    // Оставляем только те, что достают до видимой области, и упаковываем для GPU:
+    vec4 planes[6];  // Плоскости пирамиды камеры.
+    glm_frustum_planes(view_proj, planes);
+    Array_clear(lt->visible_lights, false);
 
-    if (lt->shadows_enabled && Renderer_is_camera_3d(self)) {
+    // Проходимся по источникам света и отбираем только те, что достают до видимой области:
+    for (size_t i = 0; i < Array_len(self->draw_lightings); i++) {
+        const DrawLighting *l = (const DrawLighting*)Array_get(self->draw_lightings, i);
+        vec3 pos = {l->position.x, l->position.y, l->position.z};
+        if (!_sphere_in_frustum_(planes, pos, l->radius)) continue;  // Свет не достаёт до видимой области. Пропускаем.
+
+        // Косинусы краёв конуса для шейдера (smoothstep от внешнего к внутреннему):
+        float cos_outer, cos_inner;
+        switch (l->type) {
+            // Прожектор:
+            case LIGHT3D_SPOT: {
+                float outer = glm_clamp(l->angle, 0.2f, 179.999f) * 0.5f;        // Весь конус -> половина от оси.
+                float inner = glm_clamp(l->inner_angle, 0.0f, l->angle) * 0.5f;  // Не больше внешнего.
+                if (inner > outer - 0.05f) inner = outer - 0.05f;                // Края smoothstep не должны совпадать.
+                cos_outer = cosf(radians(outer));
+                cos_inner = cosf(radians(inner));
+            } break;
+
+            // Точечный:
+            case LIGHT3D_POINT:
+            default: {
+                cos_outer = -2.0f;
+                cos_inner = -1.0f;
+            } break;
+        }
+
+        // Упаковываем для GPU:
+        LightGPU gpu = {
+            .pos_radius = {l->position.x, l->position.y, l->position.z, l->radius},
+            .color      = {l->color.x * l->intensity, l->color.y * l->intensity, l->color.z * l->intensity, cos_inner},
+            .spot       = {l->direction.x, l->direction.y, l->direction.z, cos_outer},
+            .params     = {l->size > 0.001f ? l->size : 0.001f, 0.0f, 0.0f, 0.0f},
+        };
+        Array_push(lt->visible_lights, &gpu);
+    }
+    self->lights_count = Array_len(self->draw_lightings);
+
+    // -------- Проход 1 - Тени: --------
+
+    // Считаем тени солнца:
+    if (lt->shadows_enabled && lt->sun_intensity > 0.0f && Renderer_is_camera_3d(self)) {
         // Настраиваем состояние рендеринга:
         Renderer_set_depth_test(self, true);
         Renderer_set_depth_mask(self, true);
@@ -660,6 +751,8 @@ void Renderer_display(Renderer *self) {
             float radius;
             _shadows_slice_sphere_(cam_pos, cam_fwd, n, splits[c + 1], tan_half_fov, aspect, center, &radius);
             lt->cascade_radius[c] = radius * pad;
+            float texel_world = (2.0f * lt->cascade_radius[c]) / (float)tile;  // Тексель каскада в метрах.
+            lt->cascade_normal_offset[c] = lt->shadows_normal_bias * texel_world;
             _shadows_light_matrix_(lt, center, lt->cascade_radius[c], tile, lt->cascade_matrices[c]);
         }
 
@@ -689,7 +782,7 @@ void Renderer_display(Renderer *self) {
         glViewport(0, 0, width, height);
     }
 
-    // -------- Проход 1 - GBuffer: --------
+    // -------- Проход 2 - GBuffer: --------
 
     // Настраиваем состояние рендеринга:
     Renderer_set_depth_test(self, true);
@@ -756,14 +849,13 @@ void Renderer_display(Renderer *self) {
         bool use_height_tex = (mat->height_map != nullptr);
         Shader_set_bool(self->shader_gbuffer, "u_use_tex_height", use_height_tex);
         if (use_height_tex) Shader_set_tex2d(self->shader_gbuffer, "u_tex_height", mat->height_map->id);
-        Shader_set_float(self->shader_gbuffer, "u_height_strength",    mat->height_strength);
-        Shader_set_float(self->shader_gbuffer, "u_pom_min_layers",     mat->height_min_layers);
-        Shader_set_float(self->shader_gbuffer, "u_pom_max_layers",     mat->height_max_layers);
-        Shader_set_float(self->shader_gbuffer, "u_pom_low",            mat->height_low);
-        Shader_set_float(self->shader_gbuffer, "u_pom_high",           mat->height_high);
-        Shader_set_float(self->shader_gbuffer, "u_pom_base",           mat->height_base);
-        Shader_set_float(self->shader_gbuffer, "u_pom_distance",       mat->height_distance);
-        Shader_set_bool(self->shader_gbuffer,  "u_pom_cutoff_enabled", mat->height_cutoff_enabled);
+        Shader_set_float(self->shader_gbuffer, "u_height_strength", mat->height_strength);
+        Shader_set_float(self->shader_gbuffer, "u_pom_min_layers",  mat->height_min_layers);
+        Shader_set_float(self->shader_gbuffer, "u_pom_max_layers",  mat->height_max_layers);
+        Shader_set_float(self->shader_gbuffer, "u_pom_low",         mat->height_low);
+        Shader_set_float(self->shader_gbuffer, "u_pom_high",        mat->height_high);
+        Shader_set_float(self->shader_gbuffer, "u_pom_base",        mat->height_base);
+        Shader_set_float(self->shader_gbuffer, "u_pom_distance",    mat->height_distance);
 
         // 8. Остальные параметры:
         Shader_set_vec3(self->shader_gbuffer, "u_ambient", mat->ambient);
@@ -780,7 +872,7 @@ void Renderer_display(Renderer *self) {
     Shader_end(self->shader_gbuffer);
     GBuffer_end(self->gbuffer);
 
-    // -------- Проход 2 - Освещение: --------
+    // -------- Проход 3 - Освещение: --------
 
     // Настраиваем состояние рендеринга:
     Renderer_set_depth_test(self, false);
@@ -819,29 +911,42 @@ void Renderer_display(Renderer *self) {
     Shader_set_bool(self->shader_lighting,  "u_shadows_debug",     lt->shadows_debug);
     Shader_set_int(self->shader_lighting,   "u_shadow_pcf_radius", SHADOW_PCF_RADIUS);
     Shader_set_float(self->shader_lighting, "u_shadow_depth_bias", lt->shadows_depth_bias / (2.0f * lt->shadows_tile));
+    // Каскады теней:
     Shader_set_int(self->shader_lighting,   "u_cascade_count",     cascades);
     Shader_set_float(self->shader_lighting, "u_cascade_blend",     lt->shadows_blend);
     Shader_set_ivec2(self->shader_lighting, "u_cascade_grid", (Vec2i){lt->shadows_grid_cols, lt->shadows_grid_rows});
-    // Каскады теней:
-    char name[64];
-    for (int c = 0; c < cascades; c++) {
-        float texel_world = (2.0f * lt->cascade_radius[c]) / (float)lt->shadows_tile;  // Тексель каскада в метрах.
-        snprintf(name, sizeof(name), "u_cascade_matrices[%d]", c);
-        Shader_set_mat4(self->shader_lighting, name, lt->cascade_matrices[c]);
-        snprintf(name, sizeof(name), "u_cascade_normal_offset[%d]", c);
-        Shader_set_float(self->shader_lighting, name, lt->shadows_normal_bias * texel_world);
-    }
-    for (int c = 0; c <= cascades; c++) {
-        snprintf(name, sizeof(name), "u_cascade_splits[%d]", c);
-        Shader_set_float(self->shader_lighting, name, lt->cascade_splits[c]);
-    }
+    Shader_set_mat4_array(self->shader_lighting,  "u_cascade_matrices",      lt->cascade_matrices,      cascades);
+    Shader_set_float_array(self->shader_lighting, "u_cascade_normal_offset", lt->cascade_normal_offset, cascades);
+    Shader_set_float_array(self->shader_lighting, "u_cascade_splits",        lt->cascade_splits,        cascades + 1);
 
-    // Рисуем всё на весь экран:
+    // Рисуем солнце, фон и свечение:
+    Shader_set_bool(self->shader_lighting, "u_base_pass", true);
+    Shader_set_int(self->shader_lighting,  "u_light_count", 0);
     Mesh_render(self->sprite_mesh, false);
+
+    // Источники света пачками поверх базового прохода (аддитивное смешивание):
+    size_t total = Array_len(lt->visible_lights);
+    if (total > 0) {
+        Shader_set_bool(self->shader_lighting, "u_base_pass", false);
+        Renderer_set_blending(self, true);
+        glBlendFunc(GL_ONE, GL_ONE);  // Свет складывается.
+        for (size_t offset = 0; offset < total; offset += LIGHTS_BATCH) {
+            size_t left = total - offset;
+            int count = (int)(left < LIGHTS_BATCH ? left : LIGHTS_BATCH);
+            const Vec4f *data = (const Vec4f*)Array_get(lt->visible_lights, offset);
+            Shader_set_int(self->shader_lighting, "u_light_count", count);
+            Shader_set_vec4_array(self->shader_lighting, "u_lights", data, count * 4);  // По 4 vec4 на источник.
+            Mesh_render(self->sprite_mesh, false);
+        }
+
+        // Возвращаем обычный режим смешивания (как в Renderer_init):
+        Renderer_set_blending(self, false);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
     Shader_end(self->shader_lighting);
     BufferFBO_end(lt->light_fbo);
 
-    // -------- Финальный проход (на экран): --------
+    // -------- Проход 4 - Финал (отрисовка на экран): --------
 
     // Настраиваем состояние рендеринга:
     Renderer_set_depth_test(self, true);
@@ -869,9 +974,10 @@ void Renderer_display(Renderer *self) {
 
     // Очищаем список команд отрисовки:
     Array_clear(self->draw_commands, false);
+    Array_clear(self->draw_lightings, false);
 }
 
-// Создать команду отрисовки:
+// Создать команду отрисовки (только для 3D):
 void Renderer_create_draw_command(
     Renderer *self, Mesh *mesh, Material *material,
     mat4 transform, bool cast_shadow, bool wireframe
@@ -883,10 +989,36 @@ void Renderer_create_draw_command(
     Array_push(self->draw_commands, &cmd);
 }
 
+// Создать источник света (только для 3D):
+void Renderer_create_draw_lighting(
+    Renderer *self, Vec3f position, Vec3f direction, float size, Vec3f color, float intensity,
+    float radius, float angle, float inner_angle, bool cast_shadow, Light3DType type
+) {
+    if (!self || radius <= 0.0f) return;
+    DrawLighting light = {
+        .position = position, .direction = Vec3f_norm(direction), .size = size,
+        .color = color, .intensity = intensity, .radius = radius, .angle = angle,
+        .inner_angle = inner_angle, .cast_shadow = cast_shadow, .type = type
+    };
+    Array_push(self->draw_lightings, &light);
+}
+
 // Получить количество вызовов отрисовки:
 size_t Renderer_get_draw_calls_count(Renderer *self) {
     if (!self) return 0;
     return self->draw_calls_count;
+}
+
+// Получить только видимое количество источников света:
+size_t Renderer_get_visible_lights_count(Renderer *self) {
+    if (!self) return 0;
+    return Array_len(self->lighting->visible_lights);
+}
+
+// Получить количество источников света:
+size_t Renderer_get_lights_count(Renderer *self) {
+    if (!self) return 0;
+    return self->lights_count;
 }
 
 // Освобождение буферов:

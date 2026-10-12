@@ -35,7 +35,6 @@ struct Material {
     float height_high;            // Притянуть уровень высоты к единице (растяжение). Диапазон от 0.0f до 1.0f.
     float height_base;            // Какой уровень считается поверхностью. Диапазон от 0.0f до 1.0f. По умолчанию 0.5f.
     float height_distance;        // Расстояние эффекта POM. Плавно гаснет со второй половины расстояния. 0 = выключен.
-    bool height_cutoff_enabled;   // Отсекать ли фрагменты параллакса за координатами текстуры.
     float alpha_cutoff;           // Альфа отсечение.
     bool double_sided;            // Двусторонний материал (отключение culling).
     bool transparent;             // Прозрачный материал (для blend mode).
@@ -83,7 +82,6 @@ struct Material {
     float height_high,
     float height_base,
     float height_distance,
-    bool height_cutoff_enabled,
     float alpha_cutoff,
     bool double_sided,
     bool transparent,

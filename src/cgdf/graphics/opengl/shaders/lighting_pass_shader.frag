@@ -1,5 +1,6 @@
 #version 330 core
 
+#define LIGHTS_BATCH 64  // Должно совпадать с LIGHTS_BATCH в renderer.c
 #define CASCADES_MAX 16  // Должно совпадать с SHADOW_CASCADES_MAX в renderer.c
 
 // Камера:
@@ -16,13 +17,11 @@ uniform sampler2D u_pbr;
 uniform sampler2D u_emissive;
 uniform sampler2D u_depth;
 
-// Солнце (направленный свет):
+// Солнце (направленный свет) и фоновое освещение:
 uniform vec3  u_sun_dir;
 uniform vec3  u_sun_color;
 uniform float u_sun_intensity;
-
-// Фоновый свет:
-uniform vec3 u_ambient_color;
+uniform vec3  u_ambient_color;
 uniform float u_ambient_intensity;
 
 // Тени:
@@ -40,6 +39,11 @@ uniform mat4  u_cascade_matrices[CASCADES_MAX];
 uniform float u_cascade_normal_offset[CASCADES_MAX];
 uniform float u_cascade_splits[CASCADES_MAX + 1];
 
+// Источники света:
+uniform bool u_base_pass;    // Первая пачка: ещё солнце, фон и свечение.
+uniform int  u_light_count;  // Источников в этой пачке.
+uniform vec4 u_lights[LIGHTS_BATCH * 4];  // Структура LightGPU из renderer.c
+
 in vec2 v_texcoord;
 out vec4 FragColor;
 
@@ -52,7 +56,7 @@ float sample_cascade(int c, vec3 P, vec3 N, float NdotL, float d) {
     vec3 coords = light_pos.xyz / light_pos.w * 0.5 + 0.5;
     vec2 tile = vec2(float(c % u_cascade_grid.x), float(c / u_cascade_grid.x));
     coords.xy = (coords.xy + tile) / vec2(u_cascade_grid);  // Координаты каскада -> координаты атласа.
-    float ref = coords.z - u_shadow_depth_bias * (1.0 + d * d * u_camera_near);
+    float ref = coords.z - u_shadow_depth_bias * pow(c+1, 2);
 
     // textureLod вместо texture: без тонких линий на швах каскадов:
     if (u_shadows_smooth) {
@@ -128,6 +132,49 @@ vec3 fresnel_schlick(float cos_theta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
+// Вклад одного света по Cook-Torrance (без цвета, тени и затухания):
+vec3 brdf(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, float metallic, vec3 F0) {
+    vec3 H = normalize(V + L);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0001);
+    float NdotH = max(dot(N, H), 0.0);
+    float HdotV = max(dot(H, V), 0.0);
+
+    float D = distribution_ggx(NdotH, roughness);
+    float G = geometry_smith(NdotV, NdotL, roughness);
+    vec3  F = fresnel_schlick(HdotV, F0);
+
+    vec3 specular = (D * G * F) / (4.0 * NdotV * NdotL + 0.0001);
+    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);  // Что не отразилось, рассеялось (у металлов рассеяния нет).
+    return (kD * albedo / PI + specular) * NdotL;
+}
+
+// Вклад источников света текущей пачки в точку:
+vec3 calc_lights(vec3 P, vec3 N, vec3 V, vec3 albedo, float roughness, float metallic, vec3 F0) {
+    vec3 result = vec3(0.0);
+    for (int i = 0; i < u_light_count; i++) {
+        vec4 pos_radius = u_lights[i * 4 + 0];
+        vec4 color      = u_lights[i * 4 + 1];
+        vec4 spot       = u_lights[i * 4 + 2];
+        vec4 params     = u_lights[i * 4 + 3];
+
+        vec3 to_light = pos_radius.xyz - P;
+        float dist = length(to_light);
+        if (dist >= pos_radius.w) continue;  // Точка вне сферы света.
+        vec3 L = to_light / dist;
+
+        // Затухание: 1/d^2, внутри размера источника не растёт, на радиусе плавно гаснет до нуля:
+        float window = clamp(1.0 - pow(dist / pos_radius.w, 4.0), 0.0, 1.0);
+        float attenuation = (window * window) / max(dist * dist, params.x * params.x);
+
+        // Конус прожектора: плавно от внешнего угла к внутреннему (у точечного всегда 1):
+        float cone = smoothstep(spot.w, color.a, dot(-L, spot.xyz));
+
+        result += brdf(N, V, L, albedo, roughness, metallic, F0) * color.rgb * attenuation * cone;
+    }
+    return result;
+}
+
 void main(void) {
     float depth = texture(u_depth, v_texcoord).r;
     if (depth >= 1.0) { FragColor = vec4(0.0); return; }  // Пустой пиксель.
@@ -148,31 +195,24 @@ void main(void) {
     // Базовая отражательная способность: у неметаллов ~4%, у металлов их цвет:
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    // Солнце:
-    vec3 L = normalize(-u_sun_dir);  // Направление от поверхности на источник.
-    vec3 H = normalize(V + L);       // Вектор посередине между камерой и светом.
-    float NdotL = max(dot(N, L), 0.0);
-    float NdotV = max(dot(N, V), 0.0001);
-    float NdotH = max(dot(N, H), 0.0);
-    float HdotV = max(dot(H, V), 0.0);
+    // Источники света текущей пачки:
+    vec3 color = calc_lights(P, N, V, albedo, roughness, metallic, F0);
 
-    float D = distribution_ggx(NdotH, roughness);
-    float G = geometry_smith(NdotV, NdotL, roughness);
-    vec3  F = fresnel_schlick(HdotV, F0);
-
-    vec3 specular = (D * G * F) / (4.0 * NdotV * NdotL + 0.0001);
-    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);  // Что не отразилось, рассеялось (у металлов рассеяния нет).
-
-    vec3 radiance = u_sun_color * u_sun_intensity;
+    // Применяем солнце и каскады:
     int cascade = -1;
     float blend = 0.0;
-    float shadow = u_shadows_enabled ? calc_shadow(P, N, L, cascade, blend) : 1.0;
-    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL * shadow;
-
-    // Фоновый свет:
-    vec3 ambient = u_ambient_color * u_ambient_intensity * albedo * ao;
-
-    FragColor = vec4(ambient + Lo + emissive, 1.0);
+    if (u_base_pass) {
+        // Считаем солнце если интенсивность больше нуля:
+        if (u_sun_intensity > 0.0) {
+            vec3 L = normalize(-u_sun_dir);
+            float shadow = u_shadows_enabled ? calc_shadow(P, N, L, cascade, blend) : 1.0;
+            color += brdf(N, V, L, albedo, roughness, metallic, F0) * u_sun_color * u_sun_intensity * shadow;
+        }
+        // В любом случае применяем фоновый свет и свечение:
+        color += u_ambient_color * u_ambient_intensity * albedo * ao;
+        color += emissive;
+    }
+    FragColor = vec4(color, 1.0);
 
     // Отладка каскадов:
     if (u_shadows_debug && cascade >= 0) {

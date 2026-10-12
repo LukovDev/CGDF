@@ -19,6 +19,11 @@
 // -------- Вспомогательные функции: --------
 
 
+static inline int32_t _array_location_(Shader *self, const char *name, const void *values, int count) {
+    if (!self || !self->_is_begin_ || !name || !values || count <= 0) return -1;
+    return Shader_get_location(self, name);
+}
+
 static ShaderCacheUniformValue* _find_cached_uniform_(Shader *self, int loc, ShaderCacheUniformType type) {
     for (size_t i = 0; i < Array_len(self->uniform_values); i++) {
         ShaderCacheUniformValue *item = (ShaderCacheUniformValue*)Array_get(self->uniform_values, i);
@@ -425,6 +430,12 @@ void Shader_set_int(Shader *self, const char *name, int value) {
     glUniform1i(loc, value);
 }
 
+// Установить массив int:
+void Shader_set_int_array(Shader *self, const char *name, const int *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform1iv(loc, count, values);
+}
+
 // Установить значение float:
 void Shader_set_float(Shader *self, const char *name, float value) {
     if (!self || !self->_is_begin_ || !name) return;
@@ -447,6 +458,12 @@ void Shader_set_float(Shader *self, const char *name, float value) {
         Array_push(self->uniform_values, &cache);
     }
     glUniform1f(loc, value);
+}
+
+// Установить массив float:
+void Shader_set_float_array(Shader *self, const char *name, const float *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform1fv(loc, count, values);
 }
 
 // Установить значение vec2:
@@ -477,6 +494,12 @@ void Shader_set_vec2(Shader *self, const char *name, Vec2f value) {
     glUniform2fv(loc, 1, (float*)&value);
 }
 
+// Установить массив vec2:
+void Shader_set_vec2_array(Shader *self, const char *name, const Vec2f *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform2fv(loc, count, (const float*)values);
+}
+
 // Установить значение ivec2:
 void Shader_set_ivec2(Shader *self, const char *name, Vec2i value) {
     if (!self || !self->_is_begin_ || !name) return;
@@ -503,6 +526,12 @@ void Shader_set_ivec2(Shader *self, const char *name, Vec2i value) {
         Array_push(self->uniform_values, &cache);
     }
     glUniform2iv(loc, 1, (int*)&value);
+}
+
+// Установить массив ivec2:
+void Shader_set_ivec2_array(Shader *self, const char *name, const Vec2i *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform2iv(loc, count, (const int*)values);
 }
 
 // Установить значение vec3:
@@ -535,6 +564,12 @@ void Shader_set_vec3(Shader *self, const char *name, Vec3f value) {
     glUniform3fv(loc, 1, (float*)&value);
 }
 
+// Установить массив vec3:
+void Shader_set_vec3_array(Shader *self, const char *name, const Vec3f *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform3fv(loc, count, (const float*)values);
+}
+
 // Установить значение ivec3:
 void Shader_set_ivec3(Shader *self, const char *name, Vec3i value) {
     if (!self || !self->_is_begin_ || !name) return;
@@ -563,6 +598,12 @@ void Shader_set_ivec3(Shader *self, const char *name, Vec3i value) {
         Array_push(self->uniform_values, &cache);
     }
     glUniform3iv(loc, 1, (int*)&value);
+}
+
+// Установить массив ivec3:
+void Shader_set_ivec3_array(Shader *self, const char *name, const Vec3i *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform3iv(loc, count, (const int*)values);
 }
 
 // Установить значение vec4:
@@ -598,6 +639,12 @@ void Shader_set_vec4(Shader *self, const char *name, Vec4f value) {
     glUniform4fv(loc, 1, (float*)&value);
 }
 
+// Установить массив vec4:
+void Shader_set_vec4_array(Shader *self, const char *name, const Vec4f *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform4fv(loc, count, (const float*)values);
+}
+
 // Установить значение ivec4:
 void Shader_set_ivec4(Shader *self, const char *name, Vec4i value) {
     if (!self || !self->_is_begin_ || !name) return;
@@ -631,11 +678,23 @@ void Shader_set_ivec4(Shader *self, const char *name, Vec4i value) {
     glUniform4iv(loc, 1, (int*)&value);
 }
 
+// Установить массив ivec4:
+void Shader_set_ivec4_array(Shader *self, const char *name, const Vec4i *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniform4iv(loc, count, (const int*)values);
+}
+
 // Установить значение mat2:
 void Shader_set_mat2(Shader *self, const char *name, mat2 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix2fv(loc, 1, GL_FALSE, (float*)value);
+}
+
+// Установить массив mat2:
+void Shader_set_mat2_array(Shader *self, const char *name, mat2 *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniformMatrix2fv(loc, count, GL_FALSE, (const float*)values);
 }
 
 // Установить значение mat3:
@@ -645,11 +704,23 @@ void Shader_set_mat3(Shader *self, const char *name, mat3 value) {
     glUniformMatrix3fv(loc, 1, GL_FALSE, (float*)value);
 }
 
+// Установить массив mat3:
+void Shader_set_mat3_array(Shader *self, const char *name, mat3 *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniformMatrix3fv(loc, count, GL_FALSE, (const float*)values);
+}
+
 // Установить значение mat4:
 void Shader_set_mat4(Shader *self, const char *name, mat4 value) {
     if (!self || !self->_is_begin_ || !name) return;  // Кэширование матриц и массивов слишком дорого и сложно.
     int32_t loc = Shader_get_location(self, name);
     glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)value);
+}
+
+// Установить массив mat4:
+void Shader_set_mat4_array(Shader *self, const char *name, mat4 *values, int count) {
+    int32_t loc = _array_location_(self, name, values, count);
+    if (loc >= 0) glUniformMatrix4fv(loc, count, GL_FALSE, (const float*)values);
 }
 
 // Установить значение mat2x3:

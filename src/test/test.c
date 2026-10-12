@@ -165,7 +165,7 @@ void start(Window *self) {
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
         1.0f, 1.0f, 1.0f, 1.0f,
-        (Vec3f){1, 1, 1}, 0.0f, 0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false,
+        (Vec3f){1, 1, 1}, 0.0f, 0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f,
         0.0f, false, false, 0.0f, 0.0f,
         poweredby, normal, occlusion,
         roughness, metallic, emission,
@@ -202,7 +202,7 @@ void start(Window *self) {
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
         1.0f, 1.0f, 1.0f, 1.0f,
-        (Vec3f){1, 1, 1}, 0.0f, 0.5f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false,
+        (Vec3f){1, 1, 1}, 0.0f, 0.5f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f,
         0.0f, false, false, 0.0f, 0.0f,
         floor_albedo, floor_normal, floor_occlusion,
         floor_roughness, floor_metallic, floor_emission,
@@ -215,7 +215,6 @@ void start(Window *self) {
     floor_material->owns_metallic_map = true;
     floor_material->owns_emissive_map = true;
     floor_material->owns_height_map = true;
-    floor_material->height_cutoff_enabled = false;
     floor_material->roughness = 0.25f;
     floor_material->metallic = 0.75f;
 
@@ -240,7 +239,7 @@ void start(Window *self) {
         "Material_Sphere_1", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         0.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
-        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false, 0.0f, false, false,
+        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, 0.0f, false, false,
         0.0f, 0.0f, mat_1_albedo, mat_1_normal, mat_1_occlusion,
         mat_1_roughness, mat_1_metallic, mat_1_emission,
         mat_1_height
@@ -252,7 +251,6 @@ void start(Window *self) {
     mat_1->owns_metallic_map = true;
     mat_1->owns_emissive_map = true;
     mat_1->owns_height_map = true;
-    mat_1->height_cutoff_enabled = false;
     mat_1->roughness = 1.0f;
     mat_1->metallic = 1.0f;
 
@@ -278,7 +276,7 @@ void start(Window *self) {
         "Material_Sphere_2", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         1.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
-        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false, 0.0f, false, false,
+        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, 0.0f, false, false,
         0.0f, 0.0f, mat_2_albedo, mat_2_normal, mat_2_occlusion,
         mat_2_roughness, mat_2_metallic, mat_2_emission,
         mat_2_height
@@ -290,7 +288,6 @@ void start(Window *self) {
     mat_2->owns_metallic_map = true;
     mat_2->owns_emissive_map = true;
     mat_2->owns_height_map = true;
-    mat_2->height_cutoff_enabled = false;
     mat_2->roughness = 1.0f;
     mat_2->metallic = 1.0f;
 
@@ -313,7 +310,7 @@ void start(Window *self) {
         "Material_Map", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         1.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
-        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false, 0.0f, false, false,
+        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, 0.0f, false, false,
         0.0f, 0.0f, map_albedo, map_normal, map_occlusion,
         map_roughness, map_metallic, map_emission,
         nullptr
@@ -325,7 +322,6 @@ void start(Window *self) {
     grass_mat->owns_metallic_map = true;
     grass_mat->owns_emissive_map = true;
     // grass_mat->owns_height_map = true;
-    grass_mat->height_cutoff_enabled = false;
     grass_mat->roughness = 1.0f;
     grass_mat->metallic = 1.0f;
 
@@ -334,7 +330,7 @@ void start(Window *self) {
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
-    model = ObjLoader_load(self->renderer, "data/obj/example/cube.obj");
+    model = ObjLoader_load(self->renderer, "data/obj/example/sphere.obj");
     home = ObjLoader_load(self->renderer, "data/obj/home/Cottage.obj");
     motocycle = ObjLoader_load(self->renderer, "data/obj/bmw_s1000_rr/bmw_s1000_rr.obj");
     automobile = ObjLoader_load(self->renderer, "data/obj/bugatti_chiron_mansory/bugatti_chiron_mansory.obj");
@@ -449,7 +445,8 @@ void render(Window *self, float dtime) {
     } else {
         Window_set_fps(self, 0.0f);
     }
-    Window_clear(self, 0.0f, 0.0f, 0.0f);
+    Vec3f amb = Renderer_get_ambient_color(self->renderer);
+    Window_clear(self, amb.x*0.5f, amb.y*0.5f, amb.z*0.5f);
 
     double time = Window_get_time(self);
     mat4 view, proj;
@@ -515,11 +512,11 @@ void render(Window *self, float dtime) {
                 if (j == 3) {
                     glm_mat4_identity(mdl->transform);
                     Vec3f p = Renderer_get_sun_dir(self->renderer);
-                    glm_translate(mdl->transform, (vec3){-p.x*25.0f, -p.y*25.0f, -p.z*25.0f});
+                    glm_translate(mdl->transform, (vec3){-p.x*500.0f, -p.y*500.0f, -p.z*500.0f});
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 1, 0});
                     // glm_rotate(mdl->transform, radians(time*10), (vec3){1, 0, 0});
                     // glm_rotate(mdl->transform, radians(-time*10), (vec3){0, 0, 1});
-                    // glm_scale(mdl->transform, (vec3){0.5f, 0.5f, 0.5f});
+                    glm_scale(mdl->transform, (vec3){10.0f, 10.0f, 10.0f});
                     Mesh_set_material(mesh, Mesh_get_material(Array_get_ptr(cat->meshes, 0)));
                     Model_render(mdl, false, wireframe);
                 }
@@ -555,7 +552,6 @@ void render(Window *self, float dtime) {
             Mesh *mesh = Array_get_ptr(model->meshes, i);
             Material *m = Mesh_get_material(mesh);
             m->height_strength = 0.05f;
-            // m->height_cutoff_enabled = true;
         }
         Model_render(model, true, wireframe);
     }
@@ -590,9 +586,36 @@ void render(Window *self, float dtime) {
         Model *model = Array_get_ptr(map.models, i);
         Model_render(model, true, wireframe);
     }
+
+    Light3D_point(self->renderer, (Vec3f){0.0f, 3.0f, 0.0f}, 0.01f, (Vec3f){1.0f, 0.6f, 0.3f}, 25.0f, 10.0f, false);
+    Light3D_point(self->renderer, (Vec3f){-1.75f, 0.0f, 0.0f}, 0.01f, (Vec3f){1.0f, 0.25f, 0.1f}, 25.0f, 10.0f, false);
+    Light3D_point(self->renderer, (Vec3f){1.75f, 0.0f, 0.0f}, 0.01f, (Vec3f){0.1f, 0.25f, 1.0f}, 25.0f, 10.0f, false);
+    // Light3D_spot(
+    //     self->renderer, (Vec3f){-2.4f, 0.75f, 2.45f}, (Vec3f){0.0f, 0.0f, 1.0f}, 0.01f, (Vec3f){0.3f, 0.5f, 1.0f},
+    //     40.0f, 10.0f, 90.0f, 0.0f, false
+    // );
+    // Light3D_spot(
+    //     self->renderer, (Vec3f){-3.57f, 0.75f, 2.45f}, (Vec3f){0.0f, 0.0f, 1.0f}, 0.01f, (Vec3f){0.3f, 0.5f, 1.0f},
+    //     40.0f, 10.0f, 90.0f, 0.0f, false
+    // );
+    // Vec3d f = Camera3D_get_forward(camera3d);
+    // Light3D_spot(
+    //     self->renderer, (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z}, (Vec3f){f.x, f.y, f.z}, 1.0f, (Vec3f){0.3f, 0.5f, 1.0f},
+    //     50.0f, 100.0f, 90.0f, 0.0f, false
+    // );
+    // Light3D_point(self->renderer, (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z}, 0.01f, (Vec3f){1.0f, 0.6f, 0.3f}, 50.0f, 10.0f, false);
+    Renderer_set_sun_intensity(self->renderer, 0.0f);
+
+    // for (int x = -16; x < 16; x++) {
+    //     for (int y = -16; y < 16; y++) {
+    //         Light3D_point(self->renderer, (Vec3f){x*0.5f, 0.05f, y*0.5f}, 0.01f, (Vec3f){1.0f, 1.0f, 1.0f}, 1.0f, 0.1f, false);
+    //     }
+    // }
+
     Renderer_display(self->renderer);
 
     if (true) {
+        Renderer_set_cull_mode(self->renderer, RENDERER_CULL_NONE);
         Shader_begin(grid);
         mat4 gridmodel;
         glm_mat4_identity(gridmodel);
@@ -711,6 +734,8 @@ void render(Window *self, float dtime) {
         "%s\n"
         "OpenGL %s\n"
         "Renderer draw calls: %zu\n"
+        "Renderer visible lights: %zu\n"
+        "Renderer all lights: %zu\n"
         "USED: %.2f MB\n"
         "FREE: %.2f MB\n"
         "TOTAL: %.2f MB\n\n"
@@ -735,6 +760,8 @@ void render(Window *self, float dtime) {
         Renderer_get_renderer(self->renderer),
         Renderer_get_version(self->renderer),
         Renderer_get_draw_calls_count(self->renderer),
+        Renderer_get_visible_lights_count(self->renderer),
+        Renderer_get_lights_count(self->renderer),
         Renderer_get_used_memory(self->renderer) / 1024.0,
         Renderer_get_free_memory(self->renderer) / 1024.0,
         Renderer_get_total_memory(self->renderer) / 1024.0,

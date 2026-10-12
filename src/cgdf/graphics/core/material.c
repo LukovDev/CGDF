@@ -28,7 +28,6 @@ Material* Material_create(
     float height_high,
     float height_base,
     float height_distance,
-    bool height_cutoff_enabled,
     float alpha_cutoff,
     bool double_sided,
     bool transparent,
@@ -61,7 +60,6 @@ Material* Material_create(
     mat->height_high = height_high;
     mat->height_base = height_base;
     mat->height_distance = height_distance;
-    mat->height_cutoff_enabled = height_cutoff_enabled;
     mat->alpha_cutoff = alpha_cutoff;
     mat->double_sided = double_sided;
     mat->transparent = transparent;
@@ -91,7 +89,7 @@ Material* Material_create(
 Material* Material_create_default(const char *name) {
     return Material_create(
         name, (Vec4f){1, 1, 1, 1}, (Vec3f){0, 0, 0}, 0.0f, 0.5f, 1.0f,
-        1.0f, (Vec3f){0, 0, 0}, 0.0f, 0.0f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false, 0.0f,
+        1.0f, (Vec3f){0, 0, 0}, 0.0f, 0.0f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, 0.0f,
         false, false, 0.0f, 0.0f, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr
     );
 }

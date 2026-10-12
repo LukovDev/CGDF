@@ -1,15 +1,14 @@
 #version 330 core
 
-uniform vec3 u_camera_pos;                  // Мировые координаты камеры.
-uniform bool u_camera_ortho;                // Ортографическая ли камера.
-uniform vec3 u_camera_forward;              // Куда смотрит камера.
-uniform float u_pom_min_layers = 4.0f;      // Минимальное количество слоёв параллакса.
-uniform float u_pom_max_layers = 64.0f;     // Максимальное количество слоёв параллакса.
-uniform float u_pom_low;                    // Притянуть уровень высоты к нулю (растяжение).
-uniform float u_pom_high;                   // Притянуть уровень высоты к единице (растяжение).
-uniform float u_pom_base;                   // Какая высота считается поверхностью.
-uniform float u_pom_distance;               // Максимальное расстояние эффекта POM.
-uniform bool u_pom_cutoff_enabled = false;  // Отсекать ли фрагменты параллакса за координатами текстуры.
+uniform vec3 u_camera_pos;               // Мировые координаты камеры.
+uniform bool u_camera_ortho;             // Ортографическая ли камера.
+uniform vec3 u_camera_forward;           // Куда смотрит камера.
+uniform float u_pom_min_layers = 4.0f;   // Минимальное количество слоёв параллакса.
+uniform float u_pom_max_layers = 64.0f;  // Максимальное количество слоёв параллакса.
+uniform float u_pom_low;                 // Притянуть уровень высоты к нулю (растяжение).
+uniform float u_pom_high;                // Притянуть уровень высоты к единице (растяжение).
+uniform float u_pom_base;                // Какая высота считается поверхностью.
+uniform float u_pom_distance;            // Максимальное расстояние эффекта POM.
 
 // Параметры материала:
 uniform vec4 u_albedo;
@@ -145,12 +144,6 @@ void main(void) {
                 }
             }
             texCoords = (uv_above + uv_below) * 0.5;
-
-            // Удаляем фрагменты за пределами координат:
-            if (u_pom_cutoff_enabled) {
-                vec2 tile = floor(v_texcoord);  // В каком тайле находится исходный пиксель.
-                if (any(lessThan(texCoords, tile)) || any(greaterThan(texCoords, tile + 1.0))) { discard; }
-            }
         }
     }
 

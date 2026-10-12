@@ -168,4 +168,26 @@ void Light2D_resize(Light2D *self, int width, int height) {
 // -------- API 3D освещения: --------
 
 
-// Функции для добавления источников света в рендеринг.
+// Отрисовать точечный источник света:
+void Light3D_point(
+    Renderer *self, Vec3f position, float size, Vec3f color,
+    float intensity, float radius, bool cast_shadow
+) {
+    if (!self) return;
+    Renderer_create_draw_lighting(
+        self, position, (Vec3f){0.0f, 0.0f, 0.0f}, size, color,
+        intensity, radius, 0.0f, 0.0f, cast_shadow, LIGHT3D_POINT
+    );
+}
+
+// Отрисовать прожекторный источник света:
+void Light3D_spot(
+    Renderer *self, Vec3f position, Vec3f direction, float size, Vec3f color,
+    float intensity, float distance, float angle, float inner_angle, bool cast_shadow
+) {
+    if (!self) return;
+    Renderer_create_draw_lighting(
+        self, position, direction, size, color, intensity,
+        distance, angle, inner_angle, cast_shadow, LIGHT3D_SPOT
+    );
+}

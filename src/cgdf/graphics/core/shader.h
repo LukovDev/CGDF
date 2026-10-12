@@ -111,35 +111,68 @@ void Shader_set_bool(Shader *self, const char *name, bool value);
 // Установить значение int:
 void Shader_set_int(Shader *self, const char *name, int value);
 
+// Установить массив int:
+void Shader_set_int_array(Shader *self, const char *name, const int *values, int count);
+
 // Установить значение float:
 void Shader_set_float(Shader *self, const char *name, float value);
+
+// Установить массив float:
+void Shader_set_float_array(Shader *self, const char *name, const float *values, int count);
 
 // Установить значение vec2:
 void Shader_set_vec2(Shader *self, const char *name, Vec2f value);
 
+// Установить массив vec2:
+void Shader_set_vec2_array(Shader *self, const char *name, const Vec2f *values, int count);
+
 // Установить значение ivec2:
 void Shader_set_ivec2(Shader *self, const char *name, Vec2i value);
+
+// Установить массив ivec2:
+void Shader_set_ivec2_array(Shader *self, const char *name, const Vec2i *values, int count);
 
 // Установить значение vec3:
 void Shader_set_vec3(Shader *self, const char *name, Vec3f value);
 
+// Установить массив vec3:
+void Shader_set_vec3_array(Shader *self, const char *name, const Vec3f *values, int count);
+
 // Установить значение ivec3:
 void Shader_set_ivec3(Shader *self, const char *name, Vec3i value);
+
+// Установить массив ivec3:
+void Shader_set_ivec3_array(Shader *self, const char *name, const Vec3i *values, int count);
 
 // Установить значение vec4:
 void Shader_set_vec4(Shader *self, const char *name, Vec4f value);
 
+// Установить массив vec4:
+void Shader_set_vec4_array(Shader *self, const char *name, const Vec4f *values, int count);
+
 // Установить значение ivec4:
 void Shader_set_ivec4(Shader *self, const char *name, Vec4i value);
+
+// Установить массив ivec4:
+void Shader_set_ivec4_array(Shader *self, const char *name, const Vec4i *values, int count);
 
 // Установить значение mat2:
 void Shader_set_mat2(Shader *self, const char *name, mat2 value);
 
+// Установить массив mat2:
+void Shader_set_mat2_array(Shader *self, const char *name, mat2 *values, int count);
+
 // Установить значение mat3:
 void Shader_set_mat3(Shader *self, const char *name, mat3 value);
 
+// Установить массив mat3:
+void Shader_set_mat3_array(Shader *self, const char *name, mat3 *values, int count);
+
 // Установить значение mat4:
 void Shader_set_mat4(Shader *self, const char *name, mat4 value);
+
+// Установить массив mat4:
+void Shader_set_mat4_array(Shader *self, const char *name, mat4 *values, int count);
 
 // Установить значение mat2x3:
 void Shader_set_mat2x3(Shader *self, const char *name, mat2x3 value);
