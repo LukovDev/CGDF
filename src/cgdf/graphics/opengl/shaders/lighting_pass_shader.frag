@@ -3,9 +3,10 @@
 #define CASCADES_MAX 16  // Должно совпадать с SHADOW_CASCADES_MAX в renderer.c
 
 // Камера:
-uniform vec3 u_camera_pos;
+uniform vec3 u_camera_pos;      // Координаты камеры.
 uniform vec3 u_camera_forward;  // Куда смотрит камера.
 uniform bool u_camera_ortho;    // Ортографическая ли камера.
+uniform float u_camera_near;    // Ближняя плоскость отсечения.
 uniform mat4 u_inv_view_proj;   // Обратная матрица (проекция * вид): экран -> мир.
 
 // Текстуры G-Buffer:
@@ -45,13 +46,13 @@ out vec4 FragColor;
 const float PI = 3.14159265359;
 
 // Тень из одного каскада (1 - освещено, 0 - в тени):
-float sample_cascade(int c, vec3 P, vec3 N, float NdotL) {
+float sample_cascade(int c, vec3 P, vec3 N, float NdotL, float d) {
     vec3 offset_pos = P + N * u_cascade_normal_offset[c] * mix(0.5, 1.0, 1.0 - NdotL);
     vec4 light_pos = u_cascade_matrices[c] * vec4(offset_pos, 1.0);
     vec3 coords = light_pos.xyz / light_pos.w * 0.5 + 0.5;
     vec2 tile = vec2(float(c % u_cascade_grid.x), float(c / u_cascade_grid.x));
     coords.xy = (coords.xy + tile) / vec2(u_cascade_grid);  // Координаты каскада -> координаты атласа.
-    float ref = coords.z - u_shadow_depth_bias;
+    float ref = coords.z - u_shadow_depth_bias * (1.0 + d * d * u_camera_near);
 
     // textureLod вместо texture: без тонких линий на швах каскадов:
     if (u_shadows_smooth) {
@@ -82,14 +83,14 @@ float calc_shadow(vec3 P, vec3 N, vec3 L, out int cascade, out float blend) {
     for (int i = 0; i < last; i++) {
         if (d > u_cascade_splits[i + 1]) cascade = i + 1;
     }
-    float shadow = sample_cascade(cascade, P, N, NdotL);
+    float shadow = sample_cascade(cascade, P, N, NdotL, d);
 
     // В конце каскада плавно переходим в следующий (последний плавно гаснет в "нет тени"):
     float near = u_cascade_splits[cascade];
     float far = u_cascade_splits[cascade + 1];
     blend = smoothstep(far - (far - near) * u_cascade_blend, far, d);
     if (blend > 0.0) {
-        float next = (cascade < last) ? sample_cascade(cascade + 1, P, N, NdotL) : 1.0;
+        float next = (cascade < last) ? sample_cascade(cascade + 1, P, N, NdotL, d) : 1.0;
         shadow = mix(shadow, next, blend);
     }
     return shadow;

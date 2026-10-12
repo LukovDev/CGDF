@@ -609,15 +609,18 @@ void Renderer_display(Renderer *self) {
     Vec3f camera_pos = {};
     Vec3f camera_forward = {0.0f, 0.0f, -1.0f};
     bool camera_ortho = false;
+    float camera_near = 0.01f;
     if (Renderer_is_camera_3d(self)) {
         Camera3D *cam = (Camera3D*)self->camera;
         camera_pos = (Vec3f){cam->position.x, cam->position.y, cam->position.z};
         Vec3d f = Camera3D_get_forward(cam);
         camera_forward = (Vec3f){f.x, f.y, f.z};
         camera_ortho = Camera3D_get_ortho(cam);
+        camera_near = cam->z_near;
     } else {
         Camera2D *cam = (Camera2D*)self->camera;
         camera_pos = (Vec3f){cam->position.x, cam->position.y, 0.0f};
+        camera_near = -1.0f;
     }
 
     // Подготавливаем матрицы:
@@ -756,9 +759,11 @@ void Renderer_display(Renderer *self) {
         Shader_set_float(self->shader_gbuffer, "u_height_strength",    mat->height_strength);
         Shader_set_float(self->shader_gbuffer, "u_pom_min_layers",     mat->height_min_layers);
         Shader_set_float(self->shader_gbuffer, "u_pom_max_layers",     mat->height_max_layers);
-        Shader_set_bool(self->shader_gbuffer,  "u_pom_cutoff_enabled", mat->height_cutoff_enabled);
         Shader_set_float(self->shader_gbuffer, "u_pom_low",            mat->height_low);
         Shader_set_float(self->shader_gbuffer, "u_pom_high",           mat->height_high);
+        Shader_set_float(self->shader_gbuffer, "u_pom_base",           mat->height_base);
+        Shader_set_float(self->shader_gbuffer, "u_pom_distance",       mat->height_distance);
+        Shader_set_bool(self->shader_gbuffer,  "u_pom_cutoff_enabled", mat->height_cutoff_enabled);
 
         // 8. Остальные параметры:
         Shader_set_vec3(self->shader_gbuffer, "u_ambient", mat->ambient);
@@ -793,6 +798,7 @@ void Renderer_display(Renderer *self) {
     Shader_set_vec3(self->shader_lighting,  "u_camera_pos",        camera_pos);
     Shader_set_vec3(self->shader_lighting,  "u_camera_forward",    camera_forward);
     Shader_set_bool(self->shader_lighting,  "u_camera_ortho",      camera_ortho);
+    Shader_set_float(self->shader_lighting, "u_camera_near",       camera_near);
     Shader_set_mat4(self->shader_lighting,  "u_inv_view_proj",     inv_view_proj);
     // GBuffer:
     Shader_set_tex2d(self->shader_lighting, "u_albedo_roughness",  GBuffer_get_tex_albedo_roughness(self->gbuffer)->id);

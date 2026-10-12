@@ -198,11 +198,11 @@ void Window_set_always_top(Window *self, bool on_top);
 // Получить всегда на переднем плане или нет:
 bool Window_get_always_top(Window *self);
 
-// Получить фокус окна:
+// В фокусе ли окно:
 bool Window_get_is_focused(Window *self);
 
-// Получить расфокус окна:
-bool Window_get_is_defocused(Window *self);
+// Свёрнуто ли окно:
+bool Window_get_is_hide(Window *self);
 
 // Получить айди дисплея в котором это окно:
 uint32_t Window_get_window_display_id(Window *self);

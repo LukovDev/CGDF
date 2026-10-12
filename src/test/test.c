@@ -111,7 +111,7 @@ void start(Window *self) {
         (Vec3d){0.0f, 0.0f, 0.0f},
         (Vec3d){1.0f, 1.0f, 1.0f},
         90.0f,
-        0.1f, 1000.0f,
+        0.01f, 1000.0f,
         false
     );
     ctrl3d = CameraController3D_create(self, camera3d, 0.1f, 1.0f, 5.0f, 25.0f, 0.75f, false);
@@ -165,7 +165,7 @@ void start(Window *self) {
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
         1.0f, 1.0f, 1.0f, 1.0f,
-        (Vec3f){1, 1, 1}, 0.0f, 0.05f, 16.0f, 128.0f, false,
+        (Vec3f){1, 1, 1}, 0.0f, 0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
         poweredby, normal, occlusion,
         roughness, metallic, emission,
@@ -202,7 +202,7 @@ void start(Window *self) {
         (Vec4f){1, 1, 1, 1},
         (Vec3f){1, 1, 1},
         1.0f, 1.0f, 1.0f, 1.0f,
-        (Vec3f){1, 1, 1}, 0.0f, 0.05f, 16.0f, 128.0f, false,
+        (Vec3f){1, 1, 1}, 0.0f, 0.5f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false,
         0.0f, false, false, 0.0f, 0.0f,
         floor_albedo, floor_normal, floor_occlusion,
         floor_roughness, floor_metallic, floor_emission,
@@ -240,7 +240,7 @@ void start(Window *self) {
         "Material_Sphere_1", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         0.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
-        0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
+        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false, 0.0f, false, false,
         0.0f, 0.0f, mat_1_albedo, mat_1_normal, mat_1_occlusion,
         mat_1_roughness, mat_1_metallic, mat_1_emission,
         mat_1_height
@@ -278,7 +278,7 @@ void start(Window *self) {
         "Material_Sphere_2", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         1.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
-        0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
+        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false, 0.0f, false, false,
         0.0f, 0.0f, mat_2_albedo, mat_2_normal, mat_2_occlusion,
         mat_2_roughness, mat_2_metallic, mat_2_emission,
         mat_2_height
@@ -313,7 +313,7 @@ void start(Window *self) {
         "Material_Map", (Vec4f){1, 1, 1, 1}, (Vec3f){1, 1, 1},
         1.0f, 0.25f, 1.0f, 1.0f,
         (Vec3f){1, 1, 1}, 0.0f,
-        0.05f, 16.0f, 128.0f, false, 0.0f, false, false,
+        0.05f, 4.0f, 64.0f, 0.0f, 1.0f, 0.5f, 10.0f, false, 0.0f, false, false,
         0.0f, 0.0f, map_albedo, map_normal, map_occlusion,
         map_roughness, map_metallic, map_emission,
         nullptr
@@ -334,7 +334,7 @@ void start(Window *self) {
     objfile3 = ObjLoader_load(self->renderer, "data/obj/demo_scene/sphere.obj");
     objfile_ship1 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip1.obj");
     objfile_ship2 = ObjLoader_load(self->renderer, "data/obj/example/SpaceShip2.obj");
-    model = ObjLoader_load(self->renderer, "data/obj/example/sphere.obj");
+    model = ObjLoader_load(self->renderer, "data/obj/example/cube.obj");
     home = ObjLoader_load(self->renderer, "data/obj/home/Cottage.obj");
     motocycle = ObjLoader_load(self->renderer, "data/obj/bmw_s1000_rr/bmw_s1000_rr.obj");
     automobile = ObjLoader_load(self->renderer, "data/obj/bugatti_chiron_mansory/bugatti_chiron_mansory.obj");
@@ -405,6 +405,7 @@ void destroy([[maybe_unused]] Window *self) {
 
 // Вызывается каждый кадр (цикл окна):
 void update(Window *self, float dtime) {
+    if (Window_get_is_hide(self)) return;
     if (Input_get_key_down(self)[K_f]) Window_set_fullscreen(self, !Window_get_fullscreen(self));
 
     static bool orbit_enabled = false;
@@ -442,6 +443,12 @@ void update(Window *self, float dtime) {
 
 // Вызывается каждый кадр (отрисовка окна):
 void render(Window *self, float dtime) {
+    if (Window_get_is_hide(self)) {
+        Window_set_fps(self, 10.0f);
+        return;
+    } else {
+        Window_set_fps(self, 0.0f);
+    }
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
     double time = Window_get_time(self);
@@ -548,7 +555,7 @@ void render(Window *self, float dtime) {
             Mesh *mesh = Array_get_ptr(model->meshes, i);
             Material *m = Mesh_get_material(mesh);
             m->height_strength = 0.05f;
-            m->height_cutoff_enabled = true;
+            // m->height_cutoff_enabled = true;
         }
         Model_render(model, true, wireframe);
     }

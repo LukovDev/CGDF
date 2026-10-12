@@ -1,13 +1,15 @@
 #version 330 core
 
-uniform vec3 u_camera_pos;                 // Мировые координаты камеры.
-uniform bool u_camera_ortho;               // Ортографическая ли камера.
-uniform vec3 u_camera_forward;             // Куда смотрит камера.
-uniform float u_pom_min_layers = 16.0f;    // Минимальное количество слоёв параллакса [8, 16, 32].
-uniform float u_pom_max_layers = 128.0f;   // Максимальное количество слоёв параллакса [64, 128, 256].
-uniform bool u_pom_cutoff_enabled = true;  // Отсекать ли фрагменты параллакса за координатами текстуры.
-uniform float u_pom_low;                   // Притянуть уровень высоты к нулю (растяжение).
-uniform float u_pom_high;                  // Притянуть уровень высоты к единице (растяжение).
+uniform vec3 u_camera_pos;                  // Мировые координаты камеры.
+uniform bool u_camera_ortho;                // Ортографическая ли камера.
+uniform vec3 u_camera_forward;              // Куда смотрит камера.
+uniform float u_pom_min_layers = 4.0f;      // Минимальное количество слоёв параллакса.
+uniform float u_pom_max_layers = 64.0f;     // Максимальное количество слоёв параллакса.
+uniform float u_pom_low;                    // Притянуть уровень высоты к нулю (растяжение).
+uniform float u_pom_high;                   // Притянуть уровень высоты к единице (растяжение).
+uniform float u_pom_base;                   // Какая высота считается поверхностью.
+uniform float u_pom_distance;               // Максимальное расстояние эффекта POM.
+uniform bool u_pom_cutoff_enabled = false;  // Отсекать ли фрагменты параллакса за координатами текстуры.
 
 // Параметры материала:
 uniform vec4 u_albedo;
@@ -87,36 +89,53 @@ void main(void) {
     vec2 texCoords = v_texcoord;
 
     // Накладываем эффект POM (параллакс):
-    if (u_use_tex_height && u_height_strength > 0.0f && has_uv_basis) {
+    float pom_fade = 1.0 - smoothstep(u_pom_distance * 0.5, u_pom_distance, length(u_camera_pos - v_pos_world));
+    if (u_use_tex_height && u_height_strength > 0.0 && has_uv_basis && u_pom_distance > 0.0 && pom_fade > 0.0) {
         // Направление от поверхности на камеру. В ортографии лучи параллельны:
         vec3 view_dir = u_camera_ortho ? -u_camera_forward : normalize(u_camera_pos - v_pos_world);
         vec3 tangent_view_dir = normalize(transpose(TBN) * view_dir);
         if (!any(isnan(tangent_view_dir)) && !any(isinf(tangent_view_dir))) {
             tangent_view_dir.y = -tangent_view_dir.y;
+            const float POM_ANGLE_LIMIT = 0.42;  // Ограничение сдвига на скользящих углах (подобрано на глаз).
 
-            float num_layers = mix(u_pom_max_layers, u_pom_min_layers, abs(dot(vec3(0, 0, 1), tangent_view_dir)));
+            // Сколько UV приходится на метр поверхности (глубина задаётся в метрах, а не в долях текстуры):
+            float uv_per_meter = 0.5 * (length(duv1) / max(length(dp1), 1e-6) + length(duv2) / max(length(dp2), 1e-6));
+
+            // Полный путь луча по текстуре от верха рельефа до самого дна (в UV):
+            vec2 P = tangent_view_dir.xy * (1.0 + POM_ANGLE_LIMIT) / (tangent_view_dir.z + POM_ANGLE_LIMIT);
+            P *= u_height_strength * uv_per_meter * pom_fade;
+
+            // Шагов столько, чтобы луч не перешагивал больше одного текселя карты высот:
+            vec2 height_size = vec2(textureSize(u_tex_height, 0));  // Размер карты высот в текселях.
+            float ray_texels = length(P * height_size);
+            // На уменьшенных мип-уровнях тексель крупнее, поэтому шагов нужно меньше:
+            ray_texels /= exp2(max(log2(max(length(duv1 * height_size), length(duv2 * height_size))), 0.0));
+            float num_layers = clamp(ray_texels, u_pom_min_layers, u_pom_max_layers);
+
             float layer_depth = 1.0f / num_layers;
             float current_layer_depth = 0.0f;
-
-            vec2 P = tangent_view_dir.xy / max(tangent_view_dir.z, 0.01) * u_height_strength;
             vec2 deltaUVs = P / num_layers;
-            vec2 UVs = texCoords;
-            float current_depth_map_value = 1.0f - sample_height(UVs, duv1, duv2);
+            vec2 UVs = texCoords + P * (1.0 - u_pom_base);
+            float current_depth_map_value = 1.0 - sample_height(UVs, duv1, duv2);
 
             // Проходимся по слоям пока не попадем по высоте:
             int max_steps = int(u_pom_max_layers) + 1;  // Больше этого шагов при правильной работе не бывает.
             for (int steps = 0; current_layer_depth < current_depth_map_value && steps < max_steps; steps++) {
                 current_layer_depth += layer_depth;
                 UVs -= deltaUVs;
-                current_depth_map_value = 1.0f - sample_height(UVs, duv1, duv2);
+                current_depth_map_value = 1.0 - sample_height(UVs, duv1, duv2);
             }
+
+            // Возможно добавить изменение текстуры глубины для объектов с текстурами высот чтобы реально менять глубину
 
             // Применяем иллюзию (бинарный поиск):
             vec2 uv_above = UVs + deltaUVs;
             vec2 uv_below = UVs;
             float depth_above = current_layer_depth - layer_depth;
             float depth_below = current_layer_depth;
-            for (int k = 0; k < 6; k++) {  // 6 итераций достаточно чтобы была точность в 64 раза меньше расстояния между слоёв.
+
+            // 6 итераций достаточно чтобы была точность в 64 раза меньше расстояния между слоёв:
+            for (int k = 0; k < 6; k++) {
                 vec2 uv_mid = (uv_above + uv_below) * 0.5;
                 float depth_mid = (depth_above + depth_below) * 0.5;
                 if (depth_mid < 1.0 - sample_height(uv_mid, duv1, duv2)) {

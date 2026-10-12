@@ -28,12 +28,14 @@ struct Material {
     float normal_strength;        // Интенсивность нормалей.
     Vec3f emissive_color;         // Цвет свечения.
     float emissive_strength;      // Интенсивность свечения.
-    float height_strength;        // Интенсивность глубины.
+    float height_strength;        // Интенсивность глубины (в метрах).
     float height_min_layers;      // Минимальное количество слоев глубины.
     float height_max_layers;      // Максимальное количество слоев глубины.
-    bool height_cutoff_enabled;   // Отсекать ли фрагменты параллакса за координатами текстуры.
     float height_low;             // Притянуть уровень высоты к нулю (растяжение). Диапазон от 0.0f до 1.0f.
     float height_high;            // Притянуть уровень высоты к единице (растяжение). Диапазон от 0.0f до 1.0f.
+    float height_base;            // Какой уровень считается поверхностью. Диапазон от 0.0f до 1.0f. По умолчанию 0.5f.
+    float height_distance;        // Расстояние эффекта POM. Плавно гаснет со второй половины расстояния. 0 = выключен.
+    bool height_cutoff_enabled;   // Отсекать ли фрагменты параллакса за координатами текстуры.
     float alpha_cutoff;           // Альфа отсечение.
     bool double_sided;            // Двусторонний материал (отключение culling).
     bool transparent;             // Прозрачный материал (для blend mode).
@@ -77,6 +79,10 @@ struct Material {
     float height_strength,
     float height_min_layers,
     float height_max_layers,
+    float height_low,
+    float height_high,
+    float height_base,
+    float height_distance,
     bool height_cutoff_enabled,
     float alpha_cutoff,
     bool double_sided,

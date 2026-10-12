@@ -34,8 +34,6 @@ struct WinVars {
     double dtime;
     bool create_failed;
     bool running;
-    bool focused;
-    bool defocused;
     bool closing;
     bool is_new_scene;      // Устанавливается ли новая сцена.
     WindowScene new_scene;  // Новая устанавливаемая сцена.
@@ -159,8 +157,6 @@ static void MainLoop(Window *self, WinConfig *config) {
     while (vars->running) {
         // Настраиваем переменные:
         double frame_start = Window_get_time(self);
-        vars->focused = false;
-        vars->defocused = false;
 
         // Проверяем чтобы дельта времени не была равна нулю:
         if (vars->dtime <= 0.0f) vars->dtime = 1e-6f;
@@ -228,16 +224,6 @@ static void MainLoop(Window *self, WinConfig *config) {
                 // Окно свернули:
                 case SDL_EVENT_WINDOW_MINIMIZED: {
                     if (scene->hide) scene->hide(self);
-                } break;
-
-                // Окно стало активным:
-                case SDL_EVENT_WINDOW_FOCUS_GAINED: {
-                    vars->focused = true;
-                } break;
-
-                // Окно потеряло фокус:
-                case SDL_EVENT_WINDOW_FOCUS_LOST: {
-                    vars->defocused = true;
                 } break;
 
                 // Обработка ввода:
@@ -773,18 +759,18 @@ bool Window_get_always_top(Window *self) {
     return self->config->always_top;
 }
 
-// Получить фокус окна:
+// В фокусе ли окно:
 bool Window_get_is_focused(Window *self) {
     if (!self || !self->vars) return false;
     WinVars *vars = self->vars;
-    return vars->focused;
+    return (SDL_GetWindowFlags(vars->window) & SDL_WINDOW_INPUT_FOCUS) != 0;
 }
 
-// Получить расфокус окна:
-bool Window_get_is_defocused(Window *self) {
+// Свёрнуто ли окно:
+bool Window_get_is_hide(Window *self) {
     if (!self || !self->vars) return false;
     WinVars *vars = self->vars;
-    return vars->defocused;
+    return (SDL_GetWindowFlags(vars->window) & SDL_WINDOW_MINIMIZED) != 0;
 }
 
 // Получить айди дисплея в котором это окно:
