@@ -14,7 +14,7 @@ static Sprite2D *sprite;
 
 
 // Вызывается после создания окна:
-static void start(Window *self) {
+static void start([[maybe_unused]] Window *self) {
     // Загружаем и устанавливаем иконку:
     Pixmap *icon = Pixmap_load("data/logo/CGDF2x2.png", PIXMAP_RGBA);
     Window_set_icon(self, icon);
@@ -48,7 +48,7 @@ static void destroy([[maybe_unused]] Window *self) {
 
 
 // Вызывается каждый кадр (цикл окна):
-static void update(Window *self, float dtime) {
+static void update([[maybe_unused]] Window *self, [[maybe_unused]] float dtime) {
 
     // Пример перемещения камеры:
     float speed = 4.0f;
@@ -64,7 +64,7 @@ static void update(Window *self, float dtime) {
 
 
 // Вызывается каждый кадр (отрисовка окна):
-static void render(Window *self, [[maybe_unused]] float dtime) {
+static void render([[maybe_unused]] Window *self, [[maybe_unused]] float dtime) {
     // Очищаем содержимое окна:
     Window_clear(self, 0.0f, 0.0f, 0.0f);
 
@@ -81,7 +81,7 @@ static void render(Window *self, [[maybe_unused]] float dtime) {
 
 
 // Вызывается при изменении размера окна:
-static void resize([[maybe_unused]] Window *self, int width, int height) {
+static void resize([[maybe_unused]] Window *self, [[maybe_unused]] int width, [[maybe_unused]] int height) {
     Camera2D_resize(camera, width, height);  // Масштабируем камеру под новый размер окна.
 }
 
