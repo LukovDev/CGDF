@@ -5,7 +5,6 @@
 
 // Подключаем:
 #include <cgdf/cgdf.h>
-#include <cgdf/graphics/graphics.h>
 #include <cgdf/graphics/opengl/gl.h>
 
 

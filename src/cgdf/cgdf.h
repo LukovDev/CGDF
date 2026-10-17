@@ -15,6 +15,7 @@ extern "C" {
 
 // Подключаем:
 #include "core/core.h"
+#include "graphics/graphics.h"
 
 
 // Инициализировать фреймворк:
