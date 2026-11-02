@@ -84,8 +84,7 @@ void Camera2D_update(Camera2D *self) {
     Shader *shader = renderer->shader;
     if (!shader) return;
     Shader_begin(shader);
-    Shader_set_mat4(shader, "u_view", self->view);
-    Shader_set_mat4(shader, "u_proj", self->proj);
+    Shader_set_mat4(shader, "u_view_proj", self->view_proj);
     Shader_end(shader);
 }
 
@@ -139,8 +138,8 @@ void Camera2D_ui_begin(Camera2D *self) {
     );
     Shader *shader = renderer->shader;
     Shader_begin(shader);
-    Shader_set_mat4(shader, "u_view", self->view);
-    Shader_set_mat4(shader, "u_proj", self->proj);
+    glm_mat4_mul(self->proj, self->view, self->view_proj);
+    Shader_set_mat4(shader, "u_view_proj", self->view_proj);
     Shader_end(shader);
 }
 
@@ -155,8 +154,8 @@ void Camera2D_ui_end(Camera2D *self) {
     glm_mat4_copy(self->old_proj, self->proj);
     Shader *shader = renderer->shader;
     Shader_begin(shader);
-    Shader_set_mat4(shader, "u_view", self->view);
-    Shader_set_mat4(shader, "u_proj", self->proj);
+    glm_mat4_mul(self->proj, self->view, self->view_proj);
+    Shader_set_mat4(shader, "u_view_proj", self->view_proj);
     Shader_end(shader);
 }
 
@@ -285,8 +284,7 @@ void Camera3D_update(Camera3D *self) {
     Shader *shader = renderer->shader;
     if (!shader) return;
     Shader_begin(shader);
-    Shader_set_mat4(shader, "u_view", self->view);
-    Shader_set_mat4(shader, "u_proj", self->proj);
+    Shader_set_mat4(shader, "u_view_proj", self->view_proj);
     Shader_end(shader);
 }
 

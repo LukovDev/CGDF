@@ -631,6 +631,7 @@ void render(Window *self, float dtime) {
         Shader_set_float(grid, "u_fade_softness", grid_size*0.75f);
         Shader_set_vec3(grid, "u_grid_color", (Vec3f){0.5f, 0.5f, 0.5f});
         Shader_set_vec3(grid, "u_camera_pos", (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z});
+        Shader_set_float(grid, "u_far_plane", camera3d->z_far);
         Sprite2D_render(self->renderer, nullptr, 0, 0, 1.0f, 1.0f, 0.0f, (Vec4f){1, 1, 1, 1}, true);
         Shader_end(grid);
     }

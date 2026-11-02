@@ -185,13 +185,14 @@ void SpriteBatch_begin(SpriteBatch *self) {
     self->current_tex_id = 0;
 
     // Обновляем данные в шейдере:
-    mat4 view, proj;
+    mat4 view, proj, view_proj;
     Renderer_get_view_proj(self->renderer, view, proj);
+    glm_mul(proj, view, view_proj);
+
     Shader *shader = self->renderer->shader_spritebatch;
     if (self->_custom_shader_ != nullptr) shader = self->_custom_shader_;
     Shader_begin(shader);
-    Shader_set_mat4(shader, "u_view", view);
-    Shader_set_mat4(shader, "u_proj", proj);
+    Shader_set_mat4(shader, "u_view_proj", view_proj);
     BufferVAO_begin(self->vao);
     BufferEBO_begin(self->ebo);  // Привязываем на всякий случай. Отвязывать не обязательно.
     BufferVBO_begin(self->vbo);
