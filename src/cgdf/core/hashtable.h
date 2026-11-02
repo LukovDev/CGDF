@@ -78,10 +78,14 @@ static inline size_t hash_fnv1a(const void *data, size_t len) {
 [[nodiscard]] HashTable* HashTable_create(void);
 
 // Уничтожить хэш-таблицу (не удаляет блоки по указателям):
-void HashTable_destroy(HashTable **table);
+void HashTable_destroy(HashTable **table, bool free_key, bool free_value);
 
 // Добавить элемент в хэш-таблицу или обновить его значение:
-bool HashTable_set(HashTable *table, const void *key, size_t key_size, const void *value, size_t value_size);
+bool HashTable_set(
+    HashTable *table, const void *key,
+    size_t key_size, const void *value,
+    size_t value_size, bool free_value
+);
 
 // Получить элемент по ключу. Возвращает true, если ключ найден.
 // Значение и его размер записываются в out_value и out_value_size (оба можно передать nullptr):

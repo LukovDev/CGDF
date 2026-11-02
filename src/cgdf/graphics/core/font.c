@@ -149,7 +149,7 @@ static void clear_atlas(Texture *atlas, int width, int height, bool use_mipmap) 
 static bool glyph_insert_to_cache(FontPixmap *self, uint32_t codepoint, FontGlyph *glyph) {
     uint32_t *stored_key = (uint32_t*)mm_alloc(sizeof(uint32_t));
     *stored_key = codepoint;
-    if (!HashTable_set(self->glyphs, stored_key, sizeof(uint32_t), glyph, sizeof(FontGlyph*))) {
+    if (!HashTable_set(self->glyphs, stored_key, sizeof(uint32_t), glyph, sizeof(FontGlyph*), false)) {
         mm_free(stored_key);
         mm_free(glyph);
         return false;
@@ -273,16 +273,14 @@ static bool font_expand_and_repack(FontPixmap *self) {
             self->glyphs = old_glyphs;
             self->added_glyphs_count = old_added_count;
             // Удаляем новое состояние:
-            HashTable_clear(new_glyphs, true, true);
-            HashTable_destroy(&new_glyphs);
+            HashTable_destroy(&new_glyphs, true, true);
             Texture_destroy(&new_atlas);
             return false;
         }
     }
 
     // Успех. Удаляем старые данные:
-    HashTable_clear(old_glyphs, true, true);
-    HashTable_destroy(&old_glyphs);
+    HashTable_destroy(&old_glyphs, true, true);
     Texture_destroy(&old_atlas);
     return true;
 }
@@ -378,9 +376,7 @@ void FontPixmap_destroy(FontPixmap **font) {
     SpriteBatch_destroy(&(*font)->batch);
     Array_destroy(&(*font)->glyphs_array);
     mm_free((*font)->ttf_buffer);  // Уничтожаем загруженный шрифт.
-
-    HashTable_clear((*font)->glyphs, true, true);  // Уничтожаем ключи и глифы из памяти.
-    HashTable_destroy(&(*font)->glyphs);
+    HashTable_destroy(&(*font)->glyphs, true, true);
 
     mm_free(*font);
     *font = nullptr;

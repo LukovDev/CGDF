@@ -117,7 +117,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     // В первую очередь, нам надо инициализировать фреймворк:
     if (!CGDF_init()) {
         printf("CGDF initialization failed.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     // Также можно узнать версию фреймворка:

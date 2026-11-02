@@ -90,10 +90,16 @@ static inline void reset_probs(HashTable *table) {
 static inline void rehash(HashTable *table, size_t new_capacity) {
     if (!table || table->capacity <= 0) return;
 
+    // Никогда не опускаемся ниже стартового минимума:
+    if (new_capacity < HASHTABLE_MIN_CAPACITY) {
+        new_capacity = HASHTABLE_MIN_CAPACITY;
+    }
+
     // Подготавливаем данные:
     HashSlot *old_data = table->data;
     HashSlot *new_data = mm_calloc(new_capacity, sizeof(HashSlot));
-    size_t old_capacity = table->capacity, new_len = 0;
+    size_t old_capacity = table->capacity;
+    size_t new_len = 0;
 
     // Переносим данные:
     for (size_t i = 0; i < old_capacity; i++) {
@@ -145,9 +151,13 @@ static inline void shrink(HashTable *table, double factor) {
     if (!table) return;
     if (factor <= 0) factor = HASHTABLE_SHRINK_FACTOR;
     size_t new_capacity = (size_t)(table->len * factor);
-    if (new_capacity < table->len) new_capacity = table->len * 2;
+    if (table->len <= 0) new_capacity = HASHTABLE_MIN_CAPACITY;
     if (new_capacity < HASHTABLE_MIN_CAPACITY) new_capacity = HASHTABLE_MIN_CAPACITY;  // Минимальный размер таблицы.
-    if (new_capacity < table->capacity) rehash(table, new_capacity);
+
+    // Сжимаем только если новый размер меньше текущего и текущий размер больше минимального:
+    if (new_capacity < table->capacity && table->capacity > HASHTABLE_MIN_CAPACITY) {
+        rehash(table, new_capacity);
+    }
 }
 
 
@@ -178,8 +188,11 @@ static inline void check_maybe_problimit(HashTable *table) {
 
     // Проверяем больше ли чем лимит пробирований:
     if (sum > HASHTABLE_PROBING_LIMIT) {
-        growth(table, HASHTABLE_GROWTH_FACTOR);
-        reset_probs(table);
+        float load_factor = (float)table->len / (float)table->capacity;
+        // Если таблица действительно забита данными, то расширяем:
+        if (load_factor >= HASHTABLE_GROWTH_THRESHOLD) growth(table, HASHTABLE_GROWTH_FACTOR);
+        // Иначе если элементов мало, долгий поиск только из-за удалённых, делаем пересборку в тот же размер:
+        else rehash(table, table->capacity);
     }
 }
 
@@ -216,8 +229,9 @@ HashTable* HashTable_create(void) {
 
 
 // Уничтожить хэш-таблицу (не удаляет блоки по указателям):
-void HashTable_destroy(HashTable **table) {
+void HashTable_destroy(HashTable **table, bool free_key, bool free_value) {
     if (!table || !*table) return;
+    HashTable_clear(*table, free_key, free_value);
     mm_free((*table)->data);
     (*table)->data = nullptr;
     mm_free(*table);
@@ -226,7 +240,11 @@ void HashTable_destroy(HashTable **table) {
 
 
 // Добавить элемент в хэш-таблицу или обновить его значение:
-bool HashTable_set(HashTable *table, const void *key, size_t key_size, const void *value, size_t value_size) {
+bool HashTable_set(
+    HashTable *table, const void *key,
+    size_t key_size, const void *value,
+    size_t value_size, bool free_value
+) {
     if (!table || !key) return false;
 
     // Проверяем лимит пробирований и заполненность таблицы:
@@ -265,6 +283,8 @@ bool HashTable_set(HashTable *table, const void *key, size_t key_size, const voi
 
         // Если нашли слот, совпадают хэш и размер ключа, и ключи равны, то обновляем значение:
         if (slot->hash == hash && slot->key_size == key_size && memcmp(slot->key, key, key_size) == 0) {
+            // Освобождаем старое значение, если передан флаг и указатели не равны:
+            if (free_value && slot->value && slot->value != slot->key && slot->value != value) mm_free(slot->value);
             slot->value = (void*)value;
             slot->value_size = value_size;
             return true;
@@ -277,7 +297,10 @@ bool HashTable_set(HashTable *table, const void *key, size_t key_size, const voi
         slot_fill(table, first_deleted, key, key_size, value, value_size, hash);
         return true;
     }
-    return false;  // Не удалось добавить элемент (таблица полностью заполнена).
+
+    // Если таблица переполнена мусором, который не вычистился:
+    growth(table, HASHTABLE_GROWTH_FACTOR);
+    return HashTable_set(table, key, key_size, value, value_size, free_value);
 }
 
 
@@ -444,6 +467,7 @@ void HashTable_clear(HashTable *table, bool free_key, bool free_value) {
     if (free_key || free_value) {
         for (size_t i = 0; i < table->capacity; i++) {
             HashSlot *slot = &table->data[i];
+            if (!slot->key || slot->deleted) continue;  // Игнорируем пустые слоты и надгробия.
             if (slot->key == slot->value) mm_free(slot->key);
             else {
                 if (free_key && slot->key) mm_free(slot->key);

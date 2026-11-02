@@ -151,7 +151,7 @@ static uint32_t get_or_create_vertex(
     Array_push(vertices, &vertex);
     ObjIndex *stored = mm_alloc(sizeof(ObjIndex));
     *stored = key;
-    HashTable_set(cache, stored, sizeof(ObjIndex), (void*)(uintptr_t)new_index, sizeof(uint32_t));
+    HashTable_set(cache, stored, sizeof(ObjIndex), (void*)(uintptr_t)new_index, sizeof(uint32_t), false);
     return new_index;
 }
 
@@ -533,8 +533,7 @@ OBJFile ObjLoader_load(Renderer *renderer, const char *filepath) {
     Array_destroy(&texcoords);
     Array_destroy(&vertices);
     Array_destroy(&indices);
-    HashTable_clear(vertex_cache, true, false);
-    HashTable_destroy(&vertex_cache);
+    HashTable_destroy(&vertex_cache, true, false);
     mm_free(obj_dir);
     fclose(f);
 
