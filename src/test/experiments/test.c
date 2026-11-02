@@ -37,8 +37,6 @@ static OBJFile hydrant;
 static OBJFile map;
 static Texture *poweredby;
 
-static GUIButton button;
-
 
 static void print_before_free(void) {
     log_msg("[I] (Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
@@ -119,25 +117,6 @@ void start(Window *self) {
     ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f);
 
     log_msg("[I] Loading data...\n");
-
-    // Наша кнопка:
-    button = (GUIButton){
-        .x = 32,
-        .y = 32,
-        .width = 128,
-        .height = 32,
-        .border_width = 2,
-        .text = "Кнопка!",
-        .text_scale = 1.0f,
-        .texture = nullptr,
-        .text_color = (Vec4f){0.0f, 0.0f, 0.0f, 1.0f},
-        .color = (Vec4f){0.9f, 0.95f, 1.0f, 1.0f},
-        .border_color = (Vec4f){0.3f, 0.35f, 0.4f, 1.0f},
-        .hover_color = (Vec4f){0.7f, 0.75f, 0.8f, 1.0f},
-        .action_color = (Vec4f){0.5f, 0.55f, 0.6f, 1.0f},
-        .hover = false,
-        .action = false
-    };
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
@@ -844,6 +823,7 @@ WindowScene TestScene = {
 // Точка входа в программу:
 int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     CGDF_init();
+    Logger_enable();
 
     log_msg("[I] CWD: \"%s\"\n", Files_get_cwd(nullptr, 0));
 
@@ -856,7 +836,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     log_msg("[I] Free RAM: %zu MB\n", mem_info.free / 1024 / 1024);
     log_msg("[I] Used RAM: %zu MB\n", mem_info.used / 1024 / 1024);
 
-    const char *cgdf_version = CGDF_GetVersion();
+    const char *cgdf_version = CGDF_get_version();
     log_msg("[I] CGDF version: \"%s\"\n", cgdf_version);
 
     WinConfig *config = Window_create_config(&TestScene);

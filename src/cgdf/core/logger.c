@@ -1,8 +1,6 @@
 //
 // logger.c - Реализация кода обработки ошибок вылета программы и логирования.
 //
-// define CGDF_DISABLE_LOG_FILE - Чтобы отключить запись в лог-файл.
-//
 // Теги логирования:
 // [I] - Info.
 // [W] - Warning.
@@ -28,6 +26,8 @@
 // Определения:
 #define LOG_FILE_PATH "data/latest.log"
 static mtx_t _logger_mutex_;
+static bool _logger_initialized_ = false;
+static bool _logger_enabled_ = false;
 
 
 // Преобразование кода сигнала в строку:
@@ -46,52 +46,78 @@ static inline const char* code_to_string(int code) {
 
 // Обработчик вылета:
 [[noreturn]] static void crash_handler(int sig) {
-    FILE *f = fopen(LOG_FILE_PATH, "a");
-    if (!f) f = stderr;
+    if (_logger_enabled_) {
+        FILE *f = fopen(LOG_FILE_PATH, "a");
+        if (!f) f = stderr;
 
-    // Сообщение о сигнале:
-    const char *desc = code_to_string(sig);
+        // Сообщение о сигнале:
+        const char *desc = code_to_string(sig);
 
-    // Вывод одновременно в файл и консоль:
-    fprintf(stderr, "\n%s. %d <0x%X>\n", desc, sig, sig);
-    fprintf(f, "\n%s. %d <0x%X>\n", desc, sig, sig);
+        // Вывод одновременно в файл и консоль:
+        fprintf(stderr, "\n%s. %d <0x%X>\n", desc, sig, sig);
+        fprintf(f, "\n%s. %d <0x%X>\n", desc, sig, sig);
 
-    // Немедленное обновление буферов:
-    fflush(f);
-    fflush(stderr);
+        // Немедленное обновление буферов:
+        fflush(f);
+        fflush(stderr);
 
-    if (f != stderr) fclose(f);
+        if (f != stderr) fclose(f);
+    }
     _exit(sig);
 }
 
 
 // Инициализация логгера:
 void Logger_init(void) {
-    // Инициализируем лог-файл:
-    #ifndef CGDF_DISABLE_LOG_FILE
-        TimeCurrent tc = Time_get_current(true);
-        int y = tc.year, m = tc.month, d = tc.day, h = tc.hour, mi = tc.min, s = tc.sec, ms = tc.ms;
-        FILE *f = fopen(LOG_FILE_PATH, "w");
-        if (f) {
-            fprintf(f, "[%02d:%02d:%02d.%03d]: Logger initialized: [%d.%02d.%02d]\n", h, mi, s, ms, y, m, d);
-            fclose(f);
-        }
-    #endif
+    if (_logger_initialized_) return;
 
     // Устанавливаем обработчик сигналов:
-    signal(SIGSEGV, crash_handler);
-    signal(SIGABRT, crash_handler);
-    signal(SIGFPE,  crash_handler);
-    signal(SIGILL,  crash_handler);
-    signal(SIGTERM, crash_handler);
-    signal(SIGINT,  crash_handler);
+    if (!_logger_initialized_) {
+        signal(SIGSEGV, crash_handler);
+        signal(SIGABRT, crash_handler);
+        signal(SIGFPE,  crash_handler);
+        signal(SIGILL,  crash_handler);
+        signal(SIGTERM, crash_handler);
+        signal(SIGINT,  crash_handler);
+        // Инициализируем мьютекс:
+        mtx_init(&_logger_mutex_, mtx_plain);
+        _logger_initialized_ = true;
+    }
+}
 
-    mtx_init(&_logger_mutex_, mtx_plain);
+
+// Включить логгер:
+void Logger_enable(void) {
+    if (!_logger_initialized_) return;
+    mtx_lock(&_logger_mutex_);
+
+    // Инициализируем лог-файл:
+    TimeCurrent tc = Time_get_current(true);
+    int y = tc.year, m = tc.month, d = tc.day, h = tc.hour, mi = tc.min, s = tc.sec, ms = tc.ms;
+    FILE *f = fopen(LOG_FILE_PATH, "w");
+    if (f) {
+        fprintf(f, "[%02d:%02d:%02d.%03d]: Logger initialized: [%d.%02d.%02d]\n", h, mi, s, ms, y, m, d);
+        fclose(f);
+    }
+
+    _logger_enabled_ = true;
+    mtx_unlock(&_logger_mutex_);
+}
+
+
+// Выключить логгер:
+void Logger_disable(void) {
+    if (!_logger_initialized_) return;
+    mtx_lock(&_logger_mutex_);
+    _logger_enabled_ = false;
+    mtx_unlock(&_logger_mutex_);
 }
 
 
 // Вывод сообщения в лог-файл и в консоль:
 void log_msg(const char *fmt, ...) {
+    if (!_logger_enabled_) return;
+
     mtx_lock(&_logger_mutex_);
     va_list args, args_copy;
 
@@ -108,14 +134,14 @@ void log_msg(const char *fmt, ...) {
     vprintf(fmt, args);
 
     // В файл:
-    #ifndef CGDF_DISABLE_LOG_FILE
+    if (_logger_enabled_) {
         FILE *f = fopen(LOG_FILE_PATH, "a");
         if (f) {
             fprintf(f, "[%02d:%02d:%02d.%03d]: ", h, mi, s, ms);
             vfprintf(f, fmt, args_copy);
             fclose(f);
         }
-    #endif
+    }
 
     va_end(args_copy);
     va_end(args);

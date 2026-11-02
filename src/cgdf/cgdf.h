@@ -29,7 +29,7 @@ static inline bool CGDF_destroy(void) {
 }
 
 // Получить версию фреймворка:
-static inline const char* CGDF_GetVersion(void) {
+static inline const char* CGDF_get_version(void) {
     return CGDF_VERSION;
 }
 
