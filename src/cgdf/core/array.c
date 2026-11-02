@@ -283,7 +283,7 @@ void Array_print(Array *arr, FILE *out, ArrayPrintMode mode) {
             case ARRAY_PRINT_HEX: {
                 unsigned char *bytes = (unsigned char*)p;
                 for (size_t j = 0; j < arr->item_size; j++) {
-                    fprintf(out, "%02X", bytes[j]);  
+                    fprintf(out, "%02X", bytes[j]);
                 }
             } break;
             case ARRAY_PRINT_BOOL: {

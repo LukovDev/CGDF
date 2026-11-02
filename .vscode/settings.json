@@ -4,5 +4,22 @@
         "*.cpp": "cpp",
         "*.h": "c",
         "*.hpp": "cpp"
+    },
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build",
+        "--query-driver=**/gcc*",
+        "--header-insertion=never"
+    ],
+    "clangd.path": "C:\\Program Files\\LLVM\\bin\\clangd.exe",
+    "editor.semanticTokenColorCustomizations": {
+        "rules": {
+            "type": "#f77681",
+            "class": "#f77681",
+            "enum": "#f77681"
+        }
+    },
+    "[c]": {
+        "editor.links": false
     }
 }

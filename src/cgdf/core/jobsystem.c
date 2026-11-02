@@ -1,8 +1,8 @@
 //
-// jobsystem.c - Реализация работы с задачами (потоками).
+// jobsystem.c - Реализация системы задач (пул потоков).
 //
 // Создаёт отдельные системные потоки (воркеры) по всем ядрам процессора,
-// принимает другие задачи в пул потоков, и раздаёт их воркерам на выполнение.
+// принимает задачи в очередь, и раздаёт их воркерам на выполнение.
 //
 
 
@@ -16,7 +16,7 @@
 #include "jobsystem.h"
 
 
-// Глобальный объект работы с задачами (потоками):
+// Глобальный объект системы задач (пул потоков):
 JobSystem g_JobSystem;
 
 
@@ -29,7 +29,7 @@ static int _JobSystem_task_work_([[maybe_unused]] void *args) {
         mtx_lock(&g_JobSystem.mutex);
 
         // Пока задач нет, поток засыпает здесь и ждет сигнала:
-        while (Array_len(g_JobSystem.stack) == 0 && g_JobSystem.initialized) {
+        while (Array_len(g_JobSystem.queue) == 0 && g_JobSystem.initialized) {
             cnd_wait(&g_JobSystem.cond_var, &g_JobSystem.mutex);  // Уснул, отдав мьютекс.
         }
 
@@ -37,11 +37,11 @@ static int _JobSystem_task_work_([[maybe_unused]] void *args) {
         if (!g_JobSystem.initialized) {
             g_JobSystem.real_workers_count--;  // Поток умирает, уменьшаем счетчик живых.
             mtx_unlock(&g_JobSystem.mutex);
-            break; 
+            break;
         }
 
-        // Проснулся, забрал задачу:
-        Array_remove(g_JobSystem.stack, 0, &current_job);
+        // Проснулся, забрал самую старую задачу (из начала очереди):
+        Array_remove(g_JobSystem.queue, 0, &current_job);
         g_JobSystem.workers_count++;  // Поток занят работой.
         mtx_unlock(&g_JobSystem.mutex);
 
@@ -57,7 +57,7 @@ static int _JobSystem_task_work_([[maybe_unused]] void *args) {
 }
 
 
-// Инициализация работы с задачами (потоками):
+// Инициализация системы задач:
 void JobSystem_init(void) {
     if (g_JobSystem.initialized) return;
     g_JobSystem.initialized = true;
@@ -65,7 +65,7 @@ void JobSystem_init(void) {
     g_JobSystem.real_workers_count = 0;
     g_JobSystem.max_workers_count = Info_get_cpu().threads;  // Потоки процессора.
     if (g_JobSystem.max_workers_count == 0) g_JobSystem.max_workers_count = 1;  // Минимум 1.
-    g_JobSystem.stack = Array_create(sizeof(JobTask), g_JobSystem.max_workers_count);
+    g_JobSystem.queue = Array_create(sizeof(JobTask), g_JobSystem.max_workers_count);
 
     // Инициализируем мьютекс и переменную ожидания:
     mtx_init(&g_JobSystem.mutex, mtx_plain);
@@ -86,7 +86,7 @@ void JobSystem_init(void) {
 }
 
 
-// Прекращение работы с задачами (потоками):
+// Уничтожение системы задач (ждёт, пока доработают выполняющиеся задачи, а задачи из очереди выкидывает):
 void JobSystem_destroy(void) {
     if (!g_JobSystem.initialized) return;
 
@@ -104,10 +104,10 @@ void JobSystem_destroy(void) {
             break;
         }
         mtx_unlock(&g_JobSystem.mutex);
-        Time_delay(0.001);  
+        Time_delay(0.001);
     }
 
-    Array_destroy(&g_JobSystem.stack);
+    Array_destroy(&g_JobSystem.queue);
     mtx_destroy(&g_JobSystem.mutex);
     cnd_destroy(&g_JobSystem.cond_var);
     g_JobSystem.workers_count = 0;
@@ -115,21 +115,21 @@ void JobSystem_destroy(void) {
 }
 
 
-// Создать задачу:
+// Поставить задачу в очередь:
 void JobSystem_create_job(JobFunction func, void *args) {
     if (!g_JobSystem.initialized) return;
 
-    // Сначала создаем задачу и кладем её в стек (в конец массива):
+    // Сначала создаем задачу и кладём её в конец очереди:
     JobTask new_job;
     new_job.function = func;
     new_job.args = args;
     mtx_lock(&g_JobSystem.mutex);
-    Array_push(g_JobSystem.stack, &new_job);
+    Array_push(g_JobSystem.queue, &new_job);
 
-    // Проверяем целостность запущенных реальных воркеров, и восстанавливаем недостающие:
+    // Проверяем, все ли воркеры живы, и досоздаём недостающие:
     if (g_JobSystem.real_workers_count < g_JobSystem.max_workers_count) {
         size_t missing_workers = g_JobSystem.max_workers_count - g_JobSystem.real_workers_count;
-        log_msg("[W] JobSystem: Detected pool corruption! Missing %zu workers. Reviving...\n", missing_workers);
+        log_msg("[W] JobSystem: %zu workers are missing. Creating them...\n", missing_workers);
 
         for (size_t i = 0; i < missing_workers; i++) {
             thrd_t thread;
@@ -137,38 +137,38 @@ void JobSystem_create_job(JobFunction func, void *args) {
                 g_JobSystem.real_workers_count++;
                 thrd_detach(thread);
             } else {
-                log_msg("[E] JobSystem: Integrity check failed to revive thread!\n");
+                log_msg("[E] JobSystem: Failed to create missing worker!\n");
                 break;
             }
         }
     }
 
-    cnd_signal(&g_JobSystem.cond_var);  // Сообщаем одному случайному потоку, что есть задача.
+    cnd_signal(&g_JobSystem.cond_var);  // Будим один спящий воркер (если все заняты, задачу заберёт освободившийся).
     mtx_unlock(&g_JobSystem.mutex);
 }
 
 
-// Есть ли ещё работающие задачи:
+// Есть ли задачи в работе или в очереди:
 bool JobSystem_has_active_jobs(void) {
     if (!g_JobSystem.initialized) return false;
     mtx_lock(&g_JobSystem.mutex);
-    bool has_active = (g_JobSystem.workers_count > 0 || Array_len(g_JobSystem.stack) > 0);
+    bool has_active = (g_JobSystem.workers_count > 0 || Array_len(g_JobSystem.queue) > 0);
     mtx_unlock(&g_JobSystem.mutex);
     return has_active;
 }
 
 
-// Получить количество задач в очереди (стеке):
+// Получить количество задач в очереди:
 size_t JobSystem_get_jobs_count(void) {
     if (!g_JobSystem.initialized) return 0;
     mtx_lock(&g_JobSystem.mutex);
-    size_t count = Array_len(g_JobSystem.stack);
+    size_t count = Array_len(g_JobSystem.queue);
     mtx_unlock(&g_JobSystem.mutex);
     return count;
 }
 
 
-// Получить количество активных потоков:
+// Получить количество воркеров, занятых задачей:
 size_t JobSystem_get_active_workers_count(void) {
     if (!g_JobSystem.initialized) return 0;
     mtx_lock(&g_JobSystem.mutex);
@@ -178,14 +178,17 @@ size_t JobSystem_get_active_workers_count(void) {
 }
 
 
-// Получить количество реальных потоков:
+// Получить количество живых воркеров:
 size_t JobSystem_get_real_workers_count(void) {
     if (!g_JobSystem.initialized) return 0;
-    return g_JobSystem.real_workers_count;
+    mtx_lock(&g_JobSystem.mutex);
+    size_t count = g_JobSystem.real_workers_count;
+    mtx_unlock(&g_JobSystem.mutex);
+    return count;
 }
 
 
-// Получить максимальное количество потоков:
+// Получить сколько воркеров должно быть:
 size_t JobSystem_get_max_workers_count(void) {
     if (!g_JobSystem.initialized) return 0;
     return g_JobSystem.max_workers_count;

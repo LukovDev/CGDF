@@ -136,10 +136,10 @@ static void _get_memory_info_(int *total, int *used, int *free) {
     if (GLAD_GL_NVX_gpu_memory_info) {
         glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_NVX, &total_kb);
         glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_NVX, &free_kb);
-    } 
+    }
     // Если первое не сработало, пробуем AMD:
     else if (GLAD_GL_ATI_meminfo) {
-        int info[4]; 
+        int info[4];
         glGetIntegerv(GL_VBO_FREE_MEMORY_ATI, info);
         free_kb = info[0];
         // Примечание: Расширение ATI не даёт узнать сколько всего видеопамяти и не даёт необходимой информации.
@@ -288,12 +288,12 @@ static void _lighting_update_shadows_atlas_(Lighting3D *self) {
 }
 
 // Границы каскадов по дальности (смесь логарифмического и равномерного деления):
-static void _shadows_calc_splits_(float near, float far, float lambda, int count, float *out_splits) {
-    out_splits[0] = near;
+static void _shadows_calc_splits_(float z_near, float z_far, float lambda, int count, float *out_splits) {
+    out_splits[0] = z_near;
     for (int i = 1; i <= count; i++) {
         float t = (float)i / (float)count;
-        float log_split = near * powf(far / near, t);  // Логарифм: больше деталей вблизи.
-        float lin_split = near + (far - near) * t;     // Равномерно: больше деталей вдали.
+        float log_split = z_near * powf(z_far / z_near, t);  // Логарифм: больше деталей вблизи.
+        float lin_split = z_near + (z_far - z_near) * t;     // Равномерно: больше деталей вдали.
         out_splits[i] = lambda * log_split + (1.0f - lambda) * lin_split;
     }
 }

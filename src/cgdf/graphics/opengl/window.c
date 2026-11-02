@@ -1006,7 +1006,7 @@ static Input_Scancode ConvertScancode(SDL_Scancode scancode) {
         case SDL_SCANCODE_POWER: return K_POWER;
 
         // Other keys...
-    
+
         case SDL_SCANCODE_UNKNOWN:
         default: return K_UNKNOWN;
     }

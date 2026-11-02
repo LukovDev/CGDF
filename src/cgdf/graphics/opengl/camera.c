@@ -28,6 +28,9 @@ Camera2D* Camera2D_create(Window *window, int width, int height, Vec2d position,
     camera->height = height;
     camera->_ui_begin_ = false;
 
+    // Диапазон слоев от -1 до 1:
+    camera->layers_range = (Vec2f){-1.0f, 1.0f};
+
     // Матрица вида:
     glm_mat4_identity(camera->view);
     glm_mat4_identity(camera->old_view);
@@ -97,14 +100,20 @@ void Camera2D_resize(Camera2D *self, int width, int height) {
     glm_mat4_identity(self->proj);
     float wdth = ((float)self->width)*0.5f * self->meter/100.0f;
     float hght = ((float)self->height)*0.5f * self->meter/100.0f;
-    glm_ortho(-wdth, wdth, -hght, hght, -1.0f, 1.0f, self->proj);
+    glm_ortho(-wdth, wdth, -hght, hght, self->layers_range.x, self->layers_range.y, self->proj);
 }
 
-// Изменить масштаб единицы измерения:
+// Установить масштаб единицы измерения:
 void Camera2D_set_meter(Camera2D *self, float meter) {
     if (!self) return;
     self->meter = meter;
     Camera2D_resize(self, self->width, self->height);
+}
+
+// Установить диапазон слоев отображения:
+void Camera2D_set_layers_range(Camera2D *self, float min_layer, float max_layer) {
+    if (!self) return;
+    self->layers_range = (Vec2f){min_layer, max_layer};
 }
 
 // Начало отрисовки UI:
@@ -121,7 +130,13 @@ void Camera2D_ui_begin(Camera2D *self) {
     glm_mat4_copy(self->view, self->old_view);
     glm_mat4_copy(self->proj, self->old_proj);
     glm_mat4_identity(self->view);
-    glm_ortho(0.0f, (float)self->width, 0.0f, (float)self->height, -1.0f, 1.0f, self->proj);
+    glm_ortho(
+        0.0f, (float)self->width,
+        0.0f, (float)self->height,
+        self->layers_range.x,
+        self->layers_range.y,
+        self->proj
+    );
     Shader *shader = renderer->shader;
     Shader_begin(shader);
     Shader_set_mat4(shader, "u_view", self->view);

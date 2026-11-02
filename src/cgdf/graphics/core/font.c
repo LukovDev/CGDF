@@ -344,6 +344,7 @@ FontPixmap* FontPixmap_create(Renderer *renderer, const char *file_path, int fon
     font->scale_factor = (Vec2f){1.0f, 1.0f};
     font->pixelized = false;  // Чисто технически, нужен как флаг-кэш для включения/отключения пикселизации один раз.
     font->align = FONT_ALIGN_BOTTOM_LEFT;
+    font->layer = 0.0f;
 
     // Метрики которые нельзя редактировать:
     font->font_size = font_size;
@@ -539,6 +540,18 @@ void FontPixmap_set_space_advance(FontPixmap *self, float space_advance) {
 float FontPixmap_get_space_advance(FontPixmap *self) {
     if (!self) return 0.0f;
     return self->space_advance;
+}
+
+// Получить слой текста:
+float FontPixmap_get_layer(FontPixmap *self) {
+    if (!self) return 0.0f;
+    return self->layer;
+}
+
+// Установить слой текста:
+void FontPixmap_set_layer(FontPixmap *self, float layer) {
+    if (!self) return;
+    self->layer = layer;
 }
 
 // Получить блок текста:
@@ -742,6 +755,7 @@ void FontPixmap_render(FontPixmap *self, float x, float y, float angle, const ch
 
     // Начинаем рисовать текст:
     SpriteBatch_begin(self->batch);
+    SpriteBatch_set_layer(self->batch, self->layer);
 
     // Рисуем фон (пока что на весь блок текста):
     if (self->bg_color.w > 0.0f) {

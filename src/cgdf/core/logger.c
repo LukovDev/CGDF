@@ -13,7 +13,6 @@
 
 
 // Подключаем:
-#include "constants.h"
 #include "std.h"
 #include "time.h"
 #include "logger.h"
@@ -23,6 +22,10 @@
 #else
     #include <unistd.h>
 #endif
+
+
+// Определения:
+#define LOG_FILE_PATH "data/latest.log"
 
 
 // Преобразование кода сигнала в строку:

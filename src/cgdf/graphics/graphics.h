@@ -32,6 +32,7 @@ extern "C" {
 #include "core/utils.h"
 #include "core/vertex.h"
 #include "core/window.h"
+#include "gui/gui.h"
 
 #ifdef __cplusplus
 }

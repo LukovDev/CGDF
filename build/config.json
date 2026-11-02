@@ -5,6 +5,7 @@
         "src/test/",
         "src/cgdf/core/",
         "src/cgdf/graphics/core/",
+        "src/cgdf/graphics/gui/",
         "src/cgdf/graphics/opengl/"
     ],
     "build-dir":     "build/",
@@ -44,8 +45,22 @@
         "-Werror=implicit-function-declaration"
     ],
     "compile-flags-s": [],
-    "compile-flags-c":   ["-march=native", "-mtune=native", "-ftree-vectorize", "-funroll-loops", "-g"],
-    "compile-flags-cpp": ["-march=native", "-mtune=native", "-ftree-vectorize", "-funroll-loops", "-g"],
+    "compile-flags-c":   [
+        "-march=native",
+        "-mtune=native",
+        "-ftree-vectorize",
+        "-funroll-loops",
+        "-Wa,-muse-unaligned-vector-move",
+        "-g"
+    ],
+    "compile-flags-cpp": [
+        "-march=native",
+        "-mtune=native",
+        "-ftree-vectorize",
+        "-funroll-loops",
+        "-Wa,-muse-unaligned-vector-move",
+        "-g"
+    ],
     "linker-flags":  [],
     "commands-after-build": []
 }

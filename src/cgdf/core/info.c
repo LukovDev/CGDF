@@ -136,8 +136,8 @@ CpuInfo Info_get_cpu(void) {
 
     // Кэширование результата:
     if (!g_Info_cpu_cached_) {
-        g_Info_cpu_cached_ = true;
         g_Info_cpu_info_cache_ = info;
+        g_Info_cpu_cached_ = true;
     }
     return info;
 }

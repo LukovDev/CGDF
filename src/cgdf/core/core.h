@@ -14,7 +14,6 @@ extern "C" {
 // Подключаем:
 #include "std.h"
 #include "array.h"
-#include "constants.h"
 #include "files.h"
 #include "hashtable.h"
 #include "info.h"
@@ -27,17 +26,19 @@ extern "C" {
 #include "noise.h"
 #include "pixmap.h"
 #include "platform.h"
+#include "random.h"
 #include "time.h"
 
 
 // Инициализация ядра:
 static inline bool core_init(void) {
-    Time_init();
+    Info_get_cpu();  // Вызываем 1 раз чтобы кэшировать данные.
+    Time_init();     // Время инициализируем первым, потому что остальные модули могут использовать его.
     Logger_init();
     JobSystem_init();
 
     // Инициализация генератора случайных чисел:
-    srand((uint32_t)(Time_now(nullptr)));
+    random_init((uint32_t)(Time_now(nullptr)));
 
     // Настраиваем пути для OS X:
     #ifdef __APPLE__

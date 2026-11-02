@@ -37,6 +37,8 @@ static OBJFile hydrant;
 static OBJFile map;
 static Texture *poweredby;
 
+static GUIButton button;
+
 
 static void print_before_free(void) {
     log_msg("[I] (Before free) MM used: %g kb (%zu b). Blocks allocated: %zu. Absolute: %zu b. BlockHeaderSize: %zu b.\n",
@@ -117,6 +119,25 @@ void start(Window *self) {
     ctrl_orbit = CameraOrbitController3D_create(self, camera3d, (Vec3d){0.0f, 0.0f, 0.0f}, 0.1f, 5.0f, 0.75f);
 
     log_msg("[I] Loading data...\n");
+
+    // Наша кнопка:
+    button = (GUIButton){
+        .x = 32,
+        .y = 32,
+        .width = 128,
+        .height = 32,
+        .border_width = 2,
+        .text = "Кнопка!",
+        .text_scale = 1.0f,
+        .texture = nullptr,
+        .text_color = (Vec4f){0.0f, 0.0f, 0.0f, 1.0f},
+        .color = (Vec4f){0.9f, 0.95f, 1.0f, 1.0f},
+        .border_color = (Vec4f){0.3f, 0.35f, 0.4f, 1.0f},
+        .hover_color = (Vec4f){0.7f, 0.75f, 0.8f, 1.0f},
+        .action_color = (Vec4f){0.5f, 0.55f, 0.6f, 1.0f},
+        .hover = false,
+        .action = false
+    };
 
     tex1 = Texture_create(self->renderer);
     Texture_load(tex1, "data/logo/CGDF2x2.png", true);
@@ -347,7 +368,7 @@ void start(Window *self) {
         Mesh *mesh = Array_get_ptr(mapmod->meshes, i);
         Mesh_set_material(mesh, grass_mat);
     }
-    
+
     Model *floor = Array_get_ptr(objfile2.models, 0);
     for (size_t i=0; i<Array_len(floor->meshes); i++) {
         Mesh *mesh = Array_get_ptr(floor->meshes, i);
@@ -603,7 +624,7 @@ void render(Window *self, float dtime) {
     //     50.0f, 100.0f, 90.0f, 0.0f, false
     // );
     // Light3D_point(self->renderer, (Vec3f){camera3d->position.x, camera3d->position.y, camera3d->position.z}, 0.01f, (Vec3f){1.0f, 0.6f, 0.3f}, 50.0f, 10.0f, false);
-    Renderer_set_sun_intensity(self->renderer, 0.0f);
+    // Renderer_set_sun_intensity(self->renderer, 0.0f);
 
     // for (int x = -16; x < 16; x++) {
     //     for (int y = -16; y < 16; y++) {
@@ -644,6 +665,13 @@ void render(Window *self, float dtime) {
     Texture *depth = Renderer_get_tex_depth(self->renderer);
     Texture *light = Renderer_get_tex_light(self->renderer);
     Texture *shadows = Renderer_get_tex_shadows(self->renderer);
+
+    SpriteBatch_begin(batch);
+    for (int i = 0; i < 10; i++) {
+        SpriteBatch_set_layer(batch, i);
+        SpriteBatch_draw(batch, tex1, 0.0f, 10.0f, 1, 1, 0.0f);
+    }
+    SpriteBatch_end(batch);
 
     Camera2D_update(camera2d);
     Camera2D_ui_begin(camera2d);
@@ -686,10 +714,10 @@ void render(Window *self, float dtime) {
         Shader_begin(self->renderer->shader);
         Shader_set_int(self->renderer->shader, "u_gbuffer_view", 5);
         Shader_end(self->renderer->shader);
-        Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_NONE);                   // Читаем как обычную текстуру глубины.
+        Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_NONE);  // Читаем как обычную текстуру глубины.
         Sprite2D_render(self->renderer, shadows, x4 - w - h, y2, h, h, 0.0f, (Vec4f){1, 1, 1, 1}, false);
-        Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE); // Возвращаем для теней.
-    
+        Texture_set_filter(shadows, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);  // Возвращаем для теней.
+
         Shader_begin(self->renderer->shader);
         Shader_set_bool(self->renderer->shader, "u_use_gbuffer", false);
         Shader_end(self->renderer->shader);

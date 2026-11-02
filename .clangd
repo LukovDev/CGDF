@@ -1,0 +1,11 @@
+CompileFlags:
+  Remove: [-march=*, -mtune=*]
+InlayHints:
+  Enabled: No
+Diagnostics:
+  UnusedIncludes: None
+  Suppress: [unused-parameter]
+Hover:
+  ShowAKA: Yes
+Completion:
+  ArgumentLists: Delimiters

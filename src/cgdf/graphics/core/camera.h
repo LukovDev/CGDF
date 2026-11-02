@@ -30,6 +30,8 @@ struct Camera2D {
     float meter;      // Масштаб единицы измерения.
     bool _ui_begin_;  // Отрисовывается ли интерфейс.
 
+    Vec2f layers_range;  // Диапазон для отрисовки слоев, от минимального уровня до максимального.
+
     // Можно обратиться как к size.x/y так и к width/height:
     union {
         Vec2i size;  // Размер камеры.
@@ -78,8 +80,11 @@ void Camera2D_update(Camera2D *self);
 // Изменить размер камеры:
 void Camera2D_resize(Camera2D *self, int width, int height);
 
-// Изменить масштаб единицы измерения:
+// Установить масштаб единицы измерения:
 void Camera2D_set_meter(Camera2D *self, float meter);
+
+// Установить диапазон слоев отображения:
+void Camera2D_set_layers_range(Camera2D *self, float min_layer, float max_layer);
 
 // Начало отрисовки UI:
 void Camera2D_ui_begin(Camera2D *self);

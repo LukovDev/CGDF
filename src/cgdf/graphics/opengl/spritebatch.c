@@ -27,6 +27,7 @@ struct SpriteBatch {
     Vec4f        color;              // Цвета спрайтов.
     Vec4f        texcoord;           // Текстурные координаты спрайтов.
     uint32_t     batch_size;         // Максимальный размер пакета (в количестве спрайтов).
+    float        layer;              // Слой последующих отрисовывающихся спрайтов.
     Shader       *_custom_shader_;   // Кастомный шейдер.
     bool         _is_begin_;         // Внутренний флаг-ключ отрисовки.
     bool         _buffers_init_;     // Флаг инициализации буферов.
@@ -148,6 +149,7 @@ SpriteBatch* SpriteBatch_create(Renderer *renderer) {
     batch->color = (Vec4f){1.0f, 1.0f, 1.0f, 1.0f};
     batch->texcoord = (Vec4f){0.0f, 0.0f, 1.0f, 1.0f};
     batch->batch_size = BATCH_MAX_SPRITES;
+    batch->layer = 0.0f;
     batch->_is_begin_ = false;
     batch->_custom_shader_ = nullptr;
     batch->_buffers_init_ = false;
@@ -253,6 +255,18 @@ void SpriteBatch_set_batch_size(SpriteBatch *self, uint32_t size) {
     _create_buffers_(self);
 }
 
+// Получить слой спрайтов:
+float SpriteBatch_get_layer(SpriteBatch *self) {
+    if (!self) return 0.0f;
+    return self->layer;
+}
+
+// Установить слой спрайтов:
+void SpriteBatch_set_layer(SpriteBatch *self, float layer) {
+    if (!self) return;
+    self->layer = layer;
+}
+
 // Добавить 2D спрайт в пакет данных:
 void SpriteBatch_draw(
     SpriteBatch *self, Texture *texture,
@@ -326,10 +340,10 @@ void SpriteBatch_draw(
     // Добавляем сетку в буфер:
     Vec4f tc = self->texcoord;
     uint32_t base = self->vertex_count;  // Смещение в массиве вершин.
-    self->array[base+0] = (SpriteVertex){v[0], v[1], 0, tc.x, tc.w, .color=self->color};  // 1.
-    self->array[base+1] = (SpriteVertex){v[2], v[3], 0, tc.z, tc.w, .color=self->color};  // 2.
-    self->array[base+2] = (SpriteVertex){v[4], v[5], 0, tc.z, tc.y, .color=self->color};  // 3.
-    self->array[base+3] = (SpriteVertex){v[6], v[7], 0, tc.x, tc.y, .color=self->color};  // 4.
+    self->array[base+0] = (SpriteVertex){v[0], v[1], self->layer, tc.x, tc.w, .color=self->color};  // 1.
+    self->array[base+1] = (SpriteVertex){v[2], v[3], self->layer, tc.z, tc.w, .color=self->color};  // 2.
+    self->array[base+2] = (SpriteVertex){v[4], v[5], self->layer, tc.z, tc.y, .color=self->color};  // 3.
+    self->array[base+3] = (SpriteVertex){v[6], v[7], self->layer, tc.x, tc.y, .color=self->color};  // 4.
 
     // Обновляем счётчики:
     self->vertex_count += 4;  // Записали 4 вершины.

@@ -15,6 +15,7 @@ data/shaders/
 data/obj/
 data/game/
 src/game/
+src/engine/
 
 __pycache__
 compile_commands.json

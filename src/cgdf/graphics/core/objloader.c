@@ -99,7 +99,7 @@ static void flush_mesh(Model *model, Array *vertices, Array *indices, Material *
 
     Mesh *mesh = Mesh_create(
         vertices->data, (uint32_t)Array_len(vertices),
-        indices->data, (uint32_t)Array_len(indices), 
+        indices->data, (uint32_t)Array_len(indices),
         false, material
     );
     Model_add_mesh(model, mesh);
@@ -320,7 +320,7 @@ static void parse_mtl_file(Renderer *renderer, const char *filepath, Array *mate
         else if (mat && (strncmp(s, "map_d", 5) == 0 && (s[5] == ' ' || s[5] == '\t'))) {
             char *path = parse_texture_path(skip_ws(s + 5));
             if (path) {
-                mat->transparent = true; 
+                mat->transparent = true;
                 // Обычно объединяется с albedo_map в рантайме или шейдере.
             }
         }

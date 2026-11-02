@@ -78,6 +78,7 @@ struct FontPixmap {
     float letter_spacing;  // [editable] Дополнительный межбуквенный интервал (px).
     int   tab_size;        // [editable] Сколько пробелов в '\t'.
     float space_advance;   // [editable] Ширина пробела (px).
+    float layer;           // [editable] Слой отображения текста.
 };
 
 
@@ -173,6 +174,12 @@ void FontPixmap_set_space_advance(FontPixmap *self, float space_advance);
 
 // Получить ширину пробела:
 float FontPixmap_get_space_advance(FontPixmap *self);
+
+// Получить слой текста:
+float FontPixmap_get_layer(FontPixmap *self);
+
+// Установить слой текста:
+void FontPixmap_set_layer(FontPixmap *self, float layer);
 
 // Получить блок текста:
 PRINTF_FORMAT(2, 3) FontTextBlock FontPixmap_get_text_block(FontPixmap *self, const char *text, ...);

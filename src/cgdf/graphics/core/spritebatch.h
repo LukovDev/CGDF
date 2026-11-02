@@ -85,6 +85,12 @@ void SpriteBatch_set_custom_shader(SpriteBatch *self, Shader *shader);
 // Установить размер пакета спрайтов (обязательно сделайте это перед первым вызовом `begin()` функции!):
 void SpriteBatch_set_batch_size(SpriteBatch *self, uint32_t size);
 
+// Получить слой спрайтов:
+float SpriteBatch_get_layer(SpriteBatch *self);
+
+// Установить слой спрайтов:
+void SpriteBatch_set_layer(SpriteBatch *self, float layer);
+
 // Добавить 2D спрайт в пакет данных:
 void SpriteBatch_draw(
     SpriteBatch *self, Texture *texture,
