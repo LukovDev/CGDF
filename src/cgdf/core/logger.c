@@ -14,6 +14,7 @@
 
 // Подключаем:
 #include "std.h"
+#include "libs.h"
 #include "time.h"
 #include "logger.h"
 
@@ -26,6 +27,7 @@
 
 // Определения:
 #define LOG_FILE_PATH "data/latest.log"
+static mtx_t _logger_mutex_;
 
 
 // Преобразование кода сигнала в строку:
@@ -83,11 +85,14 @@ void Logger_init(void) {
     signal(SIGILL,  crash_handler);
     signal(SIGTERM, crash_handler);
     signal(SIGINT,  crash_handler);
+
+    mtx_init(&_logger_mutex_, mtx_plain);
 }
 
 
 // Вывод сообщения в лог-файл и в консоль:
 void log_msg(const char *fmt, ...) {
+    mtx_lock(&_logger_mutex_);
     va_list args, args_copy;
 
     // Получаем время:
@@ -114,4 +119,5 @@ void log_msg(const char *fmt, ...) {
 
     va_end(args_copy);
     va_end(args);
+    mtx_unlock(&_logger_mutex_);
 }
